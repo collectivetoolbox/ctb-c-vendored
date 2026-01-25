@@ -1,0 +1,5 @@
+usr/include/fontconfig/*
+usr/lib/*/pkgconfig/fontconfig.pc
+usr/lib/*/libfontconfig*.a
+usr/lib/*/libfontconfig*.so
+usr/share/gettext/its

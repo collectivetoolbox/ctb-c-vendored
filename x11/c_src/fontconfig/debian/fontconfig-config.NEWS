@@ -1,0 +1,9 @@
+fontconfig (2.12.3-0.2) unstable; urgency=medium
+
+  Starting with version 2.12, fontconfig is using "Slight" (hintslight) as
+  automatic hinting style. This might change the rendering of the fonts.
+
+  If you want the to restore the old hinting, run "dpkg-reconfigure
+  fontconfig-config" and select "Full" as hinting style.
+
+ -- Laurent Bigonville <bigon@debian.org>  Tue, 04 Jul 2017 21:10:57 +0200

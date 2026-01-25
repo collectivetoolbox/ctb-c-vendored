@@ -1,0 +1,37 @@
+#!/usr/bin/make -f
+
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+export DEB_LDFLAGS_MAINT_APPEND = -Wl,-O1 -Wl,-z,defs
+export DPKG_GENSYMBOLS_CHECK_LEVEL = 4
+
+ifneq ($(filter nodoc,$(DEB_BUILD_PROFILES)),)
+	BUILD_DOC := --disable-docs
+else
+	BUILD_DOC := --enable-docs
+endif
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	dh_auto_configure -- --enable-static $(BUILD_DOC) --with-add-fonts=/usr/local/share/fonts
+
+override_dh_makeshlibs:
+	dh_makeshlibs --add-udeb="fontconfig-udeb"
+
+execute_after_dh_clean:
+	chmod +w debian/po/*.po
+	debconf-updatepo
+
+execute_after_dh_install-arch:
+	cd debian/fontconfig-config/usr/share/fontconfig/conf.avail && \
+		mv 70-yes-bitmaps.conf 70-force-bitmaps.conf
+	cp debian/70-yes-bitmaps.conf debian/fontconfig-config/usr/share/fontconfig/conf.avail/
+	# Do not ship 10-hinting-slight.conf symlink by default, let debconf handle
+	# that so the administrator can configure it. Still default to slight hinting.
+	rm debian/fontconfig-config/etc/fonts/conf.d/10-hinting-slight.conf
+
+# one of the tests makes sure that the uuid changes, so we have to run tests
+# without SOURCE_DATE_EPOCH set
+override_dh_auto_test:
+	env --unset=SOURCE_DATE_EPOCH dh_auto_test

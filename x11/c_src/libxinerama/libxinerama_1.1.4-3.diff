@@ -1,0 +1,555 @@
+--- libxinerama-1.1.4.orig/autogen.sh
++++ libxinerama-1.1.4/autogen.sh
+@@ -0,0 +1,17 @@
++#! /bin/sh
++
++srcdir=`dirname "$0"`
++test -z "$srcdir" && srcdir=.
++
++ORIGDIR=`pwd`
++cd "$srcdir"
++
++autoreconf -v --install || exit 1
++cd "$ORIGDIR" || exit $?
++
++git config --local --get format.subjectPrefix >/dev/null 2>&1 ||
++    git config --local format.subjectPrefix "PATCH libXinerama"
++
++if test -z "$NOCONFIGURE"; then
++    exec "$srcdir"/configure "$@"
++fi
+--- libxinerama-1.1.4.orig/debian/README.source
++++ libxinerama-1.1.4/debian/README.source
+@@ -0,0 +1,49 @@
++------------------------------------------------------
++Quick Guide To Patching This Package For The Impatient
++------------------------------------------------------
++
++1. Make sure you have quilt installed
++2. Unpack the package as usual with "dpkg-source -x"
++3. Run the "patch" target in debian/rules
++4. Create a new patch with "quilt new" (see quilt(1))
++5. Edit all the files you want to include in the patch with "quilt edit" 
++   (see quilt(1)).
++6. Write the patch with "quilt refresh" (see quilt(1))
++7. Run the "clean" target in debian/rules
++
++Alternatively, instead of using quilt directly, you can drop the patch in to 
++debian/patches and add the name of the patch to debian/patches/series.
++
++------------------------------------
++Guide To The X Strike Force Packages
++------------------------------------
++
++The X Strike Force team maintains X packages in git repositories on
++salsa.debian.org in the xorg-team group. Most upstream packages
++are actually maintained in git repositories as well, so they often
++just need to be pulled into salsa.debian.org in a "upstream-*" branch.
++Otherwise, the upstream sources are manually installed in the Debian
++git repository.
++
++The .orig.tar.gz upstream source file could be generated using this
++"upstream-*" branch in the Debian git repository but it is actually
++copied from upstream tarballs directly.
++
++Due to X.org being highly modular, packaging all X.org applications
++as their own independent packages would have created too many Debian
++packages. For this reason, some X.org applications have been grouped
++into larger packages: xutils, xutils-dev, x11-apps, x11-session-utils,
++x11-utils, x11-xfs-utils, x11-xkb-utils, x11-xserver-utils.
++Most packages, including the X.org server itself and all libraries
++and drivers are, however maintained independently.
++
++The Debian packaging is added by creating the "debian-*" git branch
++which contains the aforementioned "upstream-*" branch plus the debian/
++repository files.
++When a patch has to be applied to the Debian package, two solutions
++are involved:
++* If the patch is available in one of the upstream branches, it
++  may be git'cherry-picked into the Debian repository. In this
++  case, it appears directly in the .diff.gz.
++* Otherwise, the patch is added to debian/patches/ which is managed
++  with quilt as documented in /usr/share/doc/quilt/README.source.
+--- libxinerama-1.1.4.orig/debian/changelog
++++ libxinerama-1.1.4/debian/changelog
+@@ -0,0 +1,230 @@
++libxinerama (2:1.1.4-3) unstable; urgency=medium
++
++  * control: Migrate to x11proto-dev. (Closes: #969068)
++  * control: Migrate to debhelper-compat, bump to 13.
++  * control: Bump policy to 4.6.0.
++  * Update README.source for salsa.
++  * watch: Updated link to upstream git repo.
++
++ -- Timo Aaltonen <tjaalton@debian.org>  Wed, 02 Feb 2022 16:24:34 +0200
++
++libxinerama (2:1.1.4-2) unstable; urgency=high
++
++  * Restore dh_makeshlibs override lost in 2:1.1.4-1, fixing udeb dependencies
++    (closes: #921715).  Thanks, Simon McVittie!
++  * Let uscan check upstream tarball signatures.
++
++ -- Julien Cristau <jcristau@debian.org>  Fri, 08 Feb 2019 11:51:27 +0100
++
++libxinerama (2:1.1.4-1) unstable; urgency=medium
++
++  * New upstream release.
++  * control: Update VCS urls.
++  * Bump compat to 11, migrate to dh.
++  * Purge xsfbs.
++  * source: Mark as format 1.0.
++  * control: Drop Cyril from uploaders.
++  * Migrate to -dbgsym.
++  * control: Bump policy to 4.2.0, no changes.
++
++ -- Timo Aaltonen <tjaalton@debian.org>  Thu, 30 Aug 2018 15:25:27 +0300
++
++libxinerama (2:1.1.3-1) sid; urgency=low
++
++  * New upstream release.
++  * Bump debhelper compat level to 7.
++  * Use dpkg-buildflags.
++  * Use dh_prep instead of dh_clean -k.
++  * Disable silent build rules.
++
++ -- Julien Cristau <jcristau@debian.org>  Sun, 30 Jun 2013 18:05:54 +0200
++
++libxinerama (2:1.1.2-1+deb7u1) wheezy-security; urgency=high
++
++  * integer overflow in XineramaQueryScreens() [CVE-2013-1985]
++
++ -- Julien Cristau <jcristau@debian.org>  Tue, 14 May 2013 16:48:48 +0200
++
++libxinerama (2:1.1.2-1) unstable; urgency=low
++
++  * New upstream release.
++  * Make libxinerama-dev Multi-Arch: same.
++  * Don't require (fake)root for debian/rules clean.
++
++ -- Julien Cristau <jcristau@debian.org>  Thu, 19 Apr 2012 21:27:51 +0200
++
++libxinerama (2:1.1.1-3) unstable; urgency=low
++
++  * Team upload.
++  * Don't ship debug symbols for the udeb in libxinerama1-dbg.
++  * Add build-{arch,indep} debian/rules targets.
++
++ -- Julien Cristau <jcristau@debian.org>  Sun, 12 Jun 2011 00:27:25 +0200
++
++libxinerama (2:1.1.1-2) unstable; urgency=low
++
++  * Team upload.
++
++  [ Steve Langasek ]
++  * Build for multiarch.
++
++  [ Julien Cristau ]
++  * Remove David Nusinow from Uploaders.
++  * Bump Standards-Version to 3.9.2.
++
++ -- Julien Cristau <jcristau@debian.org>  Sat, 11 Jun 2011 16:26:59 +0200
++
++libxinerama (2:1.1.1-1) unstable; urgency=low
++
++  * New upstream release.
++  * Update debian/copyright.
++  * Bump xutils-dev build-dep for new macros.
++  * Switch from --list-missing to --fail-missing for additional safety.
++  * Add -XlibXinerama.la accordingly.
++
++ -- Cyril Brulebois <kibi@debian.org>  Sat, 06 Nov 2010 15:44:22 +0100
++
++libxinerama (2:1.1-3) unstable; urgency=low
++
++  [ Julien Cristau ]
++  * Rename the build directory to not include DEB_BUILD_GNU_TYPE for no
++    good reason.  Thanks, Colin Watson!
++  * Remove myself from Uploaders
++
++  [ Cyril Brulebois ]
++  * Add udeb needed for the graphical installer: libxinerama1-udeb.
++  * Version/Bump some B-D to make sure the udeb gets its dependencies on
++    the (recently-added) udebs rather than on the libraries:
++     - libx11-dev
++     - libxext-dev
++  * Bump Standards-Version from 3.8.3 to 3.8.4 (no changes needed).
++  * Add myself to Uploaders.
++
++ -- Cyril Brulebois <kibi@debian.org>  Thu, 11 Mar 2010 04:45:40 +0100
++
++libxinerama (2:1.1-2) unstable; urgency=low
++
++  * Upload to unstable.
++
++ -- Julien Cristau <jcristau@debian.org>  Wed, 06 Jan 2010 13:02:47 +0000
++
++libxinerama (2:1.1-1) experimental; urgency=low
++
++  [ Brice Goglin ]
++  * Add upstream URL to debian/copyright.
++  * Add a link to www.X.org and a reference to the upstream module
++    in the long description.
++
++  [ Timo Aaltonen ]
++  * New upstream release (closes: #555997).
++  * Run autoreconf on build. Add build-deps on automake, libtool
++    and xutils-dev.
++  * Parse space-separated DEB_BUILD_OPTIONS, and handle parallel=N.
++  * Bump Standards-Version to 3.8.3.
++  * Add headers to libxinerama-dev, moved from x11proto-xinerama-dev.
++  * Bump {Build-,}Depends, add Replaces on x11proto-xinerama-dev.
++  * Move -dbg package to section debug.
++  * Drop pre-dependency on x11-common from libxinerama-dev. This was needed
++    for upgrades from sarge.
++
++ -- Julien Cristau <jcristau@debian.org>  Wed, 02 Dec 2009 15:06:18 +0100
++
++libxinerama (2:1.0.3-2) unstable; urgency=low
++
++  [ Julien Cristau ]
++  * libxinerama1{,-dbg} don't need to depend on x11-common.
++  * libxinerama-dev doesn't install any header, remove usr/include/X11/ from
++    libxinerama-dev.install.
++
++  [ Andres Salomon ]
++  * Test for obj-$(DEB_BUILD_GNU_TYPE) before creating it during build;
++    idempotency fix.
++  * Version x11-common pre-dep in -dev package to 1:7.0.0 to match
++    the rest of Debian.
++  * Bump debhelper compat to 5.
++  * Fix dh_strip call to skip the -dbg package.
++
++ -- Julien Cristau <jcristau@debian.org>  Sun, 18 May 2008 22:02:34 +0200
++
++libxinerama (2:1.0.3-1) unstable; urgency=low
++
++  [ Timo Aaltonen ]
++  * Bump the epoch so that this can be synced to Ubuntu in the future.
++
++  [ Julien Cristau ]
++  * New upstream release.
++  * debian/control updates:
++    + add myself to Uploaders, remove Fabio and Branden with their permission
++    + bump Standards-Version to 3.7.3
++    + drop the XS- prefix from Vcs fields
++    + drop -1 revisions from build-depends to please lintian
++    + use ${binary:Version} instead of ${Source-Version}
++
++ -- Julien Cristau <jcristau@debian.org>  Fri, 07 Mar 2008 15:06:39 +0100
++
++libxinerama (1:1.0.2-1) unstable; urgency=low
++
++  * New upstream release.
++  * Ack NMU. Thanks, Pierre Habouzit!
++  * Add XS-Vcs-* to debian/control, and drop outdated CVS info.
++  * Fix Section/Priority for binary packages.
++  * Add and install the upstream ChangeLog.
++  * Install manpages in libxinerama-dev.
++  * Run dh_install with --list-missing.
++
++ -- Julien Cristau <jcristau@debian.org>  Thu, 12 Apr 2007 13:14:38 +0200
++
++libxinerama (1:1.0.1-4.1) unstable; urgency=low
++
++  * Non-maintainer upload.
++  * Add the missing copyright file (Closes: #381225).
++  * Bump Standards-Version to 3.7.2.
++  * Remove x11-common from libxinerama-dev depends, because it is already
++    present in the Pre-Depends.
++
++ -- Pierre Habouzit <madcoder@debian.org>  Sun, 13 Aug 2006 01:29:04 +0200
++
++libxinerama (1:1.0.1-4) unstable; urgency=low
++
++  * Reorder makeshlib command in rules file so that ldconfig is run
++    properly. Thanks Drew Parsons and Steve Langasek.
++
++ -- David Nusinow <dnusinow@debian.org>  Tue, 18 Apr 2006 21:49:59 -0400
++
++libxinerama (1:1.0.1-3) unstable; urgency=low
++
++  * Remove references to xss in -dbg and -dev package descriptions. Thanks
++    Josh Triplett. (closes: #362057)
++
++ -- David Nusinow <dnusinow@debian.org>  Tue, 11 Apr 2006 20:24:37 -0400
++
++libxinerama (1:1.0.1-2) unstable; urgency=low
++
++  * Upload to unstable
++
++ -- David Nusinow <dnusinow@debian.org>  Thu, 23 Mar 2006 22:44:41 -0500
++
++libxinerama (1:1.0.1-1) experimental; urgency=low
++
++  * First modular upload to Debian
++
++ -- David Nusinow <dnusinow@debian.org>  Thu, 29 Dec 2005 20:53:24 -0500
++
++libxinerama (1:1.1.0+cvs.20050821-1) breezy; urgency=low
++
++  * Update to new upstream version; change x11proto-panoramix-dev B-D to
++    -xinerama-.
++
++ -- Daniel Stone <daniel.stone@ubuntu.com>  Sun, 21 Aug 2005 21:13:57 +1000
++
++libxinerama (1:1.1.0-2) breezy; urgency=low
++
++  * Bump Build-Depends on libx11-dev and libxext-dev to avoid _XOPEN_SOURCE.
++
++ -- Daniel Stone <daniel.stone@ubuntu.com>  Sat, 23 Jul 2005 00:39:34 +1000
++
++libxinerama (1:1.1.0-1) breezy; urgency=low
++
++  * First libxinerama release.
++
++ -- Daniel Stone <daniel.stone@ubuntu.com>  Mon, 16 May 2005 22:10:17 +1000
+--- libxinerama-1.1.4.orig/debian/control
++++ libxinerama-1.1.4/debian/control
+@@ -0,0 +1,72 @@
++Source: libxinerama
++Section: x11
++Priority: optional
++Maintainer: Debian X Strike Force <debian-x@lists.debian.org>
++Build-Depends:
++ debhelper-compat (= 13),
++# dpkg-buildflags --export=configure
++ dpkg-dev (>= 1.16.1),
++ libx11-dev (>= 2:1.3.3-2),
++ libxext-dev (>= 2:1.1.1-3),
++ x11proto-dev,
++ pkg-config,
++ xutils-dev (>= 1:7.5+4),
++Standards-Version: 4.6.0
++Vcs-Git: https://salsa.debian.org/xorg-team/lib/libxinerama.git
++Vcs-Browser: https://salsa.debian.org/xorg-team/lib/libxinerama
++
++Package: libxinerama1
++Section: libs
++Architecture: any
++Depends: ${shlibs:Depends}, ${misc:Depends}
++Pre-Depends: ${misc:Pre-Depends}
++Multi-Arch: same
++Description: X11 Xinerama extension library
++ libXinerama provides an X Window System client interface to the XINERAMA
++ extension to the X protocol.
++ .
++ The Xinerama (also known as panoramiX) extension allows for multiple screens
++ attached to a single display to be treated as belonging together, and to give
++ desktop applications a better idea of the monitor layout.
++ .
++ More information about X.Org can be found at:
++ <URL:http://www.X.org>
++ .
++ This module can be found at
++ git://anongit.freedesktop.org/git/xorg/lib/libXinerama
++
++Package: libxinerama1-udeb
++XC-Package-Type: udeb
++Section: debian-installer
++Architecture: any
++Depends: ${shlibs:Depends}, ${misc:Depends}
++Description: X11 Xinerama extension library
++ This is a udeb, or a microdeb, for the debian-installer.
++
++Package: libxinerama-dev
++Section: libdevel
++Architecture: any
++Multi-Arch: same
++Depends:
++ ${shlibs:Depends},
++ ${misc:Depends},
++ libxinerama1 (= ${binary:Version}),
++ libx11-dev,
++ libxext-dev,
++ x11proto-dev,
++Description: X11 Xinerama extension library (development headers)
++ libXinerama provides an X Window System client interface to the XINERAMA
++ extension to the X protocol.
++ .
++ The Xinerama (also known as panoramiX) extension allows for multiple screens
++ attached to a single display to be treated as belonging together, and to give
++ desktop applications a better idea of the monitor layout.
++ .
++ This package contains the development headers for the library found in
++ libxinerama1.  Non-developers likely have little use for this package.
++ .
++ More information about X.Org can be found at:
++ <URL:http://www.X.org>
++ .
++ This module can be found at
++ git://anongit.freedesktop.org/git/xorg/lib/libXinerama
+--- libxinerama-1.1.4.orig/debian/copyright
++++ libxinerama-1.1.4/debian/copyright
+@@ -0,0 +1,69 @@
++This package was downloaded from
++http://xorg.freedesktop.org/releases/individual/lib/
++
++Copyright (c) 2007, Oracle and/or its affiliates. All rights reserved.
++
++Permission is hereby granted, free of charge, to any person obtaining a
++copy of this software and associated documentation files (the "Software"),
++to deal in the Software without restriction, including without limitation
++the rights to use, copy, modify, merge, publish, distribute, sublicense,
++and/or sell copies of the Software, and to permit persons to whom the
++Software is furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice (including the next
++paragraph) shall be included in all copies or substantial portions of the
++Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
++THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
++FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
++DEALINGS IN THE SOFTWARE.
++
++Copyright 2003  The Open Group
++
++Permission to use, copy, modify, distribute, and sell this software and its
++documentation for any purpose is hereby granted without fee, provided that
++the above copyright notice appear in all copies and that both that
++copyright notice and this permission notice appear in supporting
++documentation.
++
++The above copyright notice and this permission notice shall be included in
++all copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
++OPEN GROUP BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
++AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
++CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
++
++Except as contained in this notice, the name of The Open Group shall not be
++used in advertising or otherwise to promote the sale, use or other dealings
++in this Software without prior written authorization from The Open Group.
++
++Copyright (c) 1991, 1997 Digital Equipment Corporation, Maynard, Massachusetts.
++
++Permission is hereby granted, free of charge, to any person obtaining a copy
++of this software and associated documentation files (the "Software"), to deal
++in the Software without restriction, including without limitation the rights
++to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++copies of the Software.
++
++The above copyright notice and this permission notice shall be included in
++all copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
++DIGITAL EQUIPMENT CORPORATION BE LIABLE FOR ANY CLAIM, DAMAGES, INCLUDING,
++BUT NOT LIMITED TO CONSEQUENTIAL OR INCIDENTAL DAMAGES, OR OTHER LIABILITY,
++WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
++IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
++
++Except as contained in this notice, the name of Digital Equipment Corporation
++shall not be used in advertising or otherwise to promote the sale, use or other
++dealings in this Software without prior written authorization from Digital
++Equipment Corporation.
+--- libxinerama-1.1.4.orig/debian/libxinerama-dev.install
++++ libxinerama-1.1.4/debian/libxinerama-dev.install
+@@ -0,0 +1,5 @@
++usr/lib/*/libXinerama.a
++usr/lib/*/libXinerama.so
++usr/lib/*/pkgconfig/xinerama.pc
++usr/share/man/man3/*
++usr/include/X11/extensions/*
+--- libxinerama-1.1.4.orig/debian/libxinerama1-udeb.install
++++ libxinerama-1.1.4/debian/libxinerama1-udeb.install
+@@ -0,0 +1 @@
++usr/lib/*/libXinerama.so.1* usr/lib
+--- libxinerama-1.1.4.orig/debian/libxinerama1.install
++++ libxinerama-1.1.4/debian/libxinerama1.install
+@@ -0,0 +1 @@
++usr/lib/*/libXinerama.so.1*
+--- libxinerama-1.1.4.orig/debian/rules
++++ libxinerama-1.1.4/debian/rules
+@@ -0,0 +1,29 @@
++#!/usr/bin/make -f
++# debian/rules for the Debian libxinerama package.
++# Copyright © 2004 Scott James Remnant <scott@netsplit.com>
++# Copyright © 2005 Daniel Stone <daniel@fooishbar.org>
++# Copyright © 2005 David Nusinow <dnusinow@debian.org>
++
++# Uncomment this to turn on verbose mode.
++#export DH_VERBOSE=1
++
++# set this to the name of the main shlib's binary package
++PACKAGE = libxinerama1
++
++%:
++	dh $@ --builddirectory=build/
++
++override_dh_auto_install:
++	dh_auto_install --destdir=debian/tmp
++
++override_dh_missing:
++	find debian/tmp -name '*.la' -delete
++
++	dh_missing --fail-missing
++
++override_dh_strip:
++	dh_strip -p$(PACKAGE) --dbgsym-migration='$(PACKAGE)-dbg (<< 2:1.1.4-1~)'
++	dh_strip -N$(PACKAGE)
++
++override_dh_makeshlibs:
++	dh_makeshlibs --add-udeb=$(PACKAGE)-udeb
+--- libxinerama-1.1.4.orig/debian/source/format
++++ libxinerama-1.1.4/debian/source/format
+@@ -0,0 +1 @@
++1.0
+--- libxinerama-1.1.4.orig/debian/upstream/signing-key.asc
++++ libxinerama-1.1.4/debian/upstream/signing-key.asc
+@@ -0,0 +1,41 @@
++-----BEGIN PGP PUBLIC KEY BLOCK-----
++
++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
++gPSRdLLYOLo=
++=+H4u
++-----END PGP PUBLIC KEY BLOCK-----
+--- libxinerama-1.1.4.orig/debian/watch
++++ libxinerama-1.1.4/debian/watch
+@@ -0,0 +1,4 @@
++#git=https://gitlab.freedesktop.org/xorg/lib/libXinerama
++version=3
++opts=pgpsigurlmangle=s/$/.sig/ \
++http://xorg.freedesktop.org/releases/individual/lib/ libXinerama-(.*)\.tar\.gz

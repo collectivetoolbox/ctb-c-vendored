@@ -1,0 +1,57 @@
+# These templates have been reviewed by the debian-l10n-english
+# team
+#
+# If modifications/additions/rewording are needed, please ask
+# for an advice to debian-l10n-english@lists.debian.org
+#
+# Even minor modifications require translation updates and such
+# changes should be coordinated with translators and reviewers.
+
+Template: fontconfig/hinting_type
+Type: select
+__Choices: Native, Autohinter, None
+Default: Native
+_Description: Font tuning method for screen (system default):
+ Please select the preferred method for tuning fonts for screen rendering.
+ .
+ Select 'Native' if you mostly use DejaVu (the default in Debian) or
+ any of the Microsoft fonts. Select 'Autohinter' if you mostly use other
+ TrueType fonts. Select 'None' if you want blurry text.
+
+Template: fontconfig/hinting_style
+Type: select
+__Choices: None, Slight, Medium, Full
+Choices-C: hintnone, hintslight, hintmedium, hintfull
+Default: hintslight
+_Description: Automatic font hinting style:
+ Please select the preferred automatic font hinting style to be used as
+ the system default.
+ .
+ The hinting style is the amount of font reshaping done to line up to the grid.
+ "Slight" will make the font more fuzzy to line up to the grid but will be better
+ in retaining font shape, while "Full" will be a crisp font that aligns well to
+ the pixel grid but will lose a greater amount of font shape. "Slight" is the
+ default setting.
+ .
+ To revert to the pre-2.12 behavior, select "Full".
+
+Template: fontconfig/subpixel_rendering
+Type: select
+__Choices: Automatic, Always, Never
+Default: Automatic
+_Description: Enable subpixel rendering for screen:
+ Rendering text at a subpixel level generally makes it look a bit better
+ on flat (LCD) screens, but can show color artifacts on CRT screens. The
+ "Automatic" choice will enable it only if a LCD screen is detected.
+
+Template: fontconfig/enable_bitmaps
+Type: boolean
+Default: false
+_Description: Enable bitmapped fonts by default?
+ By default, only outline fonts are used by applications which support
+ fontconfig.
+ .
+ Outline fonts are fonts which scale well to various sizes. In
+ contrast, bitmapped fonts are often lower quality. Enabling this
+ option will affect the systemwide default; this and many other
+ fontconfig options may be enabled or disabled on a per-user basis.

@@ -1,0 +1,66 @@
+From: Akira TAGOH <akira@tagoh.org>
+Date: Mon, 6 Jan 2025 14:29:42 +0900
+Subject: Deal with glob string properly
+
+This is a regression of da1e3f35e61597fbf58c9c550ceba6d44abb1563
+
+FcStrCopyFilename canonicalize a glob string though, the above
+change expected to expand ~ character only to replace it with
+a home directory.
+However this also had a side-effect; adding a current directory
+name if no home nor absolute path name in a glob string.
+
+This isn't expected behavior here. So dropping it if there are,
+otherwise use it as it is.
+
+Fixes https://gitlab.freedesktop.org/fontconfig/fontconfig/-/issues/442
+
+Origin: upstream, after 2.15.0
+---
+ src/fccfg.c | 31 +++++++++++++++++++++++++++----
+ 1 file changed, 27 insertions(+), 4 deletions(-)
+
+diff --git a/src/fccfg.c b/src/fccfg.c
+index c9510208..8d9427f5 100644
+--- a/src/fccfg.c
++++ b/src/fccfg.c
+@@ -2989,12 +2989,35 @@ FcConfigGlobAdd (FcConfig	*config,
+ 		 FcBool		accept)
+ {
+     FcStrSet	*set = accept ? config->acceptGlobs : config->rejectGlobs;
+-	FcChar8	*realglob = FcStrCopyFilename(glob);
+-	if (!realglob)
+-		return FcFalse;
++    FcChar8     *realglob = FcStrCopyFilename(glob);
++    FcChar8     *cwd = FcStrCopyFilename((const FcChar8 *) "");
++    const FcChar8 *s;
++    FcBool       ret;
++    size_t       len = 0;
++
++    /*
++     * FcStrCopyFilename canonicalize a path string and prepend
++     * current directory name if no path included in a string.
++     * This isn't a desired behavior here.
++     * So drop the extra path name if they have. Otherwise use it as it is.
++     */
++    if (cwd == NULL)
++	    s = glob;
++    else
++    {
++	    len = strlen((const char *) cwd);
++	    if (strncmp((const char *) cwd, (const char *) realglob, len) == 0 &&
++		realglob[len] == FC_DIR_SEPARATOR)
++		    s = &realglob[len + 1];
++	    else
++		    s = realglob;
++    }
++    if (!s)
++	    return FcFalse;
+ 
+-    FcBool	 ret = FcStrSetAdd (set, realglob);
++    ret = FcStrSetAdd (set, s);
+     FcStrFree(realglob);
++    FcStrFree(cwd);
+     return ret;
+ }
+ 

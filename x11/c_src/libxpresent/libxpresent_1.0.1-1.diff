@@ -1,0 +1,600 @@
+--- libxpresent-1.0.1.orig/.gitlab-ci.yml
++++ libxpresent-1.0.1/.gitlab-ci.yml
+@@ -0,0 +1,98 @@
++# vim: set expandtab shiftwidth=2 tabstop=8 textwidth=0 filetype=yaml:
++#
++# This CI uses the freedesktop.org ci-templates.
++# Please see the ci-templates documentation for details:
++# https://freedesktop.pages.freedesktop.org/ci-templates/
++
++.templates_sha: &template_sha 34f4ade99434043f88e164933f570301fd18b125 # see https://docs.gitlab.com/ee/ci/yaml/#includefile
++
++
++include:
++  # Arch container builder template
++  - project: 'freedesktop/ci-templates'
++    ref: *template_sha
++    file: '/templates/arch.yml'
++  - project: 'freedesktop/ci-templates'
++    ref: *template_sha
++    file: '/templates/ci-fairy.yml'
++  - template: Security/SAST.gitlab-ci.yml
++
++
++stages:
++  - prep             # prep work like rebuilding the container images if there is a change
++  - build            # for actually building and testing things in a container
++  - test
++  - deploy
++
++
++variables:
++  FDO_UPSTREAM_REPO: 'xorg/lib/libXpresent'
++  # The tag should be updated each time the list of packages is updated.
++  # Changing a tag forces the associated image to be rebuilt.
++  # Note: the tag has no meaning, we use a date format purely for readability
++  FDO_DISTRIBUTION_TAG:  '2022-07-17.0'
++  FDO_DISTRIBUTION_PACKAGES:  'git gcc pkgconf autoconf automake libtool make xorg-util-macros xorgproto libx11 libxext libxfixes libxrandr'
++
++
++#
++# Verify that commit messages are as expected
++#
++check-commits:
++  extends:
++    - .fdo.ci-fairy
++  stage: prep
++  script:
++    - ci-fairy check-commits --junit-xml=results.xml
++  except:
++    - master@xorg/lib/libXpresent
++  variables:
++    GIT_DEPTH: 100
++  artifacts:
++    reports:
++      junit: results.xml
++
++#
++# Verify that the merge request has the allow-collaboration checkbox ticked
++#
++check-merge-request:
++  extends:
++    - .fdo.ci-fairy
++  stage: deploy
++  script:
++    - ci-fairy check-merge-request --require-allow-collaboration --junit-xml=results.xml
++  artifacts:
++    when: on_failure
++    reports:
++      junit: results.xml
++  allow_failure: true
++
++
++#
++# Build a container with the given tag and the packages pre-installed.
++# This only happens if/when the tag changes, otherwise the existing image is
++# re-used.
++#
++container-prep:
++  extends:
++    - .fdo.container-build@arch
++  stage: prep
++  variables:
++    GIT_STRATEGY: none
++
++
++#
++# The default build, runs on the image built above.
++#
++build:
++  stage: build
++  extends:
++    - .fdo.distribution-image@arch
++  script:
++    - autoreconf -ivf
++    - mkdir _builddir
++    - pushd _builddir > /dev/null
++    - ../configure --disable-silent-rules
++    - make
++    - make check
++    - make distcheck
++    - popd > /dev/null
+--- libxpresent-1.0.1.orig/autogen.sh
++++ libxpresent-1.0.1/autogen.sh
+@@ -0,0 +1,17 @@
++#! /bin/sh
++
++srcdir=`dirname "$0"`
++test -z "$srcdir" && srcdir=.
++
++ORIGDIR=`pwd`
++cd "$srcdir"
++
++autoreconf -v --install || exit 1
++cd "$ORIGDIR" || exit $?
++
++git config --local --get format.subjectPrefix >/dev/null 2>&1 ||
++    git config --local format.subjectPrefix "PATCH libXpresent"
++
++if test -z "$NOCONFIGURE"; then
++    exec "$srcdir"/configure "$@"
++fi
+--- libxpresent-1.0.1.orig/debian/changelog
++++ libxpresent-1.0.1/debian/changelog
+@@ -0,0 +1,29 @@
++libxpresent (1.0.1-1) unstable; urgency=medium
++
++  * control: Migrate to x11proto-dev.
++  * New upstream release. (Closes: #1068507)
++  * Update signing-key.asc.
++  * Drop upstreamed patch.
++  * control, rules: Migrate to debhelper-compat 13.
++  * control: Bump policy to 4.7.0.
++  * Update vcs urls.
++  * control: Migrate to pkgconf.
++
++ -- Timo Aaltonen <tjaalton@debian.org>  Thu, 11 Apr 2024 11:41:57 +0300
++
++libxpresent (1.0.0-2) unstable; urgency=medium
++
++  [ Andreas Boll ]
++  * Fix Vcs-* fields.
++  * Add upstream url.
++
++  [ Julien Cristau ]
++  * Add myself to Uploaders to get past NEW.
++
++ -- Julien Cristau <jcristau@debian.org>  Sat, 05 Sep 2015 12:31:48 +0200
++
++libxpresent (1.0.0-1) unstable; urgency=medium
++
++  * Initial release.
++
++ -- Julien Cristau <jcristau@debian.org>  Sun, 26 Apr 2015 18:06:33 +0200
+--- libxpresent-1.0.1.orig/debian/control
++++ libxpresent-1.0.1/debian/control
+@@ -0,0 +1,65 @@
++Source: libxpresent
++Section: x11
++Priority: optional
++Maintainer: Debian X Strike Force <debian-x@lists.debian.org>
++Uploaders: Julien Cristau <jcristau@debian.org>
++Build-Depends:
++ debhelper-compat (= 13),
++ quilt,
++ pkgconf,
++ xutils-dev,
++ x11proto-dev,
++ libx11-dev,
++ libxext-dev,
++ libxfixes-dev,
++ libxrandr-dev,
++Standards-Version: 4.7.0
++Vcs-Git: https://salsa.debian.org/xorg-team/lib/libxpresent.git
++Vcs-Browser: https://salsa.debian.org/xorg-team/lib/libxpresent
++Homepage: http://gitlab.freedesktop.org/xorg/lib/libXpresent/
++
++Package: libxpresent1
++Architecture: any
++Section: libs
++Depends:
++ ${shlibs:Depends},
++ ${misc:Depends},
++Pre-Depends:
++ ${misc:Pre-Depends},
++Multi-Arch: same
++Description: X11 Present extension library
++ libXpresent provides an X Window System client interface to the Present
++ extension to the X protocol.
++ .
++ The Present extension provides a way for applications to update their
++ window contents from a pixmap in a well defined fashion, synchronizing
++ with the display refresh and potentially using a more efficient
++ mechanism than copying the contents of the source pixmap.
++ .
++ More information about X.Org can be found at:
++ <URL:http://www.X.org>
++
++Package: libxpresent-dev
++Architecture: any
++Section: libdevel
++Depends:
++ libxpresent1 (= ${binary:Version}),
++ libxext-dev,
++ libxfixes-dev,
++ libxrandr-dev,
++ ${misc:Depends},
++Multi-Arch: same
++Description: X11 Present extension library (development headers)
++ libXpresent provides an X Window System client interface to the Present
++ extension to the X protocol.
++ .
++ The Present extension provides a way for applications to update their
++ window contents from a pixmap in a well defined fashion, synchronizing
++ with the display refresh and potentially using a more efficient
++ mechanism than copying the contents of the source pixmap.
++ .
++ This package contains the development headers for the library found in
++ libxpresent1.  Non-developers likely have little use for this package.
++ .
++ More information about X.Org can be found at:
++ <URL:http://www.X.org>
+--- libxpresent-1.0.1.orig/debian/copyright
++++ libxpresent-1.0.1/debian/copyright
+@@ -0,0 +1,43 @@
++This package was downloaded from http://xorg.freedesktop.org/archive/individual/lib/
++
++Copyright © 2001,2003 Keith Packard
++
++Permission to use, copy, modify, distribute, and sell this software and its
++documentation for any purpose is hereby granted without fee, provided that
++the above copyright notice appear in all copies and that both that
++copyright notice and this permission notice appear in supporting
++documentation, and that the name of Keith Packard not be used in
++advertising or publicity pertaining to distribution of the software without
++specific, written prior permission.  Keith Packard makes no
++representations about the suitability of this software for any purpose.  It
++is provided "as is" without express or implied warranty.
++
++KEITH PACKARD DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
++INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO
++EVENT SHALL KEITH PACKARD BE LIABLE FOR ANY SPECIAL, INDIRECT OR
++CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
++DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
++TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
++PERFORMANCE OF THIS SOFTWARE.
++
++Copyright (c) 2006, Oracle and/or its affiliates. All rights reserved.
++
++Permission is hereby granted, free of charge, to any person obtaining a
++copy of this software and associated documentation files (the "Software"),
++to deal in the Software without restriction, including without limitation
++the rights to use, copy, modify, merge, publish, distribute, sublicense,
++and/or sell copies of the Software, and to permit persons to whom the
++Software is furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice (including the next
++paragraph) shall be included in all copies or substantial portions of the
++Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
++THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
++FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
++DEALINGS IN THE SOFTWARE.
++
+--- libxpresent-1.0.1.orig/debian/libxpresent-dev.install
++++ libxpresent-1.0.1/debian/libxpresent-dev.install
+@@ -0,0 +1,5 @@
++usr/include
++usr/lib/*/libXpresent.so
++usr/lib/*/libXpresent.a
++usr/lib/*/pkgconfig
++usr/share/man
+--- libxpresent-1.0.1.orig/debian/libxpresent1.install
++++ libxpresent-1.0.1/debian/libxpresent1.install
+@@ -0,0 +1 @@
++usr/lib/*/libXpresent.so.1*
+--- libxpresent-1.0.1.orig/debian/patches/series
++++ libxpresent-1.0.1/debian/patches/series
+@@ -0,0 +1 @@
++#placeholder
+--- libxpresent-1.0.1.orig/debian/rules
++++ libxpresent-1.0.1/debian/rules
+@@ -0,0 +1,14 @@
++#!/usr/bin/make -f
++
++build:
++	dh build --with quilt --builddirectory=build/
++
++%:
++	dh $@ --with quilt --builddirectory=build/
++
++override_dh_auto_configure:
++	dh_auto_configure -- \
++		--disable-silent-rules
++
++override_dh_missing:
++	dh_missing --fail-missing -X.la
+--- libxpresent-1.0.1.orig/debian/upstream/signing-key.asc
++++ libxpresent-1.0.1/debian/upstream/signing-key.asc
+@@ -0,0 +1,290 @@
++-----BEGIN PGP PUBLIC KEY BLOCK-----
++Version: GnuPG v1
++
++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
++=SanB
++-----END PGP PUBLIC KEY BLOCK-----
++-----BEGIN PGP PUBLIC KEY BLOCK-----
++
++mQGiBEab+moRBACDH5yKqS3wcc5bdxY7PBNuwKvF5TKMfagmSvuRDtZjjIIWaA/n
++Z1KboV9Gq5g7kP7+Kfu+Qgd8u65eVsWwmPW10fXvj3aCU53glx2EdGdrHcgiyH2g
++EQfPiyBw+trIppWFRV0IDXSLMA1FNC92t2nSG/VFHaPTVwcgkIRSfcXDvwCglGdE
++a6f4uLqoNHP+m4yYnzapFuMD/R4+2AJDAvEWKDdYCGZzlawjAmmWyXrmT7/C/mx9
++8qUR473l4buXjHgDkkXXlHqdzil1vK85PhrKzNJDCCmlHUJNz+QwiAMOLwpD+kwV
++Pb57RG7y+a5JQ5+jtVw4RlUxZIk/wj2An9YBO3A5vR7PdjM32ZJCN2+aM4dYfNzQ
++xQKTA/47icvBaBVTl9rztjg2pd2Aqpc1P/GsIYLGj7XjnnJvGAENBHSH1QjpZMJG
++CTS9oJ+B0/wrIr+pA+MdFgYAb6ojMQJOO6UChjWWSGjMFcs/CeXhxlLBido3DtAE
++TbNTwO6OEfAvdosvTdhJFnwvZlJ+zZGGy5CrF2Fd9PUe9tmASbQuQWxhbiBDb29w
++ZXJzbWl0aCA8YWxhbi5jb29wZXJzbWl0aEBvcmFjbGUuY29tPoiCBBMRCgBCAhsD
++BgsJCAcDAgYVCAIJCgsEFgIDAQIeAQIXgAIZARYhBEoZPAbTXnxnD6TvC6L7nggf
++LRMOBQJkQs2eBQknDNS0AAoJEKL7nggfLRMO1esAnR4FVD60BpDY/bJp5RC1VXhO
++Vlo4AKCJgsQeVeGLxDlMuhAmbcCkOjafqbQoQWxhbiBDb29wZXJzbWl0aCA8YWxh
++bmNAZnJlZWRlc2t0b3Aub3JnPoh/BBMRCgA/AhsDBgsJCAcDAgYVCAIJCgsEFgID
++AQIeAQIXgBYhBEoZPAbTXnxnD6TvC6L7nggfLRMOBQJkQs2eBQknDNS0AAoJEKL7
++nggfLRMOUgAAoIyNXuU5kOotpZrKvPrjQATbsPClAJ9wkh/n3IAobV6aDLb1qOt5
++RT3Pp7QrQWxhbiBDb29wZXJzbWl0aCA8YWxhbi5jb29wZXJzbWl0aEBzdW4uY29t
++Poh9BBMRCgA9AhsDBgsJCAcDAgQVAggDBBYCAwECHgECF4AWIQRKGTwG0158Zw+k
++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
++=awvS
++-----END PGP PUBLIC KEY BLOCK-----
+--- libxpresent-1.0.1.orig/debian/watch
++++ libxpresent-1.0.1/debian/watch
+@@ -0,0 +1,4 @@
++#git=git://gitlab.freedesktop.org/xorg/lib/libXpresent
++version=3
++opts=pgpsigurlmangle=s/$/.sig/ \
++http://xorg.freedesktop.org/releases/individual/lib/ libXpresent-(.*)\.tar\.gz

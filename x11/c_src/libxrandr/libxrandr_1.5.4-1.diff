@@ -1,0 +1,1181 @@
+--- libxrandr-1.5.4.orig/.gitlab-ci.yml
++++ libxrandr-1.5.4/.gitlab-ci.yml
+@@ -0,0 +1,98 @@
++# vim: set expandtab shiftwidth=2 tabstop=8 textwidth=0 filetype=yaml:
++#
++# This CI uses the freedesktop.org ci-templates.
++# Please see the ci-templates documentation for details:
++# https://freedesktop.pages.freedesktop.org/ci-templates/
++
++.templates_sha: &template_sha 34f4ade99434043f88e164933f570301fd18b125 # see https://docs.gitlab.com/ee/ci/yaml/#includefile
++
++
++include:
++  # Arch container builder template
++  - project: 'freedesktop/ci-templates'
++    ref: *template_sha
++    file: '/templates/arch.yml'
++  - project: 'freedesktop/ci-templates'
++    ref: *template_sha
++    file: '/templates/ci-fairy.yml'
++  - template: Security/SAST.gitlab-ci.yml
++
++
++stages:
++  - prep             # prep work like rebuilding the container images if there is a change
++  - build            # for actually building and testing things in a container
++  - test
++  - deploy
++
++
++variables:
++  FDO_UPSTREAM_REPO: 'xorg/lib/libXrandr'
++  # The tag should be updated each time the list of packages is updated.
++  # Changing a tag forces the associated image to be rebuilt.
++  # Note: the tag has no meaning, we use a date format purely for readability
++  FDO_DISTRIBUTION_TAG:  '2022-07-17.0'
++  FDO_DISTRIBUTION_PACKAGES:  'git gcc pkgconf autoconf automake libtool make xorg-util-macros xorgproto libx11 libxext libxrender'
++
++
++#
++# Verify that commit messages are as expected
++#
++check-commits:
++  extends:
++    - .fdo.ci-fairy
++  stage: prep
++  script:
++    - ci-fairy check-commits --junit-xml=results.xml
++  except:
++    - master@xorg/lib/libXrandr
++  variables:
++    GIT_DEPTH: 100
++  artifacts:
++    reports:
++      junit: results.xml
++
++#
++# Verify that the merge request has the allow-collaboration checkbox ticked
++#
++check-merge-request:
++  extends:
++    - .fdo.ci-fairy
++  stage: deploy
++  script:
++    - ci-fairy check-merge-request --require-allow-collaboration --junit-xml=results.xml
++  artifacts:
++    when: on_failure
++    reports:
++      junit: results.xml
++  allow_failure: true
++
++
++#
++# Build a container with the given tag and the packages pre-installed.
++# This only happens if/when the tag changes, otherwise the existing image is
++# re-used.
++#
++container-prep:
++  extends:
++    - .fdo.container-build@arch
++  stage: prep
++  variables:
++    GIT_STRATEGY: none
++
++
++#
++# The default build, runs on the image built above.
++#
++build:
++  stage: build
++  extends:
++    - .fdo.distribution-image@arch
++  script:
++    - autoreconf -ivf
++    - mkdir _builddir
++    - pushd _builddir > /dev/null
++    - ../configure --disable-silent-rules
++    - make
++    - make check
++    - make distcheck
++    - popd > /dev/null
+--- libxrandr-1.5.4.orig/ChangeLog
++++ libxrandr-1.5.4/ChangeLog
+@@ -1,141 +1,3 @@
+-commit 512bf0b15b5597c721ff8c61083616ca9040fa72
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Wed Oct 4 15:58:32 2023 -0700
+-
+-    libXrandr 1.5.4
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit 17581a1364ae11060a9c9531882d1be9634d4365
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Mon Sep 18 15:06:30 2023 -0700
+-
+-    XRRGetMonitors(): free correct pointer in error path
+-    
+-    If we are dumping an invalid response from the server, make sure
+-    to free the pointer returned by malloc, not our pointer to somewhere
+-    later in that buffer.
+-    
+-    Fixes: a0df3e1 ("Avoid out of boundary accesses on illegal responses")
+-    Reported-by: Gregory James DUCK <gjduck@gmail.com>
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit 5b96863cf2a34ee9e72ffc4ec6415bc59b6121fc
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Tue Mar 7 09:49:14 2023 -0800
+-
+-    configure: Use LT_INIT from libtool 2 instead of deprecated AC_PROG_LIBTOOL
+-    
+-    AC_PROG_LIBTOOL was replaced by LT_INIT in libtool 2 in 2008,
+-    so it's time to rely on it.
+-    
+-    Clears autoconf warnings:
+-    
+-    configure.ac:42: warning: The macro `AC_PROG_LIBTOOL' is obsolete.
+-    configure.ac:42: You should run autoupdate.
+-    aclocal.m4:3465: AC_PROG_LIBTOOL is expanded from...
+-    configure.ac:42: the top level
+-    
+-    libtoolize: Consider adding 'AC_CONFIG_MACRO_DIRS([m4])' to configure.ac,
+-    libtoolize: and rerunning libtoolize and aclocal.
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit 1ef3ad373c796897f770bba6fb16befddc3146a3
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Sat Feb 25 09:29:25 2023 -0800
+-
+-    Remove "All rights reserved" from Oracle copyright notices
+-    
+-    Oracle no longer includes this term in our copyright & license notices.
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit 3387129532899eaeee3477a2d92fa662d7292a84
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Sun Nov 20 08:54:24 2022 -0800
+-
+-    libXrandr 1.5.3
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit 7181160b2c32b1bb804792990783fa25c1122bae
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Mon Oct 17 17:57:19 2022 -0700
+-
+-    Remove unnecessary casts of return values from malloc()
+-    
+-    Not needed in C89 and later
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit 8710ed270fbb9ec905b906826cb09095c57003f8
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Mon Oct 17 17:24:23 2022 -0700
+-
+-    Variable scope reductions as recommended by cppcheck
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit 684ed1b997f9e8a2fe2219524c1dea04b20a7e25
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Mon Oct 17 16:45:38 2022 -0700
+-
+-    XRRGetProviderInfo: Remove unneeded ProviderInfoExtra
+-    
+-    It was always 0, hence caused gcc warnings:
+-    
+-    XrrProvider.c: In function ‘XRRGetProviderInfo’:
+-    XrrProvider.c:133:49: warning: comparison of unsigned expression < 0 is always false [-Wtype-limits]
+-         if (rep.length > INT_MAX >> 2 || rep.length < ProviderInfoExtra >> 2)
+-                                                     ^
+-    XrrProvider.c:135:17: warning: comparison of unsigned expression < 0 is always false [-Wtype-limits]
+-      if (rep.length < ProviderInfoExtra >> 2)
+-                     ^
+-    XrrProvider.c:135:5: warning: this condition has identical branches [-Wduplicated-branches]
+-      if (rep.length < ProviderInfoExtra >> 2)
+-         ^
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit 8ddb2aefcda77709cf98f15fbcb7d97a2d00ab7d
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Mon Oct 17 16:36:01 2022 -0700
+-
+-    Xrandr.h: remove misleading comment for XRRGetScreenSizeRange()
+-    
+-    Closes: #7
+-    Fixes: 5e94f07 ("GetScreenSizeRange: Document funky return code in the header")
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit d66693441f688867e6fd4a5d4a4bdade9a338755
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Sun Jul 17 17:32:18 2022 -0700
+-
+-    gitlab CI: add a basic build test
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit e4c7841eb916f8ad65bfe63daef0f1e81252c704
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Sun Jul 17 17:31:20 2022 -0700
+-
+-    Fix spelling/wording issues
+-    
+-    Found by using:
+-        codespell --builtin clear,rare,usage,informal,code,names
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit be3c7a7621e89bbde2884585179b9e4c5b9e6639
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Sun Jul 17 17:29:30 2022 -0700
+-
+-    Build xz tarballs instead of bzip2
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+ commit 55dcda4518eda8ae03ef25ea29d3c994ad71eb0a
+ Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+ Date:   Sat Mar 16 13:54:20 2019 -0700
+--- libxrandr-1.5.4.orig/autogen.sh
++++ libxrandr-1.5.4/autogen.sh
+@@ -0,0 +1,17 @@
++#! /bin/sh
++
++srcdir=`dirname "$0"`
++test -z "$srcdir" && srcdir=.
++
++ORIGDIR=`pwd`
++cd "$srcdir"
++
++autoreconf -v --install || exit 1
++cd "$ORIGDIR" || exit $?
++
++git config --local --get format.subjectPrefix >/dev/null 2>&1 ||
++    git config --local format.subjectPrefix "PATCH libXrandr"
++
++if test -z "$NOCONFIGURE"; then
++    exec "$srcdir"/configure "$@"
++fi
+--- libxrandr-1.5.4.orig/debian/README.source
++++ libxrandr-1.5.4/debian/README.source
+@@ -0,0 +1,49 @@
++------------------------------------------------------
++Quick Guide To Patching This Package For The Impatient
++------------------------------------------------------
++
++1. Make sure you have quilt installed
++2. Unpack the package as usual with "dpkg-source -x"
++3. Run the "patch" target in debian/rules
++4. Create a new patch with "quilt new" (see quilt(1))
++5. Edit all the files you want to include in the patch with "quilt edit" 
++   (see quilt(1)).
++6. Write the patch with "quilt refresh" (see quilt(1))
++7. Run the "clean" target in debian/rules
++
++Alternatively, instead of using quilt directly, you can drop the patch in to 
++debian/patches and add the name of the patch to debian/patches/series.
++
++------------------------------------
++Guide To The X Strike Force Packages
++------------------------------------
++
++The X Strike Force team maintains X packages in git repositories on
++salsa.debian.org in the xorg-team group. Most upstream packages
++are actually maintained in git repositories as well, so they often
++just need to be pulled into salsa.debian.org in a "upstream-*" branch.
++Otherwise, the upstream sources are manually installed in the Debian
++git repository.
++
++The .orig.tar.gz upstream source file could be generated this
++"upstream-*" branch in the Debian git repository but it is actually
++copied from upstream tarballs directly.
++
++Due to X.org being highly modular, packaging all X.org applications
++as their own independent packages would have created too many Debian
++packages. For this reason, some X.org applications have been grouped
++into larger packages: xutils, xutils-dev, x11-apps, x11-session-utils,
++x11-utils, x11-xfs-utils, x11-xkb-utils, x11-xserver-utils.
++Most packages, including the X.org server itself and all libraries
++and drivers are, however maintained independently.
++
++The Debian packaging is added by creating the "debian-*" git branch
++which contains the aforementioned "upstream-*" branch plus the debian/
++repository files.
++When a patch has to be applied to the Debian package, two solutions
++are involved:
++* If the patch is available in one of the upstream branches, it
++  may be git'cherry-picked into the Debian repository. In this
++  case, it appears directly in the .diff.gz.
++* Otherwise, the patch is added to debian/patches/ which is managed
++  with quilt as documented in /usr/share/doc/quilt/README.source.
+--- libxrandr-1.5.4.orig/debian/changelog
++++ libxrandr-1.5.4/debian/changelog
+@@ -0,0 +1,338 @@
++libxrandr (2:1.5.4-1) unstable; urgency=medium
++
++  * New upstream release.
++  * Update signing-key.
++  * control: Migrate to pkgconf.
++
++ -- Timo Aaltonen <tjaalton@debian.org>  Wed, 20 Mar 2024 14:38:29 +0200
++
++libxrandr (2:1.5.2-2) unstable; urgency=medium
++
++  * Add libxrandr2-udeb, now needed by setxkbmap.
++
++ -- Julien Cristau <jcristau@debian.org>  Fri, 22 Apr 2022 10:49:58 +0200
++
++libxrandr (2:1.5.2-1) unstable; urgency=medium
++
++  * New upstream release.
++  * Migrate to debhelper-compat, bump to 13.
++  * control: Migrate to x11proto-dev. (Closes: #859355)
++  * rules: Use dh_missing.
++  * Bump policy to 4.6.0.
++  * Update README.source for salsa.
++  * Add upstream metadata, drop git repo from d/watch.
++  * rules: Clean .la files.
++
++ -- Timo Aaltonen <tjaalton@debian.org>  Tue, 28 Sep 2021 14:26:17 +0300
++
++libxrandr (2:1.5.1-1) unstable; urgency=medium
++
++  [ Andreas Boll ]
++  * New upstream release.
++    - Fixes CVE-2016-7947 and CVE-2016-7948 (Closes: #840441).
++  * Update d/upstream/signing-key.asc with Matthieu Herrb's key.
++  * Update a bunch of URLs in packaging to https.
++  * Bump Standards-Version to 3.9.8, no changes needed.
++
++  [ Emilio Pozuelo Monfort ]
++  * Bump debhelper compat to 10.
++    + --with autoreconf is enabled by default now. Drop build-deps on
++      dh-autoreconf, automake and libtool.
++  * debhelper installs to debian/tmp by default, no need to specify it.
++  * Switch to -dbgsym packages.
++  * Pass -c4 to dpkg-gensymbols.
++  * Drop no longer needed dpkg-dev versioned build-dependency.
++
++ -- Emilio Pozuelo Monfort <pochu@debian.org>  Wed, 07 Dec 2016 00:17:09 +0100
++
++libxrandr (2:1.5.0-1) sid; urgency=medium
++
++  * New upstream release.
++  * control: Bump policy to 3.9.6, no changes.
++  * Let uscan verify tarball signatures.
++  * control: Bump x11proto-randr-dev build-dep.
++  * symbols: Updated.
++  * Bump compat to 9, migrate to dh.
++  * Purge xsfbs.
++
++ -- Timo Aaltonen <tjaalton@debian.org>  Mon, 27 Jul 2015 23:20:59 +0300
++
++libxrandr (2:1.4.2-1) sid; urgency=medium
++
++  * New upstream release.
++  * Update debian/copyright.
++  * Remove Cyril Brulebois from Uploaders.
++
++ -- Julien Cristau <jcristau@debian.org>  Mon, 20 Jan 2014 14:48:07 +0100
++
++libxrandr (2:1.4.1-1) sid; urgency=low
++
++  * New upstream release.
++  * Use dpkg-buildflags.
++  * Bump debhelper compat level to 7.
++  * Use dh_prep instead of dh_clean -k.
++  * Remove unused DEB_HOST_ARCH setting from d/rules.
++  * Make libxrandr-dev Multi-Arch: same (closes: #678895).
++  * Disable silent build rules.
++
++ -- Julien Cristau <jcristau@debian.org>  Sun, 30 Jun 2013 18:31:40 +0200
++
++libxrandr (2:1.4.0-1) experimental; urgency=low
++
++  [ Maarten Lankhorst ]
++  * New upstream release
++  * Bump Standards-Version to 3.9.3
++
++  [ Julien Cristau ]
++  * Make clean target work without (fake)root
++
++ -- Julien Cristau <jcristau@debian.org>  Fri, 03 Aug 2012 12:02:08 +0200
++
++libxrandr (2:1.3.2-2) unstable; urgency=low
++
++  * Brown paper bag upload:
++    - Merge back origin/debian-unstable, fixing the loss of the
++      2:1.3.1-2 upload (including multiarch changes).
++
++ -- Cyril Brulebois <kibi@debian.org>  Thu, 30 Jun 2011 12:57:22 +0200
++
++libxrandr (2:1.3.2-1) unstable; urgency=low
++
++  * New upstream release:
++    - Documentation updates.
++  * Bump Standards-Version to 3.9.2 (no changes).
++  * Update Uploaders list. Thanks, David!
++
++ -- Cyril Brulebois <kibi@debian.org>  Thu, 30 Jun 2011 12:42:11 +0200
++
++libxrandr (2:1.3.1-2) unstable; urgency=low
++
++  * Team upload.
++
++  [ Steve Langasek ]
++  * Build for multiarch.
++
++  [ Julien Cristau ]
++  * Remove David Nusinow from Uploaders.
++  * Bump Standards-Version to 3.9.2.
++
++ -- Julien Cristau <jcristau@debian.org>  Sat, 11 Jun 2011 23:12:54 +0200
++
++libxrandr (2:1.3.1-1) unstable; urgency=low
++
++  * New upstream release.
++  * Bump xutils-dev build-dep for new macros.
++  * Update debian/copyright from upstream COPYING.
++  * Switch from --list-missing to --fail-missing for additional safety.
++  * Exclude libXrandr.la from dh_install accordingly.
++  * Add myself to Uploaders.
++
++ -- Cyril Brulebois <kibi@debian.org>  Fri, 19 Nov 2010 11:43:13 +0100
++
++libxrandr (2:1.3.0-3) unstable; urgency=low
++
++  [ Timo Aaltonen ]
++  * Drop pre-dependency on x11-common from libxrandr-dev. This was needed
++    for upgrades from sarge.
++  * Move -dbg package to section debug.
++  * Bump Standards-Version to 3.8.3.
++
++  [ Julien Cristau ]
++  * Rename the build directory to not include DEB_BUILD_GNU_TYPE for no
++    good reason.  Thanks, Colin Watson!
++  * Remove myself from Uploaders
++
++  [ Brice Goglin ]
++  * Remove Jamey Sharp and Josh Triplett from Uploaders, closes: #568282.
++
++ -- Brice Goglin <bgoglin@debian.org>  Sun, 07 Feb 2010 11:54:09 +0100
++
++libxrandr (2:1.3.0-2) unstable; urgency=low
++
++  * libxrandr-dev depends on randrproto 1.3 (closes: #519981).  Thanks, Adrian
++    Bunk!
++
++ -- Julien Cristau <jcristau@debian.org>  Mon, 16 Mar 2009 20:23:40 +0100
++
++libxrandr (2:1.3.0-1) unstable; urgency=low
++
++  * New upstream release.
++  * Bump randrproto build-dep to 1.3.
++  * Bump shlibs.
++  * Update debian/copyright.
++
++ -- Julien Cristau <jcristau@debian.org>  Thu, 12 Mar 2009 17:12:56 +0100
++
++libxrandr (2:1.2.99.4-2) experimental; urgency=low
++
++  * Cherry-pick patch from upstream git to fix XRRGetOutputPrimary.
++
++ -- Julien Cristau <jcristau@debian.org>  Sun, 01 Feb 2009 14:47:29 +0100
++
++libxrandr (2:1.2.99.4-1) experimental; urgency=low
++
++  [ Timo Aaltonen ]
++  * New upstream prerelease.
++  * debian/control:
++    - Build-depend on automake, libtool, xutils-dev.
++    - Split the build-depends to span multiple lines.
++    - Bump the build-dep on x11proto-randr-dev to (>= 1.2.99.2).
++  * debian/rules:
++    - Run autoreconf -vfi on configure.
++  * debian/libxrandr2.symbols: Add the new symbols.
++
++  [ Julien Cristau ]
++  * Update from 1.2.99.2 to 1.2.99.4
++  * Bump x11proto-randr-dev build and runtime dependencies to >= 1.2.99.3.
++  * debian/libxrandr2.symbols: add new symbols.
++
++ -- Julien Cristau <jcristau@debian.org>  Sun, 04 Jan 2009 20:50:22 +0100
++
++libxrandr (2:1.2.3-1) unstable; urgency=low
++
++  [ Brice Goglin ]
++  * Add a link to www.X.org in the long description.
++  * Add upstream URL to debian/copyright.
++
++  [ Julien Cristau ]
++  * New upstream release.
++
++ -- Julien Cristau <jcristau@debian.org>  Tue, 08 Jul 2008 23:26:14 +0200
++
++libxrandr (2:1.2.2-2) unstable; urgency=low
++
++  * Add debian/libxrandr2.symbols.
++    Symbols added in the first version (RandR protocol 1.0) carry no version,
++    symbols added for RandR 1.1 need >= 4.3, and RandR 1.2 symbols need
++    libxrandr2 >= 2:1.2.0.
++  * Drop -1 debian revisions from build-deps.
++  * Bump Standards-Version to 3.7.3.
++  * Drop the XS- prefix from Vcs-* control fields.
++  * libxrandr2{,-dbg} don't need to depend on x11-common.
++  * Merge changes from the 7.1 branch (libxrandr 1.1.1) which had never been
++    merged to the trunk (yes, that was two years ago).
++
++ -- Julien Cristau <jcristau@debian.org>  Mon, 19 May 2008 00:32:55 +0200
++
++libxrandr (2:1.1.1-1) experimental; urgency=low
++
++  * New upstream release.
++  * Drop patches/01_manpage_location.diff; merged upstream.
++  * Autoreconf w/ an updated xutils-dev so that manpages have the 'x'
++    extension dropped.
++  * Test for obj-$(DEB_BUILD_GNU_TYPE) before creating it during build;
++    idempotency fix.
++  * Run dh_install w/ --list-missing.
++  * Drop duplicate x11-common dep in -dev package.
++  * Bump standards version to 3.7.2.0.
++  * Version x11-common pre-dep in -dev package to 1:7.0.0 to match
++    the rest of Debian.
++  * Bump debhelper compat to 5.
++  * Fix dh_strip call to skip the -dbg package.
++  * Include manpages in -dev package.
++
++ -- Andres Salomon <dilinger@debian.org>  Sat, 29 Jul 2006 16:56:00 -0400
++
++libxrandr (2:1.2.2-1) unstable; urgency=low
++
++  * New upstream release.
++  * Add myself to Uploaders, and remove Branden and Fabio with their
++    permission.
++  * Use ${binary:Version} instead of ${Source-Version}.
++
++ -- Julien Cristau <jcristau@debian.org>  Thu, 06 Sep 2007 16:34:32 +0200
++
++libxrandr (2:1.2.1-1) unstable; urgency=low
++
++  * New upstream release.
++  * Upload to unstable.
++  * Add XS-Vcs-Browser.
++
++ -- Julien Cristau <jcristau@debian.org>  Fri, 20 Apr 2007 08:15:14 +0200
++
++libxrandr (2:1.2.0-4) experimental; urgency=low
++
++  * New patch from upstream git to fix use of a C++ keyword as a parameter
++    name in Xrandr.h.
++
++ -- Julien Cristau <jcristau@debian.org>  Fri, 23 Feb 2007 02:17:40 +0100
++
++libxrandr (2:1.2.0-3) experimental; urgency=low
++
++  * Add debian/libxrandr2.shlibs, thanks to Michel Dänzer for noticing my
++    mistake.
++
++ -- Julien Cristau <jcristau@debian.org>  Tue, 20 Feb 2007 10:39:03 +0100
++
++libxrandr (2:1.2.0-2) experimental; urgency=low
++
++  * Oops, libxrandr-dev needs to depend on x11proto-randr-dev >= 1.2.
++
++ -- Julien Cristau <jcristau@debian.org>  Mon, 19 Feb 2007 10:27:32 +0100
++
++libxrandr (2:1.2.0-1) experimental; urgency=low
++
++  * Adjust Section and Priority values to what the override says.
++  * Update location of upstream repository from CVS to git in the long
++    descriptions.
++  * Install Xrandr(3) in libxrandr-dev, and use dh_installman.
++  * Run dh_install with --list-missing.
++  * New upstream release.
++  * Install the upstream ChangeLog.
++  * Add XS-Vcs-Git header.
++  * Update Standards-Version to 3.7.2.
++  * Bump Pre-Depends on x11-common to >= 1:7.0.0 and remove the regular
++    dependency on x11-common in libxrandr-dev to shut lintian up.
++  * Bump build-dependency on x11proto-randr-dev to >= 1.2.
++
++ -- Julien Cristau <jcristau@debian.org>  Mon, 19 Feb 2007 09:07:09 +0100
++
++libxrandr (2:1.1.0.2-5) unstable; urgency=low
++
++  [ Thierry Reding ]
++  * Add libxrender-dev dependency to libxrandr-dev.
++
++  [ Jamey Sharp ]
++  * libXrandr: Calls UnlockDisplay without calling LockDisplay. (Closes:
++    #400441)
++  * Add Josh and myself to Uploaders.
++
++ -- Jamey Sharp <sharpone@debian.org>  Mon, 27 Nov 2006 14:31:54 -0800
++
++libxrandr (2:1.1.0.2-4) unstable; urgency=low
++
++  * Reorder makeshlib command in rules file so that ldconfig is run
++    properly. Thanks Drew Parsons and Steve Langasek.
++  * Add quilt to build-depends
++
++ -- David Nusinow <dnusinow@debian.org>  Wed, 19 Apr 2006 01:19:50 -0400
++
++libxrandr (2:1.1.0.2-3) unstable; urgency=low
++
++  * Upload to unstable
++
++ -- David Nusinow <dnusinow@debian.org>  Thu, 23 Mar 2006 22:45:15 -0500
++
++libxrandr (2:1.1.0.2-2) experimental; urgency=low
++
++  * Backport manpage location fix
++
++ -- David Nusinow <dnusinow@debian.org>  Thu,  9 Mar 2006 23:25:40 -0500
++
++libxrandr (2:1.1.0.2-1) UNRLEASED; urgency=low
++
++  * First modular upload to Debian
++
++ -- David Nusinow <dnusinow@debian.org>  Thu, 29 Dec 2005 20:54:23 -0500
++
++libxrandr (1:1.0.2-2) breezy; urgency=low
++
++  * Update Build-Depends on libx11-dev and libxext-dev to avoid _XOPEN_SOURCE.
++
++ -- Daniel Stone <daniel.stone@ubuntu.com>  Sat, 23 Jul 2005 00:00:57 +1000
++
++libxrandr (1:1.0.2-1) breezy; urgency=low
++
++  * First libxrandr release.
++
++ -- Daniel Stone <daniel.stone@ubuntu.com>  Mon, 16 May 2005 22:10:17 +1000
+--- libxrandr-1.5.4.orig/debian/control
++++ libxrandr-1.5.4/debian/control
+@@ -0,0 +1,72 @@
++Source: libxrandr
++Section: x11
++Priority: optional
++Maintainer: Debian X Strike Force <debian-x@lists.debian.org>
++Build-Depends:
++ debhelper-compat (= 13),
++ libx11-dev (>= 1:0.99.2),
++ libxext-dev (>= 1:0.99.1),
++ x11proto-dev,
++ libxrender-dev (>= 1:0.9.0-2),
++ pkgconf,
++ quilt,
++ xutils-dev (>= 1:7.5+4),
++Standards-Version: 4.6.0
++Vcs-Git: https://salsa.debian.org/xorg-team/lib/libxrandr.git
++Vcs-Browser: https://salsa.debian.org/xorg-team/lib/libxrandr
++
++Package: libxrandr2
++Section: libs
++Architecture: any
++Depends: ${shlibs:Depends}, ${misc:Depends}
++Pre-Depends: ${misc:Pre-Depends}
++Multi-Arch: same
++Description: X11 RandR extension library
++ libXrandr provides an X Window System client interface to the RandR
++ extension to the X protocol.
++ .
++ The RandR extension allows for run-time configuration of display attributes
++ such as resolution, rotation, and reflection.
++ .
++ More information about X.Org can be found at:
++ <URL:https://www.X.org>
++ .
++ This module can be found at
++ https://gitlab.freedesktop.org/xorg/lib/libXrandr
++
++Package: libxrandr2-udeb
++XC-Package-Type: udeb
++Section: debian-installer
++Architecture: any
++Depends:
++ ${shlibs:Depends},
++Description: X11 RandR extension library
++ This is a udeb, or a microdeb, for the debian-installer.
++
++Package: libxrandr-dev
++Section: libdevel
++Architecture: any
++Multi-Arch: same
++Depends:
++ ${shlibs:Depends},
++ ${misc:Depends},
++ libxrandr2 (= ${binary:Version}),
++ libx11-dev,
++ libxext-dev,
++ x11proto-dev,
++ libxrender-dev,
++Description: X11 RandR extension library (development headers)
++ libXrandr provides an X Window System client interface to the RandR
++ extension to the X protocol.
++ .
++ The RandR extension allows for run-time configuration of display attributes
++ such as resolution, rotation, and reflection.
++ .
++ This package contains the development headers for the library found in
++ libxrandr2.  Non-developers likely have little use for this package.
++ .
++ More information about X.Org can be found at:
++ <URL:https://www.X.org>
++ .
++ This module can be found at
++ https://gitlab.freedesktop.org/xorg/lib/libXrandr
+--- libxrandr-1.5.4.orig/debian/copyright
++++ libxrandr-1.5.4/debian/copyright
+@@ -0,0 +1,68 @@
++This package was downloaded from
++https://xorg.freedesktop.org/releases/individual/lib/
++
++Copyright © 2000, Compaq Computer Corporation,
++Copyright © 2002, Hewlett Packard, Inc.
++
++Permission to use, copy, modify, distribute, and sell this software and its
++documentation for any purpose is hereby granted without fee, provided that
++the above copyright notice appear in all copies and that both that
++copyright notice and this permission notice appear in supporting
++documentation, and that the name of Compaq or HP not be used in advertising
++or publicity pertaining to distribution of the software without specific,
++written prior permission.  HP makes no representations about the
++suitability of this software for any purpose.  It is provided "as is"
++without express or implied warranty.
++
++HP DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING ALL
++IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL HP
++BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
++WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION
++OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
++CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
++
++Copyright © 2000 Compaq Computer Corporation, Inc.
++Copyright © 2002 Hewlett-Packard Company, Inc.
++Copyright © 2006 Intel Corporation
++Copyright © 2008 Red Hat, Inc.
++Copyright © 2011 Dave Airlie
++
++Permission to use, copy, modify, distribute, and sell this software and its
++documentation for any purpose is hereby granted without fee, provided that
++the above copyright notice appear in all copies and that both that copyright
++notice and this permission notice appear in supporting documentation, and
++that the name of the copyright holders not be used in advertising or
++publicity pertaining to distribution of the software without specific,
++written prior permission.  The copyright holders make no representations
++about the suitability of this software for any purpose.  It is provided "as
++is" without express or implied warranty.
++
++THE COPYRIGHT HOLDERS DISCLAIM ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
++INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO
++EVENT SHALL THE COPYRIGHT HOLDERS BE LIABLE FOR ANY SPECIAL, INDIRECT OR
++CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
++DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
++TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE
++OF THIS SOFTWARE.
++
++Copyright © 2000 Compaq Computer Corporation, Inc.
++Copyright © 2002 Hewlett Packard Company, Inc.
++Copyright © 2006 Keith Packard
++
++Permission to use, copy, modify, distribute, and sell this software and its
++documentation for any purpose is hereby granted without fee, provided that
++the above copyright notice appear in all copies and that both that copyright
++notice and this permission notice appear in supporting documentation, and
++that the name of the copyright holders not be used in advertising or
++publicity pertaining to distribution of the software without specific,
++written prior permission.  The copyright holders make no representations
++about the suitability of this software for any purpose.  It is provided "as
++is" without express or implied warranty.
++
++THE COPYRIGHT HOLDERS DISCLAIM ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
++INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO
++EVENT SHALL THE COPYRIGHT HOLDERS BE LIABLE FOR ANY SPECIAL, INDIRECT OR
++CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
++DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
++TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE
++OF THIS SOFTWARE.
+--- libxrandr-1.5.4.orig/debian/libxrandr-dev.install
++++ libxrandr-1.5.4/debian/libxrandr-dev.install
+@@ -0,0 +1,5 @@
++usr/include/X11/*
++usr/lib/*/libXrandr.a
++usr/lib/*/libXrandr.so
++usr/lib/*/pkgconfig/xrandr.pc
++usr/share/man/man3/*
+--- libxrandr-1.5.4.orig/debian/libxrandr2-udeb.install
++++ libxrandr-1.5.4/debian/libxrandr2-udeb.install
+@@ -0,0 +1 @@
++usr/lib/*/libXrandr.so.2* usr/lib
+--- libxrandr-1.5.4.orig/debian/libxrandr2.install
++++ libxrandr-1.5.4/debian/libxrandr2.install
+@@ -0,0 +1 @@
++usr/lib/*/libXrandr.so.2*
+--- libxrandr-1.5.4.orig/debian/libxrandr2.symbols
++++ libxrandr-1.5.4/debian/libxrandr2.symbols
+@@ -0,0 +1,71 @@
++libXrandr.so.2 libxrandr2 #MINVER#
++ XRRAddOutputMode@Base 2:1.2.0
++ XRRAllocGamma@Base 2:1.2.0
++ XRRAllocModeInfo@Base 2:1.2.0
++ XRRAllocateMonitor@Base 2:1.5.0
++ XRRChangeOutputProperty@Base 2:1.2.0
++ XRRChangeProviderProperty@Base 2:1.4.0
++ XRRConfigCurrentConfiguration@Base 0
++ XRRConfigCurrentRate@Base 4.3
++ XRRConfigRates@Base 4.3
++ XRRConfigRotations@Base 0
++ XRRConfigSizes@Base 0
++ XRRConfigTimes@Base 0
++ XRRConfigureOutputProperty@Base 2:1.2.0
++ XRRConfigureProviderProperty@Base 2:1.4.0
++ XRRCreateMode@Base 2:1.2.0
++ XRRDeleteMonitor@Base 2:1.5.0
++ XRRDeleteOutputMode@Base 2:1.2.0
++ XRRDeleteOutputProperty@Base 2:1.2.0
++ XRRDeleteProviderProperty@Base 2:1.4.0
++ XRRDestroyMode@Base 2:1.2.0
++ XRRFreeCrtcInfo@Base 2:1.2.0
++ XRRFreeGamma@Base 2:1.2.0
++ XRRFreeModeInfo@Base 2:1.2.0
++ XRRFreeMonitors@Base 2:1.5.0
++ XRRFreeOutputInfo@Base 2:1.2.0
++ XRRFreePanning@Base 2:1.2.99.2
++ XRRFreeProviderInfo@Base 2:1.4.0
++ XRRFreeProviderResources@Base 2:1.4.0
++ XRRFreeScreenConfigInfo@Base 0
++ XRRFreeScreenResources@Base 2:1.2.0
++ XRRGetCrtcGamma@Base 2:1.2.0
++ XRRGetCrtcGammaSize@Base 2:1.2.0
++ XRRGetCrtcInfo@Base 2:1.2.0
++ XRRGetCrtcTransform@Base 2:1.2.99.2
++ XRRGetMonitors@Base 2:1.5.0
++ XRRGetOutputInfo@Base 2:1.2.0
++ XRRGetOutputPrimary@Base 2:1.2.99.3
++ XRRGetOutputProperty@Base 2:1.2.0
++ XRRGetPanning@Base 2:1.2.99.2
++ XRRGetProviderInfo@Base 2:1.4.0
++ XRRGetProviderProperty@Base 2:1.4.0
++ XRRGetProviderResources@Base 2:1.4.0
++ XRRGetScreenInfo@Base 0
++ XRRGetScreenResources@Base 2:1.2.0
++ XRRGetScreenResourcesCurrent@Base 2:1.2.99.2
++ XRRGetScreenSizeRange@Base 2:1.2.0
++ XRRListOutputProperties@Base 2:1.2.0
++ XRRListProviderProperties@Base 2:1.4.0
++ XRRQueryExtension@Base 0
++ XRRQueryOutputProperty@Base 2:1.2.0
++ XRRQueryProviderProperty@Base 2:1.4.0
++ XRRQueryVersion@Base 0
++ XRRRates@Base 4.3
++ XRRRootToScreen@Base 0
++ XRRRotations@Base 0
++ XRRSelectInput@Base 0
++ XRRSetCrtcConfig@Base 2:1.2.0
++ XRRSetCrtcGamma@Base 2:1.2.0
++ XRRSetCrtcTransform@Base 2:1.2.99.2
++ XRRSetMonitor@Base 2:1.5.0
++ XRRSetOutputPrimary@Base 2:1.2.99.3
++ XRRSetPanning@Base 2:1.2.99.2
++ XRRSetProviderOffloadSink@Base 2:1.4.0
++ XRRSetProviderOutputSource@Base 2:1.4.0
++ XRRSetScreenConfig@Base 0
++ XRRSetScreenConfigAndRate@Base 4.3
++ XRRSetScreenSize@Base 2:1.2.0
++ XRRSizes@Base 0
++ XRRTimes@Base 0
++ XRRUpdateConfiguration@Base 0
+--- libxrandr-1.5.4.orig/debian/patches/series
++++ libxrandr-1.5.4/debian/patches/series
+@@ -0,0 +1 @@
++# placeholder
+--- libxrandr-1.5.4.orig/debian/rules
++++ libxrandr-1.5.4/debian/rules
+@@ -0,0 +1,27 @@
++#!/usr/bin/make -f
++# debian/rules for the Debian libxrandr package.
++# Copyright © 2004 Scott James Remnant <scott@netsplit.com>
++# Copyright © 2005 Daniel Stone <daniel@fooishbar.org>
++# Copyright © 2005 David Nusinow <dnusinow@debian.org>
++
++# Uncomment this to turn on verbose mode.
++#export DH_VERBOSE=1
++
++# set this to the name of the main shlib's binary package
++PACKAGE = libxrandr2
++
++%:
++	dh $@ --with quilt --builddirectory=build/
++
++override_dh_install:
++	find $(CURDIR)/debian/tmp -name "*.la" -type f -delete
++	dh_install
++
++override_dh_missing:
++	dh_missing --fail-missing
++
++override_dh_strip:
++	dh_strip --dbgsym-migration="$(PACKAGE)-dbg (<< 2:1.5.1-1~)"
++
++override_dh_makeshlibs:
++	dh_makeshlibs --add-udeb=$(PACKAGE)-udeb -V'$(PACKAGE) (>= 2:1.5)' -- -c4
+--- libxrandr-1.5.4.orig/debian/upstream/metadata
++++ libxrandr-1.5.4/debian/upstream/metadata
+@@ -0,0 +1,5 @@
++---
++Bug-Database: https://gitlab.freedesktop.org/xorg/lib/libxrandr/-/issues
++Bug-Submit: https://gitlab.freedesktop.org/xorg/lib/libxrandr/-/issues
++Repository: https://gitlab.freedesktop.org/xorg/lib/libxrandr.git
++Repository-Browse: https://gitlab.freedesktop.org/xorg/lib/libxrandr
+--- libxrandr-1.5.4.orig/debian/upstream/signing-key.asc
++++ libxrandr-1.5.4/debian/upstream/signing-key.asc
+@@ -0,0 +1,236 @@
++-----BEGIN PGP PUBLIC KEY BLOCK-----
++Version: GnuPG v1
++
++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
++iQyTzgz/F98QzHzNrRk8DdK4kxVkpvk=
++=G7Eh
++-----END PGP PUBLIC KEY BLOCK-----
++-----BEGIN PGP PUBLIC KEY BLOCK-----
++
++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
++79+hF4bWyw==
++=WW1Z
++-----END PGP PUBLIC KEY BLOCK-----
++-----BEGIN PGP PUBLIC KEY BLOCK-----
++
++mQGiBEab+moRBACDH5yKqS3wcc5bdxY7PBNuwKvF5TKMfagmSvuRDtZjjIIWaA/n
++Z1KboV9Gq5g7kP7+Kfu+Qgd8u65eVsWwmPW10fXvj3aCU53glx2EdGdrHcgiyH2g
++EQfPiyBw+trIppWFRV0IDXSLMA1FNC92t2nSG/VFHaPTVwcgkIRSfcXDvwCglGdE
++a6f4uLqoNHP+m4yYnzapFuMD/R4+2AJDAvEWKDdYCGZzlawjAmmWyXrmT7/C/mx9
++8qUR473l4buXjHgDkkXXlHqdzil1vK85PhrKzNJDCCmlHUJNz+QwiAMOLwpD+kwV
++Pb57RG7y+a5JQ5+jtVw4RlUxZIk/wj2An9YBO3A5vR7PdjM32ZJCN2+aM4dYfNzQ
++xQKTA/47icvBaBVTl9rztjg2pd2Aqpc1P/GsIYLGj7XjnnJvGAENBHSH1QjpZMJG
++CTS9oJ+B0/wrIr+pA+MdFgYAb6ojMQJOO6UChjWWSGjMFcs/CeXhxlLBido3DtAE
++TbNTwO6OEfAvdosvTdhJFnwvZlJ+zZGGy5CrF2Fd9PUe9tmASbQuQWxhbiBDb29w
++ZXJzbWl0aCA8YWxhbi5jb29wZXJzbWl0aEBvcmFjbGUuY29tPoiCBBMRCgBCAhsD
++BgsJCAcDAgYVCAIJCgsEFgIDAQIeAQIXgAIZARYhBEoZPAbTXnxnD6TvC6L7nggf
++LRMOBQJkQs2eBQknDNS0AAoJEKL7nggfLRMO1esAnR4FVD60BpDY/bJp5RC1VXhO
++Vlo4AKCJgsQeVeGLxDlMuhAmbcCkOjafqbQoQWxhbiBDb29wZXJzbWl0aCA8YWxh
++bmNAZnJlZWRlc2t0b3Aub3JnPoh/BBMRCgA/AhsDBgsJCAcDAgYVCAIJCgsEFgID
++AQIeAQIXgBYhBEoZPAbTXnxnD6TvC6L7nggfLRMOBQJkQs2eBQknDNS0AAoJEKL7
++nggfLRMOUgAAoIyNXuU5kOotpZrKvPrjQATbsPClAJ9wkh/n3IAobV6aDLb1qOt5
++RT3Pp7QrQWxhbiBDb29wZXJzbWl0aCA8YWxhbi5jb29wZXJzbWl0aEBzdW4uY29t
++Poh9BBMRCgA9AhsDBgsJCAcDAgQVAggDBBYCAwECHgECF4AWIQRKGTwG0158Zw+k
++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
++=awvS
++-----END PGP PUBLIC KEY BLOCK-----
+--- libxrandr-1.5.4.orig/debian/watch
++++ libxrandr-1.5.4/debian/watch
+@@ -0,0 +1,3 @@
++version=3
++opts=pgpsigurlmangle=s/$/.sig/ \
++https://xorg.freedesktop.org/releases/individual/lib/ libXrandr-(.*)\.tar\.gz

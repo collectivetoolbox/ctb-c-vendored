@@ -1,0 +1,197 @@
+# translation of fontconfig_2.4.2-1.2_de.po to German
+# Translators, if you are not familiar with the PO format, gettext
+# documentation is worth reading, especially sections dedicated to
+# this format, e.g. by running:
+# info -n '(gettext)PO Files'
+# info -n '(gettext)Header Entry'
+# Some information specific to po-debconf are available at
+# /usr/share/doc/po-debconf/README-trans
+# or http://www.debian.org/intl/l10n/po-debconf/README-trans#
+# Developers do not need to manually edit POT or PO files.
+# Erik Schanze <eriks@debian.org>, 2004-2007.
+# Markus Hiereth <translation@hiereth.de>, 2017.
+msgid ""
+msgstr ""
+"Project-Id-Version: fontconfig_2.4.2-1.2_de\n"
+"Report-Msgid-Bugs-To: fontconfig@packages.debian.org\n"
+"POT-Creation-Date: 2017-07-05 11:29+0200\n"
+"PO-Revision-Date: 2017-12-24 11:20+0200\n"
+"Last-Translator: Markus Hiereth <translation@hiereth.de>\n"
+"Language-Team: debian-l10n-german <debian-l10n-german@lists.debian.org>\n"
+"Language: de\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Virtaal 0.7.1\n"
+
+#. Type: select
+#. Choices
+#: ../fontconfig-config.templates:2001
+msgid "Native"
+msgstr "nativ"
+
+#. Type: select
+#. Choices
+#: ../fontconfig-config.templates:2001
+msgid "Autohinter"
+msgstr "Autohinter"
+
+#. Type: select
+#. Choices
+#. Type: select
+#. Choices
+#: ../fontconfig-config.templates:2001 ../fontconfig-config.templates:3001
+msgid "None"
+msgstr "keine"
+
+#. Type: select
+#. Description
+#: ../fontconfig-config.templates:2002
+msgid "Font tuning method for screen (system default):"
+msgstr "Schriftabgleich-Methode für den Bildschirm (Systemvorgabe):"
+
+#. Type: select
+#. Description
+#: ../fontconfig-config.templates:2002
+msgid ""
+"Please select the preferred method for tuning fonts for screen rendering."
+msgstr ""
+"Bitte wählen Sie zur Bildschirmdarstellung die bevorzugte Methode zum "
+"Schriftabgleich (font tuning) aus."
+
+#. Type: select
+#. Description
+#: ../fontconfig-config.templates:2002
+msgid ""
+"Select 'Native' if you mostly use DejaVu (the default in Debian) or any of "
+"the Microsoft fonts. Select 'Autohinter' if you mostly use other TrueType "
+"fonts. Select 'None' if you want blurry text."
+msgstr ""
+"Wählen Sie »nativ« aus, wenn Sie überwiegend DejaVu (Standard in Debian) "
+"oder Microsoft-Schriften verwenden. Wählen Sie »Autohinter« aus, wenn Sie "
+"überwiegend andere True-Type-Schriften verwenden. Wählen Sie »keine« aus, "
+"wenn Sie verschwommenen Text wollen."
+
+#. Type: select
+#. Choices
+#: ../fontconfig-config.templates:3001
+msgid "Slight"
+msgstr "gering"
+
+#. Type: select
+#. Choices
+#: ../fontconfig-config.templates:3001
+msgid "Medium"
+msgstr "mittel"
+
+#. Type: select
+#. Choices
+#: ../fontconfig-config.templates:3001
+msgid "Full"
+msgstr "voll"
+
+#. Type: select
+#. Description
+#: ../fontconfig-config.templates:3002
+msgid "Automatic font hinting style:"
+msgstr "Einstellung für das automatische Font-Hinting:"
+
+#. Type: select
+#. Description
+#: ../fontconfig-config.templates:3002
+msgid ""
+"Please select the preferred automatic font hinting style to be used as the "
+"system default."
+msgstr "Bitte wählen Sie, inwieweit Font-Hinting standardmäßig angewendet wird."
+
+#. Type: select
+#. Description
+#: ../fontconfig-config.templates:3002
+msgid ""
+"The hinting style is the amount of font reshaping done to line up to the "
+"grid. \"Slight\" will make the font more fuzzy to line up to the grid but "
+"will be better in retaining font shape, while \"Full\" will be a crisp font "
+"that aligns well to the pixel grid but will lose a greater amount of font "
+"shape. \"Slight\" is the default setting."
+msgstr ""
+"Mit der Einstellung für das Font-Hinting geben Sie an, inwieweit die Form "
+"der Schrift zur Darstellung im Raster von Bildschirmpunkten verändert wird. "
+"»Gering« lässt die Schrift beim Einfügen in das Raster undeutlicher werden, "
+"erhält ihre Form aber besser. »Voll« hingegen liefert eine scharfe und gut "
+"in das Raster überführte Schrift, ihre Form wird dabei weniger gut erhalten. "
+"Voreingestellt ist »gering«."
+
+#. Type: select
+#. Description
+#: ../fontconfig-config.templates:3002
+msgid "To revert to the pre-2.12 behavior, select \"Full\"."
+msgstr "Um zum Verhalten vor Version 2.12 zurückzukehren, wählen Sie »voll«."
+
+#. Type: select
+#. Choices
+#: ../fontconfig-config.templates:4001
+msgid "Automatic"
+msgstr "automatisch"
+
+#. Type: select
+#. Choices
+#: ../fontconfig-config.templates:4001
+msgid "Always"
+msgstr "immer"
+
+#. Type: select
+#. Choices
+#: ../fontconfig-config.templates:4001
+msgid "Never"
+msgstr "nie"
+
+#. Type: select
+#. Description
+#: ../fontconfig-config.templates:4002
+msgid "Enable subpixel rendering for screen:"
+msgstr "Bildschirmdarstellung mit Subpixeln:"
+
+#. Type: select
+#. Description
+#: ../fontconfig-config.templates:4002
+msgid ""
+"Rendering text at a subpixel level generally makes it look a bit better on "
+"flat (LCD) screens, but can show color artifacts on CRT screens. The "
+"\"Automatic\" choice will enable it only if a LCD screen is detected."
+msgstr ""
+"Die Einbeziehung der Subpixel-Ebene verbessert die Textdarstellung auf "
+"Flachbildschirmen (LCD) ein wenig, kann aber auf Röhrenmonitoren (CRT) "
+"Farbfehler verursachen. Mit der Einstellung »automatisch« wird die Subpixel-"
+"Ebene aktiviert, wenn ein Flachbildschirm erkannt wurde."
+
+#. Type: boolean
+#. Description
+#: ../fontconfig-config.templates:5001
+msgid "Enable bitmapped fonts by default?"
+msgstr "Standardmäßig Bitmap-Schriften verwenden?"
+
+#. Type: boolean
+#. Description
+#: ../fontconfig-config.templates:5001
+msgid ""
+"By default, only outline fonts are used by applications which support "
+"fontconfig."
+msgstr ""
+"Standardmäßig nutzen Anwendungen, die fontconfig unterstützen, nur Outline-"
+"Schriften."
+
+#. Type: boolean
+#. Description
+#: ../fontconfig-config.templates:5001
+msgid ""
+"Outline fonts are fonts which scale well to various sizes. In contrast, "
+"bitmapped fonts are often lower quality. Enabling this option will affect "
+"the systemwide default; this and many other fontconfig options may be "
+"enabled or disabled on a per-user basis."
+msgstr ""
+"Outline-Schriften können gut in verschiedene Größen skaliert werden. Bitmap-"
+"Schriften sind im Gegensatz dazu oft von geringerer Qualität. Wenn Sie hier "
+"zustimmen, beeinflussen Sie die systemweite Standardeinstellung; diese und "
+"viele andere Einstellungen von fontconfig kann der einzele Benutzer ein- "
+"oder ausschalten."

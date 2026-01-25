@@ -1,0 +1,5 @@
+duplicate-files usr/share/doc/libfreetype-dev/glyphs/glyph-metrics-3.svg usr/share/doc/libfreetype-dev/tutorial/glyph-metrics-3.svg
+
+duplicate-files usr/share/doc/libfreetype-dev/glyphs/glyph-metrics-4.svg usr/share/doc/libfreetype-dev/tutorial/glyph-metrics-4.svg
+
+duplicate-files usr/share/doc/libfreetype-dev/image/favicon_-60.ico.gz usr/share/doc/libfreetype-dev/reference/images/favico.ico.gz
