@@ -1,0 +1,3 @@
+#git=https://gitlab.freedesktop.org/xorg/lib/libxcursor
+version=3
+https://www.x.org/releases/individual/lib/ libXcursor-(.*)\.tar\.gz

@@ -1,0 +1,68 @@
+Source: libxcursor
+Section: devel
+Priority: optional
+Maintainer: Debian X Strike Force <debian-x@lists.debian.org>
+Uploaders: Cyril Brulebois <kibi@debian.org>
+Build-Depends:
+ debhelper-compat (= 13),
+ x11proto-dev,
+ libx11-dev,
+ libxrender-dev,
+ libxfixes-dev,
+ pkgconf,
+ quilt,
+ automake,
+ libtool,
+ xutils-dev,
+Standards-Version: 4.7.0
+Homepage: https://www.x.org
+Vcs-Git: https://salsa.debian.org/xorg-team/lib/libxcursor.git
+Vcs-Browser: https://salsa.debian.org/xorg-team/lib/libxcursor
+
+Package: libxcursor1
+Section: libs
+Architecture: any
+Depends:
+ ${shlibs:Depends},
+ ${misc:Depends},
+Pre-Depends: ${misc:Pre-Depends}
+Multi-Arch: same
+Description: X cursor management library
+ Xcursor is a simple library designed to help locate and load cursors for the
+ X Window System.  Cursors can be loaded from files or memory and can exist in
+ several sizes; the library automatically picks the best size.  When using
+ images loaded from files, Xcursor prefers to use the Render extension's
+ CreateCursor request for rendering cursors.  Where the Render extension is
+ not supported, Xcursor maps the cursor image to a standard X cursor and uses
+ the core X protocol CreateCursor request.
+ .
+ Preferred themes for cursors can be installed if desired, via
+ xcursor-themes or other cursor-theme or icon-theme packages,
+ configured with update-alternatives --config x-cursor-theme.
+
+Package: libxcursor1-udeb
+Package-Type: udeb
+Section: debian-installer
+Architecture: any
+Depends:
+ ${shlibs:Depends},
+ ${misc:Depends},
+Description: X cursor management library
+ This is a udeb, or a microdeb, for the debian-installer.
+
+Package: libxcursor-dev
+Section: libdevel
+Architecture: any
+Multi-Arch: same
+Depends:
+ libxcursor1 (= ${binary:Version}),
+ x11proto-dev,
+ libx11-dev,
+ libxrender-dev,
+ libxfixes-dev,
+ ${misc:Depends},
+Description: X cursor management library (development files)
+ Header files and a static version of the X cursor management library are
+ provided by this package.
+ .
+ See the libxcursor1 package for further information.

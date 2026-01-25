@@ -1,0 +1,1405 @@
+--- libxrender-0.9.12.orig/.clang-format
++++ libxrender-0.9.12/.clang-format
+@@ -0,0 +1,137 @@
++---
++Language:        Cpp
++# BasedOnStyle:  LLVM
++AccessModifierOffset: -2
++AlignAfterOpenBracket: Align
++AlignConsecutiveMacros: false
++AlignConsecutiveAssignments: false
++AlignConsecutiveDeclarations: false
++AlignEscapedNewlines: Right
++AlignOperands:   true
++AlignTrailingComments: true
++AllowAllArgumentsOnNextLine: true
++AllowAllConstructorInitializersOnNextLine: true
++AllowAllParametersOfDeclarationOnNextLine: true
++AllowShortBlocksOnASingleLine: Never
++AllowShortCaseLabelsOnASingleLine: false
++AllowShortFunctionsOnASingleLine: All
++AllowShortLambdasOnASingleLine: All
++AllowShortIfStatementsOnASingleLine: Never
++AllowShortLoopsOnASingleLine: false
++AlwaysBreakAfterDefinitionReturnType: None
++AlwaysBreakAfterReturnType: None
++AlwaysBreakBeforeMultilineStrings: false
++AlwaysBreakTemplateDeclarations: MultiLine
++BinPackArguments: true
++BinPackParameters: true
++BraceWrapping:
++  AfterCaseLabel:  false
++  AfterClass:      false
++  AfterControlStatement: false
++  AfterEnum:       false
++  AfterFunction:   false
++  AfterNamespace:  false
++  AfterObjCDeclaration: false
++  AfterStruct:     false
++  AfterUnion:      false
++  AfterExternBlock: false
++  BeforeCatch:     false
++  BeforeElse:      false
++  IndentBraces:    false
++  SplitEmptyFunction: true
++  SplitEmptyRecord: true
++  SplitEmptyNamespace: true
++BreakBeforeBinaryOperators: None
++BreakBeforeBraces: Attach
++BreakBeforeInheritanceComma: false
++BreakInheritanceList: BeforeColon
++BreakBeforeTernaryOperators: true
++BreakConstructorInitializersBeforeComma: false
++BreakConstructorInitializers: BeforeColon
++BreakAfterJavaFieldAnnotations: false
++BreakStringLiterals: true
++ColumnLimit:     80
++CommentPragmas:  '^ IWYU pragma:'
++CompactNamespaces: false
++ConstructorInitializerAllOnOneLineOrOnePerLine: false
++ConstructorInitializerIndentWidth: 4
++ContinuationIndentWidth: 4
++Cpp11BracedListStyle: true
++DeriveLineEnding: true
++DerivePointerAlignment: false
++DisableFormat:   false
++ExperimentalAutoDetectBinPacking: false
++FixNamespaceComments: true
++ForEachMacros:
++  - foreach
++  - Q_FOREACH
++  - BOOST_FOREACH
++IncludeBlocks:   Preserve
++IncludeCategories:
++  - Regex:           '^"(llvm|llvm-c|clang|clang-c)/'
++    Priority:        2
++    SortPriority:    0
++  - Regex:           '^(<|"(gtest|gmock|isl|json)/)'
++    Priority:        3
++    SortPriority:    0
++  - Regex:           '.*'
++    Priority:        1
++    SortPriority:    0
++IncludeIsMainRegex: '(Test)?$'
++IncludeIsMainSourceRegex: ''
++IndentCaseLabels: false
++IndentGotoLabels: true
++IndentPPDirectives: None
++IndentWidth:     4
++IndentWrappedFunctionNames: false
++JavaScriptQuotes: Leave
++JavaScriptWrapImports: true
++KeepEmptyLinesAtTheStartOfBlocks: true
++MacroBlockBegin: ''
++MacroBlockEnd:   ''
++MaxEmptyLinesToKeep: 1
++NamespaceIndentation: None
++ObjCBinPackProtocolList: Auto
++ObjCBlockIndentWidth: 2
++ObjCSpaceAfterProperty: false
++ObjCSpaceBeforeProtocolList: true
++PenaltyBreakAssignment: 2
++PenaltyBreakBeforeFirstCallParameter: 19
++PenaltyBreakComment: 300
++PenaltyBreakFirstLessLess: 120
++PenaltyBreakString: 1000
++PenaltyBreakTemplateDeclaration: 10
++PenaltyExcessCharacter: 1000000
++PenaltyReturnTypeOnItsOwnLine: 60
++PointerAlignment: Right
++ReflowComments:  true
++SortIncludes:    true
++SortUsingDeclarations: true
++SpaceAfterCStyleCast: false
++SpaceAfterLogicalNot: false
++SpaceAfterTemplateKeyword: true
++SpaceBeforeAssignmentOperators: true
++SpaceBeforeCpp11BracedList: false
++SpaceBeforeCtorInitializerColon: true
++SpaceBeforeInheritanceColon: true
++SpaceBeforeParens: ControlStatements
++SpaceBeforeRangeBasedForLoopColon: true
++SpaceInEmptyBlock: false
++SpaceInEmptyParentheses: false
++SpacesBeforeTrailingComments: 1
++SpacesInAngles:  false
++SpacesInConditionalStatement: false
++SpacesInContainerLiterals: true
++SpacesInCStyleCastParentheses: false
++SpacesInParentheses: false
++SpacesInSquareBrackets: false
++SpaceBeforeSquareBrackets: false
++Standard:        Latest
++StatementMacros:
++  - Q_UNUSED
++  - QT_REQUIRE_VERSION
++TabWidth:        8
++UseCRLF:         false
++UseTab:          Never
++...
++
+--- libxrender-0.9.12.orig/.gitlab-ci.yml
++++ libxrender-0.9.12/.gitlab-ci.yml
+@@ -0,0 +1,98 @@
++# vim: set expandtab shiftwidth=2 tabstop=8 textwidth=0 filetype=yaml:
++#
++# This CI uses the freedesktop.org ci-templates.
++# Please see the ci-templates documentation for details:
++# https://freedesktop.pages.freedesktop.org/ci-templates/
++
++.templates_sha: &template_sha 34f4ade99434043f88e164933f570301fd18b125 # see https://docs.gitlab.com/ee/ci/yaml/#includefile
++
++
++include:
++  # Arch container builder template
++  - project: 'freedesktop/ci-templates'
++    ref: *template_sha
++    file: '/templates/arch.yml'
++  - project: 'freedesktop/ci-templates'
++    ref: *template_sha
++    file: '/templates/ci-fairy.yml'
++  - template: Security/SAST.gitlab-ci.yml
++
++
++stages:
++  - prep             # prep work like rebuilding the container images if there is a change
++  - build            # for actually building and testing things in a container
++  - test
++  - deploy
++
++
++variables:
++  FDO_UPSTREAM_REPO: 'xorg/lib/libXrender'
++  # The tag should be updated each time the list of packages is updated.
++  # Changing a tag forces the associated image to be rebuilt.
++  # Note: the tag has no meaning, we use a date format purely for readability
++  FDO_DISTRIBUTION_TAG:  '2022-07-17.0'
++  FDO_DISTRIBUTION_PACKAGES:  'git gcc pkgconf autoconf automake libtool make xorg-util-macros xorgproto libx11'
++
++
++#
++# Verify that commit messages are as expected
++#
++check-commits:
++  extends:
++    - .fdo.ci-fairy
++  stage: prep
++  script:
++    - ci-fairy check-commits --junit-xml=results.xml
++  except:
++    - master@xorg/lib/libXrender
++  variables:
++    GIT_DEPTH: 100
++  artifacts:
++    reports:
++      junit: results.xml
++
++#
++# Verify that the merge request has the allow-collaboration checkbox ticked
++#
++check-merge-request:
++  extends:
++    - .fdo.ci-fairy
++  stage: deploy
++  script:
++    - ci-fairy check-merge-request --require-allow-collaboration --junit-xml=results.xml
++  artifacts:
++    when: on_failure
++    reports:
++      junit: results.xml
++  allow_failure: true
++
++
++#
++# Build a container with the given tag and the packages pre-installed.
++# This only happens if/when the tag changes, otherwise the existing image is
++# re-used.
++#
++container-prep:
++  extends:
++    - .fdo.container-build@arch
++  stage: prep
++  variables:
++    GIT_STRATEGY: none
++
++
++#
++# The default build, runs on the image built above.
++#
++build:
++  stage: build
++  extends:
++    - .fdo.distribution-image@arch
++  script:
++    - autoreconf -ivf
++    - mkdir _builddir
++    - pushd _builddir > /dev/null
++    - ../configure --disable-silent-rules
++    - make
++    - make check
++    - make distcheck
++    - popd > /dev/null
+--- libxrender-0.9.12.orig/ChangeLog
++++ libxrender-0.9.12/ChangeLog
+@@ -1,305 +1,3 @@
+-commit 46e12ff9e8e4d3f0313a2f097df93dbfdc14f92f
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Fri Dec 13 13:02:31 2024 -0800
+-
+-    libXrender 0.9.12
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit 432f2c85f0597f189f80fe80a67f00f7d10c930f
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Thu Nov 21 16:15:37 2024 -0800
+-
+-    XRenderQueryFormats: add missing allocation failure check
+-    
+-    Most allocations in this function were already checked for failures,
+-    but the recently added set had been missed.
+-    
+-    Clears 6 warnings from gcc 14.2 of the form:
+-    Xrender.c:361:28: warning: dereference of possibly-NULL ‘format’ [CWE-690]
+-     [-Wanalyzer-possible-null-dereference]
+-      361 |         if (xri->format[nf].id == format)
+-          |             ~~~~~~~~~~~~~~~^~~
+-    
+-    Fixes: 01e7546 ("Ensure XRenderInfo pointers are appropriately aligned")
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-    Part-of: <https://gitlab.freedesktop.org/xorg/lib/libxrender/-/merge_requests/15>
+-
+-commit 6663858e918923d02c466298670c992a8437a17b
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Wed Nov 20 17:14:49 2024 -0800
+-
+-    Ensure all BufAlloc calls have trailing semicolon
+-    
+-    Most already did, this fixes 3 outliers, so they build with
+-    libx11@563ddd4ff5575e3f8bbf635cbdc339b09a7e285e
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-    Part-of: <https://gitlab.freedesktop.org/xorg/lib/libxrender/-/merge_requests/14>
+-
+-commit 01e754610df2195536c5b31c1e8df756480599d1
+-Author: Alex Richardson <arichardson@FreeBSD.org>
+-Date:   Tue Sep 12 22:55:37 2023 -0700
+-
+-    Ensure XRenderInfo pointers are appropriately aligned
+-    
+-    While runnig some X11 applications on an Arm Morello platform I noticed
+-    bus errors inside xrender. XRenderInfo uses a single malloc call to
+-    allocate multiple objects in one single allocation and places those objects
+-    directly after the XRenderInfo object. However, these calculations do not
+-    ensure that this objects are sufficiently aligned. I noticed this because
+-    on Morello (and other CHERI-enabled architectures) pointers need to be
+-    strongly aligned. Instead of allocating a single block with potentially
+-    misaligned subsequent objects, this change uses seprate allocations for
+-    the four arrays.
+-    
+-    This is an alternative to https://gitlab.freedesktop.org/xorg/lib/libxrender/-/merge_requests/12
+-    
+-    Signed-off-by: Alex Richardson <arichardson@FreeBSD.org>
+-
+-commit 07efd80468f6b595e6432edd28b8560ca7695ba0
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Tue Mar 7 11:11:26 2023 -0800
+-
+-    configure: Use LT_INIT from libtool 2 instead of deprecated AC_PROG_LIBTOOL
+-    
+-    AC_PROG_LIBTOOL was replaced by LT_INIT in libtool 2 in 2008,
+-    so it's time to rely on it.
+-    
+-    Clears autoconf warnings:
+-    
+-    configure.ac:45: warning: The macro `AC_PROG_LIBTOOL' is obsolete.
+-    configure.ac:45: You should run autoupdate.
+-    aclocal.m4:3465: AC_PROG_LIBTOOL is expanded from...
+-    configure.ac:45: the top level
+-    
+-    libtoolize: Consider adding 'AC_CONFIG_MACRO_DIRS([m4])' to configure.ac,
+-    libtoolize: and rerunning libtoolize and aclocal.
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit e5e23272394c90731debd7e18dd167e8c25b5c15
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Fri Oct 21 18:12:50 2022 -0700
+-
+-    libXrender 0.9.11
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit f6504f02ade1d27950ad0486a2032e1d665d72b8
+-Author: Thomas E. Dickey <dickey@invisible-island.net>
+-Date:   Sun Sep 11 13:24:22 2022 -0400
+-
+-    fix regression
+-    
+-    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+-
+-commit a7d99992bff95237a1e51ce5c6cbf9429516b9eb
+-Author: Oliver Hattshire <hattshire@gmail.com>
+-Date:   Sun Sep 11 16:41:36 2022 +0000
+-
+-    WIP: Documentation
+-
+-commit 869d2b7ae8deda46f8ea6fba226455533683b0e4
+-Author: Thomas E. Dickey <dickey@invisible-island.net>
+-Date:   Sun Sep 11 10:52:25 2022 -0400
+-
+-    whitespace fix
+-    
+-    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+-
+-commit df5f1f04a7d123a521f0d4bfc88c3b65253491bc
+-Author: Thomas E. Dickey <dickey@invisible-island.net>
+-Date:   Sat Sep 10 06:17:40 2022 -0400
+-
+-    use _X_UNUSED for compiler-warnings
+-    
+-    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+-
+-commit f43df87188375440dbad33d7c0beed2a607b8d1d
+-Author: Thomas E. Dickey <dickey@invisible-island.net>
+-Date:   Sat Sep 10 05:48:07 2022 -0400
+-
+-    use _Xconst with DataInt32/DataInt16/memcpy to reduce strict compiler warnings
+-    
+-    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+-
+-commit ea28ca1a2cce8e0d8e5a1f620a809384ed276c37
+-Author: Thomas E. Dickey <dickey@invisible-island.net>
+-Date:   Fri Sep 9 16:51:01 2022 -0400
+-
+-    use casts to reduce compiler warnings (no object change)
+-    
+-    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+-
+-commit afc7f259668bbb25d5b06929d529add93fb39ebf
+-Author: Thomas E. Dickey <dickey@invisible-island.net>
+-Date:   Thu Sep 8 19:20:53 2022 -0400
+-
+-    cppcheck (removing unused assignment lets variable scope reduction)
+-    
+-    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+-
+-commit b62e3f39768cd6fc5db9e4be65b47c53719598c9
+-Author: Thomas E. Dickey <dickey@invisible-island.net>
+-Date:   Thu Sep 8 19:06:29 2022 -0400
+-
+-    additional cppcheck-scope warning
+-    
+-    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+-
+-commit ded8aa8c97fc90f0c02f26084d118e683163e4ca
+-Author: Thomas E. Dickey <dickey@invisible-island.net>
+-Date:   Thu Sep 8 19:05:07 2022 -0400
+-
+-    amend cppcheck-scope change, fixing c89 build
+-    
+-    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+-
+-commit 5a69e234cd4e02186b5b2627360f91cb1fa58edf
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Sun Aug 28 12:01:13 2022 -0700
+-
+-    Rename xDepth to xPDepth to quiet -Wshadow warnings
+-    
+-    Xrender.c: In function ‘XRenderQueryFormats’:
+-    Xrender.c:406:19: warning: declaration of ‘xDepth’ shadows a global declaration [-Wshadow]
+-         xPictDepth   *xDepth;
+-                       ^~~~~~
+-    In file included from /net/also.us.oracle.com/export/alanc/X.Org/amd64-gcc/install/usr/X11R7/include/X11/Xlibint.h:43:0,
+-                     from Xrenderint.h:31,
+-                     from Xrender.c:28:
+-    /net/also.us.oracle.com/export/alanc/X.Org/amd64-gcc/install/usr/X11R7/include/X11/Xproto.h:329:7: note: shadowed declaration is here
+-         } xDepth;
+-           ^~~~~~
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit 2b927f88ad3d97e5fd1abd13b67724a86dd10404
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Sun Aug 28 11:52:49 2022 -0700
+-
+-    Resolve -Wsign-compare warnings
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit 229c65d2dd6de511a005127245dc28d426ad6860
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Sun Aug 28 11:41:27 2022 -0700
+-
+-    Reduce variable scopes as recommended by cppcheck
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit cc4ad7a3990826ca44470dbca3a5b03c35548cab
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Sun Aug 28 10:26:00 2022 -0700
+-
+-    Remove unnecessary casts from malloc & free calls
+-    
+-    These are not needed in C89 and later
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit 3b888fdf89b4d8f4712c28b340c28604c8ff0b7e
+-Author: Dmitry Karasik <dmitry.karasik@teliacompany.com>
+-Date:   Sat Aug 7 09:36:03 2021 +0200
+-
+-    fix coredumps in XRenderComputeTrapezoids (issue #1)
+-    
+-    Rationale: I don't have enough expertise to judge on how the tessellation
+-    algorithm is broken in XRenderComputeTrapezoids but I do trust Keith Packard
+-    that it is. However using cairo for proper tessellation, as he suggests, is
+-    too heavyweight, and here I propose to alter the code to at least do not cause
+-    coredumps.
+-    
+-    Even if/when the function will be marked as obsolete, I believe it is pretty
+-    much capable of rendering relatively simple shapes, and still retains some
+-    value.
+-
+-commit e314946813bcb96e8baedc1a290c48a2aa6ef162
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Sun Jul 17 17:38:47 2022 -0700
+-
+-    gitlab CI: add a basic build test
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit a5e4c91b04f542b27b811b78aa32b88ec6111c91
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Sun Jul 17 17:38:01 2022 -0700
+-
+-    Fix spelling/wording issues
+-    
+-    Found by using:
+-        codespell --builtin clear,rare,usage,informal,code,names
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit b96298906cf99c3b32ad10bc27a85344d2f0e126
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Sun Jul 17 17:37:15 2022 -0700
+-
+-    Build xz tarballs instead of bzip2
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit bd87a8863c7647790de577296a77953bda6877e3
+-Author: Robin Linden <dev@robinlinden.eu>
+-Date:   Fri Jan 7 03:53:35 2022 +0100
+-
+-    Add missing HAVE_CONFIG_H guard to Xrenderint.h
+-    
+-    Signed-off-by: Robin Linden <dev@robinlinden.eu>
+-
+-commit bce0618839fc33f44edd8b5498b8e33d167806ff
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Fri Dec 7 19:49:06 2018 -0800
+-
+-    Update configure.ac bug URL for gitlab migration
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit e731a0e04c31bdb6b6b513bfd884e91ad907e05f
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Mon Nov 19 22:37:07 2018 -0800
+-
+-    Update README for gitlab migration
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit f4f32f13635907940a0bffcfd1748be392db4b98
+-Author: Mihail Konev <k.mvc@ya.ru>
+-Date:   Thu Jan 26 13:52:49 2017 +1000
+-
+-    autogen: add default patch prefix
+-    
+-    Signed-off-by: Mihail Konev <k.mvc@ya.ru>
+-
+-commit a89bc0e850cd2b081ad3a823c40677eb87522d1b
+-Author: Emil Velikov <emil.l.velikov@gmail.com>
+-Date:   Mon Mar 9 12:00:52 2015 +0000
+-
+-    autogen.sh: use quoted string variables
+-    
+-    Place quotes around the $srcdir, $ORIGDIR and $0 variables to prevent
+-    fall-outs, when they contain space.
+-    
+-    Signed-off-by: Emil Velikov <emil.l.velikov@gmail.com>
+-    Reviewed-by: Peter Hutterer <peter.hutterer@who-t.net>
+-    Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+-
+-commit a20d2f9f5d6320b3dc20958228111964e36e696a
+-Author: Peter Hutterer <peter.hutterer@who-t.net>
+-Date:   Tue Jan 24 10:32:07 2017 +1000
+-
+-    autogen.sh: use exec instead of waiting for configure to finish
+-    
+-    Syncs the invocation of configure with the one from the server.
+-    
+-    Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+-    Reviewed-by: Emil Velikov <emil.velikov@collabora.com>
+-
+ commit 845716f8f14963d338e5a8d5d2424baafc90fb30
+ Author: Matthieu Herrb <matthieu.herrb@laas.fr>
+ Date:   Tue Oct 4 21:24:55 2016 +0200
+--- libxrender-0.9.12.orig/autogen.sh
++++ libxrender-0.9.12/autogen.sh
+@@ -0,0 +1,17 @@
++#! /bin/sh
++
++srcdir=`dirname "$0"`
++test -z "$srcdir" && srcdir=.
++
++ORIGDIR=`pwd`
++cd "$srcdir"
++
++autoreconf -v --install || exit 1
++cd "$ORIGDIR" || exit $?
++
++git config --local --get format.subjectPrefix >/dev/null 2>&1 ||
++    git config --local format.subjectPrefix "PATCH libXrender"
++
++if test -z "$NOCONFIGURE"; then
++    exec "$srcdir"/configure "$@"
++fi
+--- libxrender-0.9.12.orig/debian/README.source
++++ libxrender-0.9.12/debian/README.source
+@@ -0,0 +1,49 @@
++------------------------------------------------------
++Quick Guide To Patching This Package For The Impatient
++------------------------------------------------------
++
++1. Make sure you have quilt installed
++2. Unpack the package as usual with "dpkg-source -x"
++3. Run the "patch" target in debian/rules
++4. Create a new patch with "quilt new" (see quilt(1))
++5. Edit all the files you want to include in the patch with "quilt edit" 
++   (see quilt(1)).
++6. Write the patch with "quilt refresh" (see quilt(1))
++7. Run the "clean" target in debian/rules
++
++Alternatively, instead of using quilt directly, you can drop the patch in to 
++debian/patches and add the name of the patch to debian/patches/series.
++
++------------------------------------
++Guide To The X Strike Force Packages
++------------------------------------
++
++The X Strike Force team maintains X packages in git repositories on
++git.debian.org in the pkg-xorg subdirectory. Most upstream packages
++are actually maintained in git repositories as well, so they often
++just need to be pulled into git.debian.org in a "upstream-*" branch.
++Otherwise, the upstream sources are manually installed in the Debian
++git repository.
++
++The .orig.tar.gz upstream source file could be generated using this
++"upstream-*" branch in the Debian git repository but it is actually
++copied from upstream tarballs directly.
++
++Due to X.org being highly modular, packaging all X.org applications
++as their own independent packages would have created too many Debian
++packages. For this reason, some X.org applications have been grouped
++into larger packages: xutils, xutils-dev, x11-apps, x11-session-utils,
++x11-utils, x11-xfs-utils, x11-xkb-utils, x11-xserver-utils.
++Most packages, including the X.org server itself and all libraries
++and drivers are, however maintained independently.
++
++The Debian packaging is added by creating the "debian-*" git branch
++which contains the aforementioned "upstream-*" branch plus the debian/
++repository files.
++When a patch has to be applied to the Debian package, two solutions
++are involved:
++* If the patch is available in one of the upstream branches, it
++  may be git'cherry-picked into the Debian repository. In this
++  case, it appears directly in the .diff.gz.
++* Otherwise, the patch is added to debian/patches/ which is managed
++  with quilt as documented in /usr/share/doc/quilt/README.source.
+--- libxrender-0.9.12.orig/debian/changelog
++++ libxrender-0.9.12/debian/changelog
+@@ -0,0 +1,497 @@
++libxrender (1:0.9.12-1) unstable; urgency=medium
++
++  [ Timo Aaltonen ]
++  * control: Migrate to x11proto-dev.
++  * New upstream release. (Closes: #1101290)
++  * control: Migrate to pkgconf.
++  * control: Update vcs urls.
++  * Migrate to debhelper-compat 13.
++  * rules: Drop old dbgsym migration.
++  * control: Bump policy to 4.7.2.
++
++  [ Debian Janitor ]
++  * Remove constraints unnecessary since buster:
++    + Build-Depends: Drop versioned constraint on libx11-dev and xutils-dev.
++    + libxrender-dev: Drop versioned constraint on libx11-dev in Depends.
++
++ -- Timo Aaltonen <tjaalton@debian.org>  Tue, 25 Mar 2025 14:48:17 +0200
++
++libxrender (1:0.9.10-1) unstable; urgency=medium
++
++  [ Andreas Boll ]
++  * New upstream release.
++    - Fixes CVE-2016-7949 and CVE-2016-7950 (Closes: #840443).
++  * Update d/upstream/signing-key.asc with Matthieu Herrb's key.
++  * Update a bunch of URLs in packaging to https.
++  * Remove obsolete xsfbs.
++  * Bump Standards-Version to 3.9.8, no changes needed.
++
++  [ Emilio Pozuelo Monfort ]
++  * Bump debhelper compat to 10.
++    + debhelper now calls autoreconf for us.
++    + Parallel builds are now enabled by default.
++  * Switch to dbgsym packages.
++  * debhelper passes --disable-silent-rules for us.
++
++ -- Emilio Pozuelo Monfort <pochu@debian.org>  Mon, 05 Dec 2016 19:52:42 +0100
++
++libxrender (1:0.9.9-2) unstable; urgency=medium
++
++  * Team upload.
++  * Restore separate build directory.
++
++ -- Julien Cristau <jcristau@debian.org>  Wed, 28 Oct 2015 11:23:44 +0000
++
++libxrender (1:0.9.9-1) sid; urgency=medium
++
++  * Team upload.
++  * New upstream release.
++  * Let uscan verify upstream tarball signatures.
++  * Bump libx11-dev build-dep to 2:1.6 per configure.ac.
++  * Switch to dh and dh-autoreconf.
++  * Remove Cyril from Uploaders.
++  * Bump Standards-Version to 3.9.6, update Vcs-* control fields.
++
++ -- Julien Cristau <jcristau@debian.org>  Wed, 28 Oct 2015 10:53:59 +0000
++
++libxrender (1:0.9.8-1) sid; urgency=low
++
++  * New upstream release.
++  * Bump debhelper compat level to 7.
++  * Use dpkg-buildflags.
++  * Disable silent build rules.
++  * Use dh_prep instead of dh_clean -k.
++
++ -- Julien Cristau <jcristau@debian.org>  Sun, 30 Jun 2013 19:34:07 +0200
++
++libxrender (1:0.9.7-1+deb7u1) wheezy-security; urgency=high
++
++  * integer overflows calculating memory needs for replies [CVE-2013-1987]
++
++ -- Julien Cristau <jcristau@debian.org>  Tue, 14 May 2013 19:28:26 +0200
++
++libxrender (1:0.9.7-1) unstable; urgency=low
++
++  * New upstream release.
++  * Don't require (fake)root for debian/rules clean.
++  * Add Multi-Arch: same for libxrender-dev.
++  * Bump xutils-dev build-dep for newer macros.
++
++ -- Julien Cristau <jcristau@debian.org>  Sat, 21 Apr 2012 11:44:34 +0200
++
++libxrender (1:0.9.6-2) unstable; urgency=low
++
++  * Team upload.
++
++  [ Steve Langasek ]
++  * Build for multiarch.
++
++  [ Julien Cristau ]
++  * Add build-arch and (empty) build-indep debian/rules targets.
++  * Remove David Nusinow, Brice Goglin and Andres Salomon from Uploaders.
++  * Bump Standards-Version to 3.9.2.
++
++ -- Julien Cristau <jcristau@debian.org>  Sun, 12 Jun 2011 10:19:50 +0200
++
++libxrender (1:0.9.6-1) unstable; urgency=low
++
++  * New upstream release.
++  * Update debian/copyright from upstream COPYING.
++  * Bump Standards-Version to 3.9.0.
++
++ -- Julien Cristau <jcristau@debian.org>  Sun, 11 Jul 2010 13:26:35 +0100
++
++libxrender (1:0.9.5-2) unstable; urgency=low
++
++  [ Julien Cristau ]
++  * Rename the build directory to not include DEB_BUILD_GNU_TYPE for no
++    good reason.  Thanks, Colin Watson!
++  * Remove myself from Uploaders
++
++  [ Cyril Brulebois ]
++  * Add udeb needed for the graphical installer: libxrender1-udeb.
++  * Bump the B-D on libx11-dev to ensure libxrender1-udeb gets a
++    dependency on libx11-6-udeb.
++  * Bump Standards-Version from 3.8.3 to 3.8.4 (no changes needed).
++  * Add ${misc:Depends} to non-udeb binaries, and wrap Depends.
++  * Add myself to Uploaders.
++
++ -- Cyril Brulebois <kibi@debian.org>  Thu, 11 Mar 2010 02:02:29 +0100
++
++libxrender (1:0.9.5-1) unstable; urgency=low
++
++  [ Timo Aaltonen ]
++  * New upstream release.
++  * Run autoreconf on build. Add build-deps on automake, libtool
++    and xutils-dev.
++  * Parse space-separated DEB_BUILD_OPTIONS, and handle parallel=N.
++  * Bump Standards-Version to 3.8.3.
++  * Move -dbg package to section debug.
++  * Drop pre-dependency on x11-common from libxrender-dev. This was needed
++    for upgrades from sarge.
++
++  [ Julien Cristau ]
++  * Install the libXrender doc in libxrender-dev.
++
++ -- Julien Cristau <jcristau@debian.org>  Wed, 25 Nov 2009 19:38:16 +0100
++
++libxrender (1:0.9.4-2) unstable; urgency=low
++
++  * Pull upstream master up to commit f6f784c0.
++  * Fix typo in long descriptions, thanks Justin Pryzby, closes: #459819.
++  * Add a link to www.X.org and a reference to the upstream module
++    in the long description.
++  * Bump Standards-Version to 3.7.3 (no changes).
++  * Drop the XS- prefix from Vcs-Git and Vcs-Browser fields in debian/control.
++  * Drop CVS header from debian/copyright.
++
++ -- Brice Goglin <bgoglin@debian.org>  Fri, 13 Jun 2008 18:55:08 +0200
++
++libxrender (1:0.9.4-1) unstable; urgency=low
++
++  * New upstream release.
++    + Fix for renderproto 0.9.3, include Xlib.h before render.h in Xrender.h
++      (closes: #442824).
++  * Add myself to Uploaders.
++
++ -- Julien Cristau <jcristau@debian.org>  Mon, 17 Sep 2007 09:57:00 +0200
++
++libxrender (1:0.9.3-1) unstable; urgency=low
++
++  * New upstream release.
++  * Add myself to Uploaders, and remove Branden and Fabio with their
++    permission.
++  * Replace ${Source-Version}) with ${binary:Version}.
++  * Add upstream URL to debian/copyright.
++
++ -- Brice Goglin <bgoglin@debian.org>  Sat, 25 Aug 2007 11:41:18 +0200
++
++libxrender (1:0.9.2-1) unstable; urgency=low
++
++  * New upstream release.
++  * Drop obsolete CVS info from the descriptions, and add XS-Vcs-*.
++  * Install the upstream changelog.
++
++ -- Julien Cristau <jcristau@debian.org>  Thu, 12 Apr 2007 14:00:20 +0200
++
++libxrender (1:0.9.1-3) unstable; urgency=low
++
++  * Actually upload to unstable. Thanks Drew for catching this.
++
++ -- David Nusinow <dnusinow@debian.org>  Wed, 30 Aug 2006 20:20:16 -0400
++
++libxrender (1:0.9.1-2) experimental; urgency=low
++
++  * Upload to unstable
++
++ -- David Nusinow <dnusinow@debian.org>  Wed, 30 Aug 2006 18:18:04 -0400
++
++libxrender (1:0.9.1-1) experimental; urgency=low
++
++  * New upstream release.
++  * Autoreconf w/ an updated xutils-dev so that manpages have the 'x'
++    extension dropped.
++  * Test for obj-$(DEB_BUILD_GNU_TYPE) before creating it during build;
++    idempotency fi.
++  * Run dh_install w/ --list-missing.
++  * Bump standards version to 3.7.2.0.
++  * Version x11-common pre-dep in -dev package to 1:7.0.0 to match
++    the rest of Debian.
++  * Bump debhelper compat to 5.
++  * Fix dh_strip call to skip the -dbg package.
++  * Format changelog to not trigger lintian errors.
++
++ -- Andres Salomon <dilinger@debian.org>  Sat, 29 Jul 2006 16:27:07 -0400
++
++libxrender (1:0.9.0.2-4) unstable; urgency=low
++
++  * Reorder makeshlib command in rules file so that ldconfig is run
++    properly. Thanks Drew Parsons and Steve Langasek.
++
++ -- David Nusinow <dnusinow@debian.org>  Tue, 18 Apr 2006 21:50:00 -0400
++
++libxrender (1:0.9.0.2-3) unstable; urgency=low
++
++  * Have libxrender-dev depend on libx11-dev (>= 2:1.0.0). Thanks Sebastien
++    Bacher. (closes: #362513)
++
++ -- David Nusinow <dnusinow@debian.org>  Thu, 13 Apr 2006 19:11:10 -0400
++
++libxrender (1:0.9.0.2-2) unstable; urgency=low
++
++  * Upload to unstable
++
++ -- David Nusinow <dnusinow@debian.org>  Thu, 23 Mar 2006 22:45:16 -0500
++
++libxrender (1:0.9.0.2-1) experimental; urgency=low
++
++  * First upload to Debian
++
++ -- David Nusinow <dnusinow@debian.org>  Thu, 29 Dec 2005 20:54:46 -0500
++
++libxrender (1:0.9.0-1) breezy; urgency=low
++
++  * Play the epoch-for-epoch madness game.
++  * Grab this one from xorg/lib, not xlibs; hence the change in package name.
++  * Remove libxrender-dev.links.
++  * Clean up Depends lines.
++  * Remove horrendous hacks only needed for upgrades from no-longer-supported
++    versions.
++  * In accordance with all other X libraries, stop shipping Libtool .la file.
++  
++ -- Daniel Stone <daniel.stone@ubuntu.com>  Tue, 12 Jul 2005 18:39:47 +1000
++
++xrender (0.9.0-0ubuntu5) breezy; urgency=low
++
++  * Add Pre-Depends on x-common (>= 0.99) to get the /usr transition.
++  * Move files from /usr/X11R6 to /usr.
++
++ -- Daniel Stone <daniel.stone@ubuntu.com>  Wed, 18 May 2005 01:43:18 +1000
++
++xrender (0.9.0-0ubuntu4) hoary; urgency=low
++
++  * Set includedir to be /usr/X11R6 with autoconf, not by moving it around, so
++    the pkgconfig file and the libtool library no longer lie.
++  * Make libxrender-dev Depend (not B-D) on render-dev >= 0.9.
++
++ -- Daniel Stone <daniel.stone@canonical.com>  Thu,  2 Dec 2004 11:10:51 +0000
++
++xrender (0.9.0-0ubuntu3) hoary; urgency=low
++
++  * Force versioned build-depend on render >= 0.9
++  * The next question will be: "how many times before we get it right?"
++
++ -- Fabio M. Di Nitto <fabbione@fabbione.net>  Mon, 01 Nov 2004 21:24:44 +0100
++
++xrender (0.9.0-0ubuntu2) hoary; urgency=low
++
++  * Force versioned build-depend on render >= 0.9.0
++
++ -- Fabio M. Di Nitto <fabbione@fabbione.net>  Mon, 01 Nov 2004 20:58:21 +0100
++
++xrender (0.9.0-0ubuntu1) unstable; urgency=low
++
++  * New upstream version, including new trapezoid code.
++    + Reapply AC_PATH_XTRA_CORRECTED stuff, and re-run autoreconf.  Far less
++      invasive than the 0.8.x iterations of this, since it was run on the same
++      machine as the upstream tarballs were generated from.  I'm not applying
++      this upstream, since it has no business here.  If anything should be
++      patched, it should be autoconf.
++
++ -- Daniel Stone <daniel.stone@canonical.com>  Mon,  1 Nov 2004 18:48:52 +0100
++
++xrender (0.8.3-7) unstable; urgency=medium
++
++  * Urgency due to fix for FTBFS.
++
++  * Define and use AC_PATH_XTRA_CORRECTED autoconf macro instead of
++    AC_PATH_XTRA, which does not know how to find X libraries or headers when
++    only x-dev and libx11-dev are installed (which are the only XFree86
++    packages that Xrender needs to actually build).   Re-run aclocal &&
++    automake --foreign && autoconf to resynchronize with change to
++    configure.ac.  Fixes FTBFS; thanks to Jurij Smakov for this patch.
++    (Closes: #233969)
++    - acinclude.m4: define AC_PATH_XTRA_CORRECTED macro
++    - configure.ac: use AC_PATH_XTRA_CORRECTED macro
++    - Makefile.in, aclocal.m4, configure: regenerate
++
++ -- Branden Robinson <branden@debian.org>  Tue,  9 Mar 2004 23:56:21 -0500
++
++xrender (0.8.3-6) unstable; urgency=low
++
++  * Make package compatible with the XFree86 4.3.0 package reorganization.
++    - debian/control:
++      + package build-depends on x-dev and libx11-dev instead of xlibs-dev
++      + libxrender-dev depends on x-dev and libx11-dev instead of xlibs-dev
++      + increased versioned conflict of libxrender1 on xlibs to (<< 4.3.0)
++        due to (now undiverted) file overlaps
++      + increased versioned conflict of libxrender1-dbg on xlibs-dbg to (<<
++        4.3.0) due to (now undiverted) file overlaps
++      + increased versioned conflict of libxrender-dev on xlibs-dev to (<<
++        4.3.0) due to (now undiverted) file overlaps
++    - debian/{libxrender1,libxrender1-dbg,libxrender-dev}.preinst: remove
++      diversions made by previous versions of package if present
++    - debian/{libxrender1,libxrender1-dbg,libxrender-dev}.postrm: deleted
++
++  * Removal of the package diversions eliminates several related problems.
++    (Closes: #227867,#230803,#233812)
++
++  * Previous changelog entry corrected.  (Closes: #225450)
++
++ -- Branden Robinson <branden@debian.org>  Thu, 19 Feb 2004 22:07:24 -0500
++
++xrender (0.8.3-5) unstable; urgency=high
++
++  * Urgency due to fix for grave bug.
++
++  * Each of libxrender1, libxrender1-dbg, and libxrender-dev now conflict with
++    their xlibs counterparts versioned less than 4.2.1, because the Xrender
++    shared objects and related files in xlibs 4.1.0 are named
++    "libXrender.so.1.0", not "libXrender.so.1.1" as the dpkg-divert commands
++    in the xrender package's maintainer scripts expect.  This prevents
++    libxrender1 from being removed.  We also can't add conditionals to handle
++    this because the user might upgrade xlibs to 4.2.1 in the meantime.
++    (Closes: #222343)
++    - debian/control
++
++ -- Branden Robinson <branden@debian.org>  Thu,  4 Dec 2003 23:45:32 -0500
++
++xrender (0.8.3-4) unstable; urgency=medium
++
++  * Urgency due to fix for serious bug.
++
++  * Add build-dependency on pkg-config. (Closes: #216029)
++    - debian/control
++
++ -- Branden Robinson <branden@debian.org>  Thu, 16 Oct 2003 00:05:55 -0500
++
++xrender (0.8.3-3) unstable; urgency=low
++
++  * Clean up package's build-dependencies and dependencies.
++    - debian/control:
++      + drop versioning of build-dependency on xlibs-dev; all that is needed
++        is libX11.so.6, and any version of xlibs-dev provides that
++      + drop libxrender1's dependency on xlibs (>> 4.2.1); dpkg-shlibdeps adds
++        an adequate dependency on xlibs
++      + drop libxrender1-dbg's dependency on xlibs-dbg (>> 4.2.1); this isn't
++        a true dependency, so let's get rid of it
++      + drop versioning of libxrender-dev's dependency on xlibs-dev; all that
++        is needed is libX11.so.6, and any version of xlibs-dev provides that
++      + and dependency of libxrender-dev on render-dev
++
++  * Clarify wording in packages' extended descriptions.
++    - debian/control:
++      + Remove redundant-through-implication sentence from libxrender1's
++        description.
++      + Simplify the message to non-programmers in libxrender1-dbg's
++        description.
++      + Simplify the wording regarding what is provided by the libxrender-dev
++        package.
++
++  * Stop using DEB_CONFIGURE_EXTRA_FLAGS entirely in the rules file;
++    AC_PATH_XTRA does indeed seem to work adequately.
++    - debian/rules
++
++  * Stop using DEB_DH_MAKESHLIBS_ARGS_ALL entirely in the rules file; since
++    libXrender has retained forward-compatibility since its first package
++    release, it's fine to let dh_makeshlibs operate in its default manner.
++    - debian/rules
++
++  * Change maintainer to Debian X Strike Force, and add uploaders field to
++    include myself.
++    - debian/control
++
++  * Steal patch from upstream CVS that works around breakage in the Xinerama
++    implementation in the XFree86 X server, which only reports depths with an
++    associated visual, when it should return all available depths.  Thanks to
++    Marc Wilson for help tracking down the problem and the solution, and Nate
++    Turner for confirming the fix.  (Closes: #215845)
++    - Xrender.c
++
++ -- Branden Robinson <branden@debian.org>  Wed, 15 Oct 2003 13:56:07 -0500
++
++xrender (0.8.3-2) unstable; urgency=medium
++
++  * Urgency medium because the problem fixed by this release bites a lot of
++    KDE users who are using XFree86 4.2.0 or 4.2.1 Debian packages.
++
++  * Add new diversion of the actual old libXrender shared object (as opposed
++    to diverting only the symlinks).  This is necessary because ldconfig will
++    recreate the libXrender.so.1 symbolic link in /usr/X11R6/lib, which causes
++    major confusion (and possibly errors from the dynamic loader) for anything
++    that searches /usr/X11R6/lib before /usr/lib.
++    /usr/X11R6/lib/libXrender.so.1.1 is now being diverted to
++    /usr/X11R6/lib/xlibs.libXrender-1.1.so.1.1.  The diversion's name has to
++    have "xlibs." preprended because ldconfig will attempt to operate on
++    any plain file matching "lib*.so*".
++    - debian/libxrender1.preinst
++    - debian/libxrender1.postrm
++
++  * Under duress, ship a symlink from /usr/X11R6/lib/libXrender.la to
++    /usr/lib/libXrender.la.  There appears to be a bug in libtool that that
++    compels it to place absolute paths to .la files in other .la files.
++    This symlink should allow a transition to a non-broken libtool (or the
++    eventual recompilation of all libraries that transitively depend on
++    libXrender, which is a lot of them) and will be removed in the future.
++    - debian/libxrender-dev.links
++
++  * Set AM_MAINTAINER_MODE because we do not want automake running during
++    Debian package builds.
++    - configure.ac
++
++  * Run aclocal && automake --foreign && autoconf to resynchronize with
++    change to configure.ac.
++    - Makefile.in
++    - aclocal.m4
++    - configure
++
++  * Bump standards version to 3.6.1; no changes necessary.
++    - debian/control
++
++ -- Branden Robinson <branden@debian.org>  Wed,  8 Oct 2003 21:05:28 -0500
++
++xrender (0.8.3-1) unstable; urgency=low
++
++  * new upstream release
++
++  * Migrate from CBS to CDBS.
++    - debian/control: add build-dependency on cdbs (>= 0.4.12)
++    - debian/rules: translated to CDBS-speak
++    - debian/*.install: update to be correct with the way CDBS uses dh_install
++
++  * Move files from /usr/X11R6 to /usr where possible.  (The only exception is
++    the Xrender.h, which is expected to be found in
++    <X11/extensions/Xrender.h>, so has to be shipped in
++    /usr/X11R6/include/X11/extensions.)
++    - debian/*.install: update paths
++    - debian/rules: stop passing --includedir and --libdir to configure
++    - debian/control: update instructions for using LD_LIBRARY_PATH
++
++ -- Branden Robinson <branden@debian.org>  Mon,  6 Oct 2003 23:33:00 -0500
++
++xrender (0.8.2-2) unstable; urgency=low
++
++  * debian/control: sync with overrides file; libxrender1-dbg is priority
++    "extra"
++
++ -- Branden Robinson <branden@debian.org>  Tue, 13 May 2003 15:12:00 -0500
++
++xrender (0.8.2-1) unstable; urgency=low
++
++  * new upstream release
++    + Check in Debian packaging infrastructure per Keith's request.
++    + Remove bogus Xext.h include.  Fix Render version comparison.
++
++  * ChangeLog: grab more recent, but still pre-0.8.2 tag changelog entries
++    from HEAD
++  * {Makefile.in,aclocal.m4}: update using GNU automake 1.7.4
++
++ -- Branden Robinson <branden@debian.org>  Tue, 13 May 2003 13:35:40 -0500
++
++xrender (0.8.1-1) unstable; urgency=low
++
++  * initial release
++    + fix bad length computation in
++      XRenderCompositeString16()/XRenderCompositeString32() that caused
++      application crashes with BadValue X protocol errors, particularly in
++      gnome-terminal and mozilla-xft (Closes: #181815)
++
++  * {Makefile.am,xrender.pc.in}: Upstream hasn't quite gotten rid of its
++    libXext dependency yet; Xrenderint.h still makes reference to
++    XMissingExtension().  Therefore, Xrender itself, and objects that link
++    against libXrender, should also link against libXext.
++  * {Makefile.in,aclocal.m4,config.guess,config.sub,configure}: regenerated
++    with automake 1.7.4 and friends
++
++  * Until XFree86 4.3.0 is released to Debian unstable:
++    - the libxrender1 package will depend on xlibs (>> 4.2.1) and dpkg-divert
++      its libXrender.so.1 symlink
++    - the libxrender1-dbg package will depend on xlibs-dbg (>> 4.2.1) and
++      dpkg-divert its libXrender.so.1 symlink
++    - the libxrender-dev package will depend on xlibs-dev (>> 4.2.1) and
++      dpkg-divert its libXrender.a file, libXrender.so symlink, and Xrender.h
++      file
++
++ -- Branden Robinson <branden@debian.org>  Sun,  4 May 2003 13:14:54 -0500
++
++vim:set ai tw=78 et sw=2 sts=2:
+--- libxrender-0.9.12.orig/debian/control
++++ libxrender-0.9.12/debian/control
+@@ -0,0 +1,69 @@
++Source: libxrender
++Section: x11
++Priority: optional
++Maintainer: Debian X Strike Force <debian-x@lists.debian.org>
++Build-Depends:
++ debhelper-compat (= 13),
++ pkgconf,
++ libx11-dev,
++ x11proto-dev,
++ xutils-dev,
++Standards-Version: 4.7.2
++Vcs-Git: https://salsa.debian.org/xorg-team/lib/libxrender.git
++Vcs-Browser: https://salsa.debian.org/xorg-team/lib/libxrender
++
++Package: libxrender1
++Section: libs
++Architecture: any
++Depends:
++ ${shlibs:Depends},
++ ${misc:Depends},
++Pre-Depends: ${misc:Pre-Depends}
++Multi-Arch: same
++Description: X Rendering Extension client library
++ The X Rendering Extension (Render) introduces digital image composition as
++ the foundation of a new rendering model within the X Window System.
++ Rendering geometric figures is accomplished by client-side tessellation into
++ either triangles or trapezoids.  Text is drawn by loading glyphs into the
++ server and rendering sets of them.  The Xrender library exposes this
++ extension to X clients.
++ .
++ More information about X.Org can be found at:
++ <URL:https://www.X.org>
++ .
++ This module can be found at
++ git://anongit.freedesktop.org/git/xorg/lib/libXrender
++
++Package: libxrender1-udeb
++XC-Package-Type: udeb
++Section: debian-installer
++Architecture: any
++Depends:
++ ${shlibs:Depends},
++Description: X Rendering Extension client library
++ This is a udeb, or a microdeb, for the debian-installer.
++
++Package: libxrender-dev
++Section: libdevel
++Architecture: any
++Multi-Arch: same
++Depends:
++ libxrender1 (= ${binary:Version}),
++ libx11-dev,
++ x11proto-dev,
++ ${misc:Depends},
++Description: X Rendering Extension client library (development files)
++ The X Rendering Extension (Render) introduces digital image composition as
++ the foundation of a new rendering model within the X Window System.
++ Rendering geometric figures is accomplished by client-side tessellation into
++ either triangles or trapezoids.  Text is drawn by loading glyphs into the
++ server and rendering sets of them.  The Xrender library exposes this
++ extension to X clients.
++ .
++ This package provides a static library and C header files.
++ .
++ More information about X.Org can be found at:
++ <URL:https://www.X.org>
++ .
++ This module can be found at
++ git://anongit.freedesktop.org/git/xorg/lib/libXrender
+--- libxrender-0.9.12.orig/debian/copyright
++++ libxrender-0.9.12/debian/copyright
+@@ -0,0 +1,41 @@
++This package was downloaded from
++https://xorg.freedesktop.org/releases/individual/lib/
++
++Copyright © 2001,2003 Keith Packard
++
++Permission to use, copy, modify, distribute, and sell this software and its
++documentation for any purpose is hereby granted without fee, provided that
++the above copyright notice appear in all copies and that both that
++copyright notice and this permission notice appear in supporting
++documentation, and that the name of Keith Packard not be used in
++advertising or publicity pertaining to distribution of the software without
++specific, written prior permission.  Keith Packard makes no
++representations about the suitability of this software for any purpose.  It
++is provided "as is" without express or implied warranty.
++
++KEITH PACKARD DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
++INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO
++EVENT SHALL KEITH PACKARD BE LIABLE FOR ANY SPECIAL, INDIRECT OR
++CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
++DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
++TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
++PERFORMANCE OF THIS SOFTWARE.
++
++Copyright © 2000 SuSE, Inc.
++
++Permission to use, copy, modify, distribute, and sell this software and its
++documentation for any purpose is hereby granted without fee, provided that
++the above copyright notice appear in all copies and that both that
++copyright notice and this permission notice appear in supporting
++documentation, and that the name of SuSE not be used in advertising or
++publicity pertaining to distribution of the software without specific,
++written prior permission.  SuSE makes no representations about the
++suitability of this software for any purpose.  It is provided "as is"
++without express or implied warranty.
++
++SuSE DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING ALL
++IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL SuSE
++BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
++WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION
++OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN 
++CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+--- libxrender-0.9.12.orig/debian/libxrender-dev.install
++++ libxrender-0.9.12/debian/libxrender-dev.install
+@@ -0,0 +1,5 @@
++usr/include/X11/*
++usr/lib/*/libXrender.a
++usr/lib/*/libXrender.so
++usr/lib/*/pkgconfig/xrender.pc
++usr/share/doc/libXrender/* usr/share/doc/libxrender-dev
+--- libxrender-0.9.12.orig/debian/libxrender1-udeb.install
++++ libxrender-0.9.12/debian/libxrender1-udeb.install
+@@ -0,0 +1 @@
++usr/lib/*/libXrender.so.1* usr/lib
+--- libxrender-0.9.12.orig/debian/libxrender1.install
++++ libxrender-0.9.12/debian/libxrender1.install
+@@ -0,0 +1 @@
++usr/lib/*/libXrender.so.1*
+--- libxrender-0.9.12.orig/debian/not-installed
++++ libxrender-0.9.12/debian/not-installed
+@@ -0,0 +1 @@
++usr/lib/*/libXrender.la
+--- libxrender-0.9.12.orig/debian/rules
++++ libxrender-0.9.12/debian/rules
+@@ -0,0 +1,11 @@
++#!/usr/bin/make -f
++# debian/rules for the Debian libxrender package.
++
++# set this to the name of the main shlib's binary package
++PACKAGE = libxrender1
++
++%:
++	dh $@ --builddirectory=build/
++
++override_dh_makeshlibs:
++	dh_makeshlibs --add-udeb=$(PACKAGE)-udeb
+--- libxrender-0.9.12.orig/debian/upstream/signing-key.asc
++++ libxrender-0.9.12/debian/upstream/signing-key.asc
+@@ -0,0 +1,124 @@
++-----BEGIN PGP PUBLIC KEY BLOCK-----
++Version: GnuPG v1
++
++mQGiBEab+moRBACDH5yKqS3wcc5bdxY7PBNuwKvF5TKMfagmSvuRDtZjjIIWaA/n
++Z1KboV9Gq5g7kP7+Kfu+Qgd8u65eVsWwmPW10fXvj3aCU53glx2EdGdrHcgiyH2g
++EQfPiyBw+trIppWFRV0IDXSLMA1FNC92t2nSG/VFHaPTVwcgkIRSfcXDvwCglGdE
++a6f4uLqoNHP+m4yYnzapFuMD/R4+2AJDAvEWKDdYCGZzlawjAmmWyXrmT7/C/mx9
++8qUR473l4buXjHgDkkXXlHqdzil1vK85PhrKzNJDCCmlHUJNz+QwiAMOLwpD+kwV
++Pb57RG7y+a5JQ5+jtVw4RlUxZIk/wj2An9YBO3A5vR7PdjM32ZJCN2+aM4dYfNzQ
++xQKTA/47icvBaBVTl9rztjg2pd2Aqpc1P/GsIYLGj7XjnnJvGAENBHSH1QjpZMJG
++CTS9oJ+B0/wrIr+pA+MdFgYAb6ojMQJOO6UChjWWSGjMFcs/CeXhxlLBido3DtAE
++TbNTwO6OEfAvdosvTdhJFnwvZlJ+zZGGy5CrF2Fd9PUe9tmASbQoQWxhbiBDb29w
++ZXJzbWl0aCA8YWxhbmNAZnJlZWRlc2t0b3Aub3JnPohoBBMRAgAoAhsDBgsJCAcD
++AgYVCAIJCgsEFgIDAQIeAQIXgAUCUXnRYgUJFEPYeAAKCRCi+54IHy0TDonxAKCP
++cAgXNojuujUg5Wqi6v0RBFVSUgCggq1SsVEdq9NDWvXvkeGyNaBivSK0K0FsYW4g
++Q29vcGVyc21pdGggPGFsYW4uY29vcGVyc21pdGhAc3VuLmNvbT6IZgQTEQIAJgIb
++AwYLCQgHAwIEFQIIAwQWAgMBAh4BAheABQJRedFiBQkUQ9h4AAoJEKL7nggfLRMO
++6sUAn0jl3h9rY4OJ13Lu7nsKclyhDpOqAKCFgTmaDGRuDRxloLg9jftrn7a7vrQu
++QWxhbiBDb29wZXJzbWl0aCA8YWxhbi5jb29wZXJzbWl0aEBvcmFjbGUuY29tPohr
++BBMRAgArAhsDBgsJCAcDAgYVCAIJCgsEFgIDAQIeAQIXgAIZAQUCUXnRYgUJFEPY
++eAAKCRCi+54IHy0TDtBZAJ9IgVVNoFIPRjTsNjcSFaLznuDRJgCcC/WgV312IrxS
++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
++=tc6G
++-----END PGP PUBLIC KEY BLOCK-----
++-----BEGIN PGP PUBLIC KEY BLOCK-----
++
++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
++79+hF4bWyw==
++=WW1Z
++-----END PGP PUBLIC KEY BLOCK-----
+--- libxrender-0.9.12.orig/debian/watch
++++ libxrender-0.9.12/debian/watch
+@@ -0,0 +1,4 @@
++#git=git://anongit.freedesktop.org/xorg/lib/libXrender
++version=3
++opts=pgpsigurlmangle=s/$/.sig/ \
++https://xorg.freedesktop.org/releases/individual/lib/ libXrender-(.*)\.tar\.gz

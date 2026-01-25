@@ -1,0 +1,792 @@
+--- xtrans-1.4.0.orig/ChangeLog
++++ xtrans-1.4.0/ChangeLog
+@@ -1,213 +1,3 @@
+-commit c4262efc9688e495261d8b23a12f956ab38e006f
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Sat Mar 16 14:25:35 2019 -0700
+-
+-    xtrans 1.4.0
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit faa42207a0653535ab80825b0acb50b417702ec4
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Fri Dec 7 19:52:43 2018 -0800
+-
+-    Update configure.ac bug URL for gitlab migration
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit cd22de616c77328da3410b1eaab541c2d331ffdb
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Mon Nov 19 23:12:07 2018 -0800
+-
+-    Update README for gitlab migration
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit 06cfa80fb3d03ca03fd92f9687a77958338e012c
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Sun Sep 30 17:04:51 2018 -0700
+-
+-    Use fchmod() instead of chmod() when creating named pipes
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit 7bd504f7ab7799ab77ad50eb39f6afdbaf2f9e50
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Sat Aug 25 11:18:52 2018 -0700
+-
+-    Use strcasecmp if it's available, instead of lowercasing strings
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit 941cfa50bc2d45f20943fd21bab98e2eceeeb259
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Sat Aug 25 10:45:04 2018 -0700
+-
+-    Set freeXLOCAL to NULL after freeing it to prevent double frees
+-    
+-    We shouldn't be calling the LocalEndTransports routine twice, but
+-    just make sure if we do, we don't call free twice on the same pointer.
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit a97e5fc6e4f294294d75500068892aea11952773
+-Author: Rin Okuyama <rin@NetBSD.org>
+-Date:   Tue Feb 21 06:18:37 2017 +0000
+-
+-    avoid -Wformat errors from clang
+-    
+-    https://bugs.freedesktop.org/show_bug.cgi?id=99882
+-    
+-    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit 28366676effaa512e43bfd2276a317389a992511
+-Author: Emil Velikov <emil.l.velikov@gmail.com>
+-Date:   Mon Mar 9 12:00:52 2015 +0000
+-
+-    autogen.sh: use quoted string variables
+-    
+-    Place quotes around the $srcdir, $ORIGDIR and $0 variables to prevent
+-    fall-outs, when they contain space.
+-    
+-    Signed-off-by: Emil Velikov <emil.l.velikov@gmail.com>
+-    Reviewed-by: Peter Hutterer <peter.hutterer@who-t.net>
+-    Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+-
+-commit 8554cf05262ab6ad6e8da5f11022e5dc2a452e38
+-Author: Peter Hutterer <peter.hutterer@who-t.net>
+-Date:   Tue Jan 24 10:32:07 2017 +1000
+-
+-    autogen.sh: use exec instead of waiting for configure to finish
+-    
+-    Syncs the invocation of configure with the one from the server.
+-    
+-    Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+-    Reviewed-by: Emil Velikov <emil.velikov@collabora.com>
+-
+-commit 560d7550e23e9b14056b4a9b2569c2f256015f8a
+-Author: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+-Date:   Sat Sep 10 22:09:51 2016 -0700
+-
+-    Update strlcpy macro check to also check HAVE_STRLCPY
+-    
+-    xorg-server moved from HAS_STRLCPY to HAVE_STRLCPY in 2011
+-    
+-    cf-xserver: d829a7c5cb42c979b58f3547136df5b05d906423
+-    
+-    Signed-off-by: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+-
+-commit 2e4c338eda8ec6996b7bacc1d0c7dfe7de925864
+-Author: Adam Jackson <ajax@redhat.com>
+-Date:   Thu Sep 1 09:28:58 2016 -0400
+-
+-    Revert "Make FreeConnInfo static"
+-    
+-    <anholt> ajax: 75419e6b6d985ea8796f05d1acb5e154b065c9b9 of xtrans also
+-             seems to have broken xtest.
+-    
+-    And indeed it does, xts5 knows a fair amount about xlib internals for
+-    some reason. Whether that's cromulent or not, we want to be able to run
+-    automatic tests from top-of-tree, so we can't leave this broken.
+-    
+-    This reverts commit 75419e6b6d985ea8796f05d1acb5e154b065c9b9.
+-    
+-    Signed-off-by: Adam Jackson <ajax@redhat.com>
+-
+-commit 3810e026323210df6ec6cf818f01832a63e9fbb9
+-Author: Adam Jackson <ajax@redhat.com>
+-Date:   Wed May 18 12:58:31 2016 -0400
+-
+-    Remove GetMyAddr
+-    
+-    Again, pre-xcb libX11 was the only consumer.
+-    
+-    Reviewed-by: Keith Packard <keithp@keithp.com>
+-    Signed-off-by: Adam Jackson <ajax@redhat.com>
+-
+-commit 75419e6b6d985ea8796f05d1acb5e154b065c9b9
+-Author: Adam Jackson <ajax@redhat.com>
+-Date:   Wed May 18 12:50:48 2016 -0400
+-
+-    Make FreeConnInfo static
+-    
+-    libX11 used to need this in the XOpenDisplay code, but hasn't since xcb
+-    became mandatory.
+-    
+-    Reviewed-by: Keith Packard <keithp@keithp.com>
+-    Signed-off-by: Adam Jackson <ajax@redhat.com>
+-
+-commit 0794b1b712a90b40e2b019c9edc6f96874493c52
+-Author: Adam Jackson <ajax@redhat.com>
+-Date:   Wed May 18 12:41:41 2016 -0400
+-
+-    unifdef LBXPROXY_t and TEST_t
+-    
+-    LBX is dead, and TEST_t is unused.
+-    
+-    Reviewed-by: Keith Packard <keithp@keithp.com>
+-    Signed-off-by: Adam Jackson <ajax@redhat.com>
+-
+-commit 473e77563b16fa7c42db9403c1382e9483e3666c
+-Author: Adam Jackson <ajax@redhat.com>
+-Date:   Wed May 18 12:38:02 2016 -0400
+-
+-    Remove CLTS code
+-    
+-    Never been used, as far as I can tell.
+-    
+-    Reviewed-by: Keith Packard <keithp@keithp.com>
+-    Signed-off-by: Adam Jackson <ajax@redhat.com>
+-
+-commit b167145a51153eccc16a3e43f7ed0faea7e6c762
+-Author: Adam Jackson <ajax@redhat.com>
+-Date:   Wed May 18 15:19:50 2016 -0400
+-
+-    autogen: Add a default patch prefix
+-    
+-    Signed-off-by: Adam Jackson <ajax@redhat.com>
+-
+-commit cc29fbc1fe86ae4dfe2f4eaae7352ea86aa4acac
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Sat Nov 28 13:04:21 2015 -0800
+-
+-    Remove support for SysV on x86 platforms other than Solaris & SCO
+-    
+-    No other x86 SysV platforms have ever been supported in the modular
+-    build systems, so we don't need to keep carrying around a bunch of
+-    ifdef's for them.
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-    Reviewed-by: Mark Kettenis <kettenis@openbsd.org>
+-
+-commit 3ba0b7a37b9053662ff42f0b4caa856856098475
+-Author: Richard PALO <richard@NetBSD.org>
+-Date:   Tue Nov 17 07:02:27 2015 +0100
+-
+-    Replace 'sun' with '__sun'
+-    
+-    Globally replace #ifdef and #if defined usage of 'sun' with '__sun' such
+-    that strict ISO compiler modes such as -ansi or -std=c99 can be used.
+-    
+-    Signed-off-by: Richard PALO <richard@NetBSD.org>
+-    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit 1d31b87e8045f3fc89b1914187a9a13861d35f2d
+-Author: Julien Cristau <jcristau@debian.org>
+-Date:   Wed Jul 29 20:36:13 2015 +0200
+-
+-    Make sure LONG64 is defined in Xtrans.h
+-    
+-    Xtrans.h defines BytesReadable_t as int or long depending on whether
+-    LONG64 is defined.  We need to make sure Xmd.h is included so our idea
+-    of BytesReadable_t is consistent across compilation units.
+-    
+-    Debian bug#749120
+-    
+-    Reported-by: Michael Tautschnig <mt@debian.org>
+-    Signed-off-by: Julien Cristau <jcristau@debian.org>
+-    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+ commit 7cbad9fe2e61cd9d5caeaf361826a6f4bd320f03
+ Author: Keith Packard <keithp@keithp.com>
+ Date:   Sat Sep 20 10:02:05 2014 -0700
+--- xtrans-1.4.0.orig/autogen.sh
++++ xtrans-1.4.0/autogen.sh
+@@ -0,0 +1,17 @@
++#! /bin/sh
++
++srcdir=`dirname "$0"`
++test -z "$srcdir" && srcdir=.
++
++ORIGDIR=`pwd`
++cd "$srcdir"
++
++autoreconf -v --install || exit 1
++cd "$ORIGDIR" || exit $?
++
++git config --local --get format.subjectPrefix ||
++        git config --local format.subjectPrefix "PATCH libxtrans"
++
++if test -z "$NOCONFIGURE"; then
++    exec "$srcdir"/configure "$@"
++fi
+--- xtrans-1.4.0.orig/debian/README.source
++++ xtrans-1.4.0/debian/README.source
+@@ -0,0 +1,73 @@
++------------------------------------------------------
++Quick Guide To Patching This Package For The Impatient
++------------------------------------------------------
++
++1. Make sure you have quilt installed
++2. Unpack the package as usual with "dpkg-source -x"
++3. Run the "patch" target in debian/rules
++4. Create a new patch with "quilt new" (see quilt(1))
++5. Edit all the files you want to include in the patch with "quilt edit" 
++   (see quilt(1)).
++6. Write the patch with "quilt refresh" (see quilt(1))
++7. Run the "clean" target in debian/rules
++
++Alternatively, instead of using quilt directly, you can drop the patch in to 
++debian/patches and add the name of the patch to debian/patches/series.
++
++------------------------------------
++Guide To The X Strike Force Packages
++------------------------------------
++
++The X Strike Force team maintains X packages in git repositories on
++git.debian.org in the pkg-xorg subdirectory. Most upstream packages
++are actually maintained in git repositories as well, so they often
++just need to be pulled into git.debian.org in a "upstream-*" branch.
++Otherwise, the upstream sources are manually installed in the Debian
++git repository.
++
++The .orig.tar.gz upstream source file could be generated this
++"upstream-*" branch in the Debian git repository but it is actually
++copied from upstream tarballs directly.
++
++Due to X.org being highly modular, packaging all X.org applications
++as their own independent packages would have created too many Debian
++packages. For this reason, some X.org applications have been grouped
++into larger packages: xutils, xutils-dev, x11-apps, x11-session-utils,
++x11-utils, x11-xfs-utils, x11-xkb-utils, x11-xserver-utils.
++Most packages, including the X.org server itself and all libraries
++and drivers are, however maintained independently.
++
++The Debian packaging is added by creating the "debian-*" git branch
++which contains the aforementioned "upstream-*" branch plus the debian/
++repository files.
++When a patch has to be applied to the Debian package, two solutions
++are involved:
++* If the patch is available in one of the upstream branches, it
++  may be git'cherry-picked into the Debian repository. In this
++  case, it appears directly in the .diff.gz.
++* Otherwise, the patch is added to debian/patches/ which is managed
++  with quilt as documented in /usr/share/doc/quilt/README.source.
++
++quilt is actually invoked by the Debian X packaging through a larger
++set of scripts called XSFBS. XSFBS brings some other X specific
++features such as managing dependencies and conflicts due to the video
++and input driver ABIs.
++XSFBS itself is maintained in a separate repository at
++  git://git.debian.org/pkg-xorg/xsfbs.git
++and it is pulled inside the other Debian X repositories when needed.
++
++The XSFBS patching system requires a build dependency on quilt. Also
++a dependency on $(STAMP_DIR)/patch has to be added to debian/rules
++so that the XSFBS patching occurs before the actual build. So the
++very first target of the build (likely the one running autoreconf)
++should depend on $(STAMP_DIR)/patch. It should also not depend on
++anything so that parallel builds are correctly supported (nothing
++should probably run while patching is being done). And finally, the
++clean target should depend on the xsfclean target so that patches
++are unapplied on clean.
++
++When the upstream sources contain some DFSG-nonfree files, they are
++listed in text files in debian/prune/ in the "debian-*" branch of
++the Debian repository. XSFBS' scripts then take care of removing
++these listed files during the build so as to generate a modified
++DFSG-free .orig.tar.gz tarball.
+--- xtrans-1.4.0.orig/debian/changelog
++++ xtrans-1.4.0/debian/changelog
+@@ -0,0 +1,268 @@
++xtrans (1.4.0-1) unstable; urgency=medium
++
++  [ Timo Aaltonen ]
++  * New upstream release. (Closes: #952467)
++  * Use debhelper-compat, bump to 12.
++  * rules: Migrate to dh.
++  * control: Bump policy to 4.5.0.
++  * watch: Update upstream git url.
++  * xsfbs: Removed.
++
++  [ Daniel Kahn Gillmor ]
++  * correct URLs in debian/ to use https where possible
++  * fix up Vcs-* fields
++
++ -- Timo Aaltonen <tjaalton@debian.org>  Wed, 26 Feb 2020 13:53:10 +0200
++
++xtrans (1.3.5-1) unstable; urgency=medium
++
++  * New upstream release.
++
++ -- Maarten Lankhorst <maarten.lankhorst@ubuntu.com>  Tue, 04 Nov 2014 14:22:28 +0100
++
++xtrans (1.3.4-1) unstable; urgency=medium
++
++  * New upstream release.
++
++ -- Julien Cristau <jcristau@debian.org>  Sun, 13 Apr 2014 18:58:37 +0200
++
++xtrans (1.3.2-1) unstable; urgency=low
++
++  [ Michele Cane ]
++  * New upstream release.
++  * Bump Standards-Version to 3.9.4, no changes needed.
++
++ -- Julien Cristau <jcristau@debian.org>  Sun, 24 Nov 2013 16:54:35 +0100
++
++xtrans (1.2.7-1) unstable; urgency=low
++
++  * New upstream release.
++  * Drop dh_testroot from debian/rules clean.
++  * Bump xutils-dev, xmlto and xorg-sgml-doctools build-deps.
++
++ -- Julien Cristau <jcristau@debian.org>  Sat, 05 May 2012 17:27:47 +0200
++
++xtrans (1.2.6-2) unstable; urgency=low
++
++  [ Julien Cristau ]
++  * Remove David and Brice from Uploaders.
++  * Drop obsolete Pre-Depends on x11-common.
++
++  [ Steve Langasek ]
++  * Mark xtrans-dev Multi-Arch: foreign
++
++ -- Steve Langasek <vorlon@debian.org>  Fri, 17 Jun 2011 10:03:47 -0700
++
++xtrans (1.2.6-1) unstable; urgency=low
++
++  [ Julien Cristau ]
++  * Rename the build directory to not include DEB_BUILD_GNU_TYPE for no
++    good reason.  Thanks, Colin Watson!
++  * Remove myself from Uploaders
++
++  [ Cyril Brulebois ]
++  * New upstream release.
++  * Update debian/copyright from upstream COPYING.
++  * Bump xutils-dev build-dep for new macros.
++  * Add pkg-config build-dep.
++  * Add xmlto, xorg-sgml-doctools, and w3m build-dep for the doc.
++  * Pass --with-xmlto and --without-fop (we want html and txt only).
++  * Pass --docdir=/usr/share/doc/xtrans-dev and add this directory to
++    xtrans-dev.install file.
++  * Switch from --list-missing to --fail-missing for additional safety.
++  * No longer pass --disable-shared, this option is gone.
++  * Add myself to Uploaders.
++
++ -- Cyril Brulebois <kibi@debian.org>  Sat, 20 Nov 2010 23:20:03 +0100
++
++xtrans (1.2.5-1) unstable; urgency=low
++
++  * New upstream release.
++  * Bump xutils-dev build-dep for new util-macros.
++  * xtrans.pc moved to /usr/share/.
++  * Bump Standards-Version to 3.8.3.
++
++ -- Julien Cristau <jcristau@debian.org>  Mon, 07 Dec 2009 15:00:56 +0100
++
++xtrans (1.2.4-1) unstable; urgency=low
++
++  * New upstream release.
++  * Add README.source, bump Standards-Version to 3.8.2.
++
++ -- Brice Goglin <bgoglin@debian.org>  Sat, 01 Aug 2009 09:26:20 +0200
++
++xtrans (1.2.3-3) unstable; urgency=low
++
++  * Upload to unstable.  Now really.
++
++ -- Julien Cristau <jcristau@debian.org>  Mon, 16 Feb 2009 21:58:58 +0100
++
++xtrans (1.2.3-2) experimental; urgency=low
++
++  * Upload to unstable.
++
++ -- Julien Cristau <jcristau@debian.org>  Mon, 16 Feb 2009 01:34:31 +0100
++
++xtrans (1.2.3-1) experimental; urgency=low
++
++  * New upstream release.
++  * Bump xutils-dev build-dep to >= 1:7.4+4 for util-macros 1.2.
++
++ -- Julien Cristau <jcristau@debian.org>  Fri, 16 Jan 2009 04:53:05 +0100
++
++xtrans (1.2.2-1) experimental; urgency=low
++
++  [ Brice Goglin ]
++  * Add a link to www.X.org and a reference to the upstream module
++    in the long description.
++
++  [ Julien Cristau ]
++  * New upstream release.
++  * Switch to running autoreconf at build time.  Update debian/rules, and
++    build-depend on automake and xutils-dev.
++  * Stop looking for nostrip (we don't build anything anyway); allow parallel
++    builds using sample code from policy.
++
++ -- Julien Cristau <jcristau@debian.org>  Tue, 23 Dec 2008 16:39:04 +0100
++
++xtrans (1.2-2) unstable; urgency=low
++
++  * Pull from upstream git, yet more fixes for abstract socket handling.
++
++ -- Julien Cristau <jcristau@debian.org>  Thu, 22 May 2008 17:26:57 +0200
++
++xtrans (1.2-1) unstable; urgency=high
++
++  * High urgency upload for RC bug fix.
++  * New upstream release
++    + fixes abstract unix domain sockets (closes: #480142)
++    + fixes xserver build on kfreebsd (closes: #472357)
++    + returns failure instead of 'try again' when opening a unix domain socket
++      returns ENOENT (closes: #385976)
++
++ -- Julien Cristau <jcristau@debian.org>  Fri, 09 May 2008 11:21:29 +0200
++
++xtrans (1.1-1) unstable; urgency=low
++
++  * New upstream release.
++  * debian/control updates:
++    + Add myself to Uploaders
++    + Bump Standards-Version to 3.7.3 (no changes)
++    + Drop the XS- prefix for Vcs headers
++
++ -- Julien Cristau <jcristau@debian.org>  Fri, 07 Mar 2008 13:29:58 +0100
++
++xtrans (1.0.4-1) unstable; urgency=low
++
++  * New upstream release.
++  * Add upstream URL to debian/copyright.
++  * Add myself to Uploaders, and remove Branden with his permission.
++
++ -- Brice Goglin <bgoglin@debian.org>  Wed, 22 Aug 2007 20:02:32 +0200
++
++xtrans (1.0.3-2) unstable; urgency=low
++
++  * Remove Fabio from Uploaders, with his permission.
++  * Add XS-Vcs-Git and XS-Vcs-Browser.
++  * Drop outdated CVS info from the long description.
++  * Complete debian/copyright from COPYING.
++  * Install the upstream README.
++  * Upload to unstable.
++
++ -- Julien Cristau <jcristau@debian.org>  Thu, 12 Apr 2007 18:23:54 +0200
++
++xtrans (1.0.3-1) experimental; urgency=low
++
++  * New upstream release.
++    + All our patches are now included upstream.
++  * Install upstream ChangeLog.
++
++ -- Julien Cristau <jcristau@debian.org>  Mon, 12 Feb 2007 19:14:55 +0100
++
++xtrans (1.0.1-3) unstable; urgency=low
++
++  * Include patch 02_sunlen_nonbsd_sock.patch from upstream (see
++    upstream bug #4982). Follows on from 02_gnu-kbsd_sock_un.diff.
++    Closes: #338290.
++
++ -- Drew Parsons <dparsons@debian.org>  Mon, 16 Oct 2006 22:39:05 +1000
++
++xtrans (1.0.1-2) unstable; urgency=low
++
++  [ Andres Salomon ]
++  * Test for obj-$(DEB_BUILD_GNU_TYPE) before creating it during build;
++    idempotency fix.
++
++  [ David Nusinow ]
++  * Upload to unstable
++
++ -- David Nusinow <dnusinow@debian.org>  Mon, 28 Aug 2006 21:28:23 +0000
++
++xtrans (1.0.1-1) experimental; urgency=low
++
++  * New upstream release
++  * Remove security patch from previous upload. It's now included in this
++    release by upstream.
++  * Append a super-minor version number to x11-common pre-depends to shut
++    lintian up
++  * Bump debhelper compat to 5
++  * Run dh_install with --list-missing
++
++ -- David Nusinow <dnusinow@debian.org>  Sat,  1 Jul 2006 23:27:34 -0400
++
++xtrans (1.0.0-6) unstable; urgency=high
++
++  * Security update. Fix for setuid privledge escalation vulernabilities.
++    See https://lists.freedesktop.org/archives/xorg/2006-June/016146.html for
++    the full advisory.
++  * Bump standards version to 3.7.2.0
++  * Change build-depends-indep to build-depends because of quilt and debhelper
++    being used in the clean target
++
++ -- David Nusinow <dnusinow@debian.org>  Fri, 30 Jun 2006 02:15:39 -0400
++
++xtrans (1.0.0-5) unstable; urgency=low
++
++  * Reorder makeshlib command in rules file so that ldconfig is run
++    properly. Thanks Drew Parsons and Steve Langasek.
++  * Add quilt to build-depends
++
++ -- David Nusinow <dnusinow@debian.org>  Wed, 19 Apr 2006 02:48:22 -0400
++
++xtrans (1.0.0-4) unstable; urgency=low
++
++  * Upload to unstable
++
++ -- David Nusinow <dnusinow@debian.org>  Thu, 23 Mar 2006 22:46:37 -0500
++
++xtrans (1.0.0-3) experimental; urgency=low
++
++  * Bump x11-common version requirement. Thanks Kurt Roeckx. (closes: #351779)
++
++ -- David Nusinow <dnusinow@debian.org>  Sun, 19 Mar 2006 23:29:08 -0500
++
++xtrans (1.0.0-2) experimental; urgency=low
++
++  * Port patches from trunk
++    + hurd/804_maxhostnamelen.diff
++    + freebsd/003_gnu-kbsd_sock_un.diff
++
++ -- David Nusinow <dnusinow@debian.org>  Sun,  5 Mar 2006 20:51:47 -0500
++
++xtrans (1.0.0-1) experimental; urgency=low
++
++  * First upload to Debian
++
++ -- David Nusinow <dnusinow@debian.org>  Thu, 29 Dec 2005 20:55:24 -0500
++
++xtrans (0.99.0-1) breezy; urgency=low
++
++  * Bump to new upstream.
++
++ -- Daniel Stone <daniel.stone@ubuntu.com>  Wed, 10 Aug 2005 20:04:46 +1000
++
++xtrans (0.2+cvs.20050513-1) breezy; urgency=low
++
++  * First xtrans release.
++
++ -- Daniel Stone <daniel.stone@ubuntu.com>  Sun, 13 May 2005 00:12:17 +1000
+--- xtrans-1.4.0.orig/debian/control
++++ xtrans-1.4.0/debian/control
+@@ -0,0 +1,36 @@
++Source: xtrans
++Section: x11
++Priority: optional
++Maintainer: Debian X Strike Force <debian-x@lists.debian.org>
++Uploaders: Cyril Brulebois <kibi@debian.org>
++Build-Depends:
++ debhelper-compat (= 12),
++ quilt,
++ automake,
++ xutils-dev (>= 1:7.6+2),
++ pkg-config,
++# docs:
++ xmlto (>= 0.0.22),
++ xorg-sgml-doctools (>= 1:1.8),
++ w3m,
++Standards-Version: 4.5.0
++Vcs-Git: https://salsa.debian.org/xorg-team/lib/xtrans.git
++Vcs-Browser: https://salsa.debian.org/xorg-team/lib/xtrans
++
++Package: xtrans-dev
++Architecture: all
++Depends: ${shlibs:Depends}, ${misc:Depends}
++Multi-Arch: foreign
++Description: X transport library (development files)
++ xtrans includes a number of routines to make X implementations
++ transport-independent; at time of writing, it includes support for UNIX
++ sockets, IPv4, IPv6, and DECnet.
++ .
++ xtrans is not actually a library in itself; it includes .c files which are
++ then used in the compilation of X servers, libraries, et al.
++ .
++ More information about X.Org can be found at:
++ <URL:https://www.X.org>
++ .
++ This module can be found at
++ https://cgit.freedesktop.org/xorg/lib/libxtrans/
+--- xtrans-1.4.0.orig/debian/copyright
++++ xtrans-1.4.0/debian/copyright
+@@ -0,0 +1,126 @@
++This package was downloaded from
++https://www.x.org/releases/individual/lib/
++
++Debianised by Daniel Stone <daniel.stone@ubuntu.com>.
++
++Copyright 1993, 1994, 1998, 2002  The Open Group
++
++Permission to use, copy, modify, distribute, and sell this software and its
++documentation for any purpose is hereby granted without fee, provided that
++the above copyright notice appear in all copies and that both that
++copyright notice and this permission notice appear in supporting
++documentation.
++
++The above copyright notice and this permission notice shall be included
++in all copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
++OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
++MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
++IN NO EVENT SHALL THE OPEN GROUP BE LIABLE FOR ANY CLAIM, DAMAGES OR
++OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
++ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
++OTHER DEALINGS IN THE SOFTWARE.
++
++Except as contained in this notice, the name of The Open Group shall
++not be used in advertising or otherwise to promote the sale, use or
++other dealings in this Software without prior written authorization
++from The Open Group.
++
++______________________________________________________________________________
++
++Copyright 1993, 1994 NCR Corporation - Dayton, Ohio, USA
++
++All Rights Reserved
++
++Permission to use, copy, modify, and distribute this software and its
++documentation for any purpose and without fee is hereby granted, provided
++that the above copyright notice appear in all copies and that both that
++copyright notice and this permission notice appear in supporting
++documentation, and that the name NCR not be used in advertising
++or publicity pertaining to distribution of the software without specific,
++written prior permission.  NCR makes no representations about the
++suitability of this software for any purpose.  It is provided "as is"
++without express or implied warranty.
++
++NCR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
++INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN
++NO EVENT SHALL NCR BE LIABLE FOR ANY SPECIAL, INDIRECT OR
++CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS
++OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
++NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
++CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
++
++______________________________________________________________________________
++
++Copyright (c) 2002, 2005, Oracle and/or its affiliates. All rights reserved.
++
++Permission is hereby granted, free of charge, to any person obtaining a
++copy of this software and associated documentation files (the "Software"),
++to deal in the Software without restriction, including without limitation
++the rights to use, copy, modify, merge, publish, distribute, sublicense,
++and/or sell copies of the Software, and to permit persons to whom the
++Software is furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice (including the next
++paragraph) shall be included in all copies or substantial portions of the
++Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
++THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
++FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
++DEALINGS IN THE SOFTWARE.
++
++______________________________________________________________________________
++
++(c) Copyright 1996 by Sebastien Marineau and Holger Veit
++                     <marineau@genie.uottawa.ca>
++                     <Holger.Veit@gmd.de>
++
++Permission is hereby granted, free of charge, to any person obtaining a
++copy of this software and associated documentation files (the "Software"),
++to deal in the Software without restriction, including without limitation
++the rights to use, copy, modify, merge, publish, distribute, sublicense,
++and/or sell copies of the Software, and to permit persons to whom the
++Software is furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice shall be included in
++all copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
++HOLGER VEIT  BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
++WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
++OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
++SOFTWARE.
++
++Except as contained in this notice, the name of Sebastien Marineau or
++Holger Veit shall not be used in advertising or otherwise to promote
++the sale, use or other dealings in this Software without prior written
++authorization from Holger Veit or Sebastien Marineau.
++
++______________________________________________________________________________
++
++Copyright © 2003 Keith Packard, Noah Levitt
++
++Permission to use, copy, modify, distribute, and sell this software and its
++documentation for any purpose is hereby granted without fee, provided that
++the above copyright notice appear in all copies and that both that
++copyright notice and this permission notice appear in supporting
++documentation, and that the name of Keith Packard not be used in
++advertising or publicity pertaining to distribution of the software without
++specific, written prior permission.  Keith Packard makes no
++representations about the suitability of this software for any purpose.  It
++is provided "as is" without express or implied warranty.
++
++KEITH PACKARD DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
++INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO
++EVENT SHALL KEITH PACKARD BE LIABLE FOR ANY SPECIAL, INDIRECT OR
++CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
++DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
++TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
++PERFORMANCE OF THIS SOFTWARE.
+--- xtrans-1.4.0.orig/debian/rules
++++ xtrans-1.4.0/debian/rules
+@@ -0,0 +1,25 @@
++#!/usr/bin/make -f
++# debian/rules for the Debian xtrans-dev package.
++# Copyright © 2004 Scott James Remnant <scott@netsplit.com>
++# Copyright © 2005 Daniel Stone <daniel@fooishbar.org>
++# Copyright © 2005 David Nusinow <dnusinow@debian.org>
++
++# Uncomment this to turn on verbose mode.
++#export DH_VERBOSE=1
++
++override_dh_auto_configure:
++	dh_auto_configure -- \
++		--libdir=/usr/lib \
++		--docdir=/usr/share/doc/xtrans-dev \
++		--with-xmlto \
++		--without-fop \
++
++override_dh_auto_install:
++	dh_auto_install --destdir=debian/tmp
++
++override_dh_missing:
++	dh_missing --fail-missing
++
++%:
++	dh $@ --with quilt \
++		--builddirectory=build/
+--- xtrans-1.4.0.orig/debian/watch
++++ xtrans-1.4.0/debian/watch
+@@ -0,0 +1,3 @@
++#git=https://gitlab.freedesktop.org/xorg/lib/libxtrans.git
++version=3
++https://www.x.org/releases/individual/lib/ xtrans-(.*)\.tar\.gz
+--- xtrans-1.4.0.orig/debian/xtrans-dev.install
++++ xtrans-1.4.0/debian/xtrans-dev.install
+@@ -0,0 +1,4 @@
++usr/include/X11/Xtrans/*
++usr/share/aclocal/xtrans.m4
++usr/share/pkgconfig/xtrans.pc
++usr/share/doc/xtrans-dev/
