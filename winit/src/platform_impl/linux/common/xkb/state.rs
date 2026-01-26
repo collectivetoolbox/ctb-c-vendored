@@ -4,8 +4,8 @@ use std::os::raw::c_char;
 use std::ptr::NonNull;
 
 use smol_str::SmolStr;
-#[cfg(x11_platform)]
 
+#[cfg(x11_platform)]
 use super::ffi as xkb;
 use super::ffi::{xkb_keycode_t, xkb_keysym_t, xkb_layout_index_t, xkb_state, xkb_state_component};
 

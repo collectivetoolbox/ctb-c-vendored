@@ -3,6 +3,7 @@ use std::ops::{Deref, DerefMut};
 use super::*;
 
 pub(crate) struct XSmartPointer<'a, T> {
+    #[allow(dead_code)]
     xconn: &'a XConnection,
     pub ptr: *mut T,
 }

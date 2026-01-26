@@ -63,6 +63,7 @@ pub enum xkb_keymap_format {
 }
 
 bitflags! {
+    #[repr(C)]
     pub struct xkb_state_component: u32 {
         const XKB_STATE_MODS_DEPRESSED = 1 << 0;
         const XKB_STATE_MODS_LATCHED = 1 << 1;
