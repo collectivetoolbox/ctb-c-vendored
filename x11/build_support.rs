@@ -252,7 +252,7 @@ pub(crate) fn build_meson_xkbcommon(
     setup.arg("-Denable-xkbregistry=false");
     setup.arg("-Denable-bash-completion=false");
     setup.arg("-Denable-docs=false");
-    setup.arg("-Dtests=false");
+    // setup.arg("-Dtests=false");
     // Explicitly request the X11 helper library (libxkbcommon-x11).
     setup.arg("-Denable-x11=true");
     for (k, v) in base_env {
