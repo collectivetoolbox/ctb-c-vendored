@@ -6,7 +6,6 @@ extern crate pkg_config;
 
 use anyhow::{anyhow, Context, Result};
 use std::env;
-use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -146,6 +145,16 @@ fn build_vendored_x11(c_src_dir: &Path, out_dir: &Path, prefix: &Path) -> Result
         "RANLIB".to_string(),
         command_to_string(&ranlib),
     ));
+
+    // Some of the vendored autotools projects may enable maintainer rules that
+    // try to invoke version-suffixed tools like `automake-1.16`. Prefer the
+    // generic tool names so builds work across distros, and disable maintainer
+    // mode in `configure` below to avoid regeneration where possible.
+    base_env.push(("AUTOCONF".to_string(), "autoconf".to_string()));
+    base_env.push(("AUTOHEADER".to_string(), "autoheader".to_string()));
+    base_env.push(("AUTOMAKE".to_string(), "automake".to_string()));
+    base_env.push(("ACLOCAL".to_string(), "aclocal".to_string()));
+
     base_env.push(("PKG_CONFIG_ALLOW_CROSS".to_string(), "1".to_string()));
     base_env.push(("PKG_CONFIG_PATH".to_string(), pkg_config_path_with_prefix(prefix)));
 
@@ -290,6 +299,7 @@ fn build_autotools(
     configure_cmd.current_dir(&build_dir);
     configure_cmd.arg(src_copy.join("configure"));
     configure_cmd.arg(format!("--prefix={}", prefix.display()));
+    configure_cmd.arg("--disable-maintainer-mode");
     configure_cmd.arg("--disable-shared");
     configure_cmd.arg("--enable-static");
     configure_cmd.arg("--with-pic");
@@ -470,88 +480,281 @@ fn cpu_info_from_target(target: &str) -> (&'static str, &'static str) {
 }
 
 fn prepare_source_tree(pkg_dir: &Path, unpack_root: &Path) -> Result<PathBuf> {
-    // Preferred path: if the Debian source artifacts are present, use dpkg-source
-    // to apply patches exactly as Debian does.
-    let dsc = fs::read_dir(pkg_dir)
-        .ok()
-        .and_then(|it| {
-            it.filter_map(|e| e.ok())
-                .map(|e| e.path())
-                .find(|p| p.extension() == Some(OsStr::new("dsc")))
-        });
+    // scripts/download-x11 downloads Debian source artifacts and unpacks the
+    // upstream sources without applying Debian patches. Apply Debian patches
+    // here (without relying on dpkg tools) so builds are consistent.
 
-    if let Some(dsc_path) = dsc {
-        if program_exists("dpkg-source")? {
-            let has_orig = fs::read_dir(pkg_dir)
-                .ok()
-                .map(|it| {
-                    it.filter_map(|e| e.ok())
-                        .map(|e| e.path())
-                        .any(|p| {
-                            let Some(name) = p.file_name().and_then(|n| n.to_str()) else {
-                                return false;
-                            };
-                            name.contains(".orig.tar.") && !name.ends_with(".asc")
-                        })
-                })
-                .unwrap_or(false);
+    let upstream_src = find_project_src_dir(pkg_dir)
+        .with_context(|| format!("locate upstream source dir under {}", pkg_dir.display()))?;
 
-            if has_orig {
-                let _ = fs::remove_dir_all(unpack_root);
-                fs::create_dir_all(unpack_root).with_context(|| {
-                    format!("create dpkg-source unpack dir {}", unpack_root.display())
-                })?;
+    let _ = fs::remove_dir_all(unpack_root);
+    fs::create_dir_all(unpack_root)
+        .with_context(|| format!("create unpack root {}", unpack_root.display()))?;
 
-                // Copy artifacts into a scratch directory dpkg-source can use.
-                for entry in fs::read_dir(pkg_dir)
-                    .with_context(|| format!("read dir {}", pkg_dir.display()))?
-                {
-                    let entry = entry?;
-                    let ty = entry.file_type()?;
-                    if !ty.is_file() {
-                        continue;
-                    }
-                    let from = entry.path();
-                    let to = unpack_root.join(entry.file_name());
-                    fs::copy(&from, &to)
-                        .with_context(|| format!("copy {} -> {}", from.display(), to.display()))?;
-                }
+    let src_copy = unpack_root.join("src");
+    fs::create_dir_all(&src_copy)
+        .with_context(|| format!("create src dir {}", src_copy.display()))?;
+    copy_dir_recursive(&upstream_src, &src_copy).with_context(|| {
+        format!(
+            "copy upstream sources {} -> {}",
+            upstream_src.display(),
+            src_copy.display()
+        )
+    })?;
 
-                let mut cmd = Command::new("dpkg-source");
-                cmd.current_dir(unpack_root);
-                cmd.arg("--skip-pgp-check");
-                cmd.arg("-x");
-                cmd.arg(
-                    dsc_path
-                        .file_name()
-                        .context("dsc file has no filename")?,
-                );
-                run(&mut cmd).context("dpkg-source -x")?;
+    apply_debian_patches(pkg_dir, &src_copy)
+        .with_context(|| format!("apply Debian patches for {}", pkg_dir.display()))?;
 
-                // dpkg-source creates exactly one directory.
-                let produced = fs::read_dir(unpack_root)
-                    .with_context(|| format!("read dir {}", unpack_root.display()))?
-                    .filter_map(|e| e.ok())
-                    .map(|e| e.path())
-                    .find(|p| p.is_dir())
-                    .context("dpkg-source produced no directory")?;
+    Ok(src_copy)
+}
 
-                return Ok(produced);
-            } else {
-                println!(
-                    "cargo:warning=vendored x11: .dsc found for {}, but missing .orig.tar.*; using pre-unpacked sources",
-                    pkg_dir.display()
-                );
-            }
-        } else {
-            println!(
-                "cargo:warning=vendored x11: dpkg-source not found; using pre-unpacked sources for {}",
-                pkg_dir.display()
-            );
-        }
+fn apply_debian_patches(pkg_dir: &Path, src_root: &Path) -> Result<()> {
+    // Debian source formats:
+    // - 3.0 (quilt): <pkg>_<ver>.debian.tar.* + debian/patches/series
+    // - 1.0: <pkg>_<ver>.diff.gz
+    //
+    // We avoid dpkg/quilt and use common Unix tools instead.
+
+    if !program_exists("patch")? {
+        return Err(anyhow!(
+            "required program not found: patch (needed to apply Debian patches)"
+        ));
     }
 
-    find_project_src_dir(pkg_dir)
+    if let Some(debian_tar) = find_debian_tar(pkg_dir)? {
+        overlay_debian_tar(&debian_tar, src_root)
+            .with_context(|| format!("overlay {}", debian_tar.display()))?;
+        apply_quilt_series(src_root).context("apply quilt patch series")?;
+        return Ok(());
+    }
+
+    if let Some(diff_gz) = find_diff_gz(pkg_dir)? {
+        apply_diff_gz(&diff_gz, src_root)
+            .with_context(|| format!("apply {}", diff_gz.display()))?;
+        return Ok(());
+    }
+
+    // No patches.
+    Ok(())
+}
+
+fn find_debian_tar(pkg_dir: &Path) -> Result<Option<PathBuf>> {
+    let mut candidates = Vec::new();
+    for entry in fs::read_dir(pkg_dir).with_context(|| format!("read dir {}", pkg_dir.display()))?
+    {
+        let entry = entry?;
+        if !entry.file_type()?.is_file() {
+            continue;
+        }
+        let path = entry.path();
+        let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
+            continue;
+        };
+        if name.contains(".debian.tar.") && !name.ends_with(".asc") {
+            candidates.push(path);
+        }
+    }
+    candidates.sort();
+    Ok(candidates.into_iter().next())
+}
+
+fn find_diff_gz(pkg_dir: &Path) -> Result<Option<PathBuf>> {
+    let mut candidates = Vec::new();
+    for entry in fs::read_dir(pkg_dir).with_context(|| format!("read dir {}", pkg_dir.display()))?
+    {
+        let entry = entry?;
+        if !entry.file_type()?.is_file() {
+            continue;
+        }
+        let path = entry.path();
+        let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
+            continue;
+        };
+        if name.ends_with(".diff.gz") {
+            candidates.push(path);
+        }
+    }
+    candidates.sort();
+    Ok(candidates.into_iter().next())
+}
+
+fn overlay_debian_tar(debian_tar: &Path, src_root: &Path) -> Result<()> {
+    if !program_exists("tar")? {
+        return Err(anyhow!(
+            "required program not found: tar (needed to unpack Debian patch tarballs)"
+        ));
+    }
+
+    let scratch = src_root
+        .parent()
+        .context("src root has no parent")?
+        .join("debian-tar");
+    let _ = fs::remove_dir_all(&scratch);
+    fs::create_dir_all(&scratch)
+        .with_context(|| format!("create scratch dir {}", scratch.display()))?;
+
+    let mut cmd = Command::new("tar");
+    cmd.current_dir(&scratch);
+    match debian_tar
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or_default()
+    {
+        name if name.ends_with(".tar.gz") || name.ends_with(".tgz") => {
+            cmd.arg("-xzf").arg(debian_tar);
+        }
+        name if name.ends_with(".tar.xz") => {
+            cmd.arg("-xJf").arg(debian_tar);
+        }
+        name if name.ends_with(".tar.bz2") => {
+            cmd.arg("-xjf").arg(debian_tar);
+        }
+        name if name.ends_with(".tar") => {
+            cmd.arg("-xf").arg(debian_tar);
+        }
+        _ => {
+            return Err(anyhow!(
+                "unsupported Debian patch archive: {}",
+                debian_tar.display()
+            ));
+        }
+    }
+    run(&mut cmd).context("extract debian.tar")?;
+
+    // debian.tar.* usually contains <pkg>-<ver>/debian/...; overlay contents.
+    let inner = single_child_dir(&scratch)?;
+    let overlay_root = inner.as_deref().unwrap_or(&scratch);
+    copy_dir_contents_recursive(overlay_root, src_root)
+        .with_context(|| format!("overlay {} into {}", overlay_root.display(), src_root.display()))?;
+
+    Ok(())
+}
+
+fn single_child_dir(dir: &Path) -> Result<Option<PathBuf>> {
+    let mut dirs = Vec::new();
+    for entry in fs::read_dir(dir).with_context(|| format!("read dir {}", dir.display()))? {
+        let entry = entry?;
+        let path = entry.path();
+        if path.is_dir() {
+            dirs.push(path);
+        }
+    }
+    dirs.sort();
+    if dirs.len() == 1 {
+        return Ok(Some(
+            dirs.into_iter()
+                .next()
+                .context("single dir unexpectedly missing")?,
+        ));
+    }
+    Ok(None)
+}
+
+fn apply_quilt_series(src_root: &Path) -> Result<()> {
+    let series = src_root.join("debian").join("patches").join("series");
+    if !series.is_file() {
+        return Ok(());
+    }
+
+    let content = fs::read_to_string(&series)
+        .with_context(|| format!("read quilt series {}", series.display()))?;
+    for line in content.lines() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        // series can contain options after the patch name; keep the first token.
+        let patch_rel = line.split_whitespace().next().unwrap_or("");
+        if patch_rel.is_empty() {
+            continue;
+        }
+        let patch_path = src_root
+            .join("debian")
+            .join("patches")
+            .join(patch_rel);
+        if !patch_path.is_file() {
+            return Err(anyhow!(
+                "quilt series references missing patch: {}",
+                patch_path.display()
+            ));
+        }
+
+        let mut cmd = Command::new("patch");
+        cmd.current_dir(src_root);
+        cmd.arg("-p1");
+        cmd.arg("--forward");
+        cmd.arg("--batch");
+        cmd.arg("-i");
+        cmd.arg(&patch_path);
+        run(&mut cmd).with_context(|| format!("patch -p1 -i {}", patch_path.display()))?;
+    }
+    Ok(())
+}
+
+fn apply_diff_gz(diff_gz: &Path, src_root: &Path) -> Result<()> {
+    if !program_exists("gzip")? {
+        return Err(anyhow!(
+            "required program not found: gzip (needed to unpack .diff.gz patches)"
+        ));
+    }
+
+    let mut unzip = Command::new("gzip");
+    unzip.arg("-dc");
+    unzip.arg(diff_gz);
+    unzip.stdout(std::process::Stdio::piped());
+
+    let mut unzip_child = unzip
+        .spawn()
+        .with_context(|| format!("spawn gzip -dc {}", diff_gz.display()))?;
+    let unzip_out = unzip_child
+        .stdout
+        .take()
+        .context("gzip stdout not captured")?;
+
+    let mut patch = Command::new("patch");
+    patch.current_dir(src_root);
+    patch.arg("-p1");
+    patch.arg("--forward");
+    patch.arg("--batch");
+    patch.stdin(unzip_out);
+
+    let patch_status = patch
+        .status()
+        .with_context(|| format!("run patch for {}", diff_gz.display()))?;
+
+    let unzip_status = unzip_child
+        .wait()
+        .with_context(|| format!("wait for gzip -dc {}", diff_gz.display()))?;
+
+    if !unzip_status.success() {
+        return Err(anyhow!("gzip failed with exit code {unzip_status}"));
+    }
+    if !patch_status.success() {
+        return Err(anyhow!("patch failed with exit code {patch_status}"));
+    }
+    Ok(())
+}
+
+fn copy_dir_contents_recursive(from: &Path, to: &Path) -> Result<()> {
+    fs::create_dir_all(to).with_context(|| format!("create dir {}", to.display()))?;
+    for entry in fs::read_dir(from).with_context(|| format!("read dir {}", from.display()))? {
+        let entry = entry?;
+        let path = entry.path();
+        let dest = to.join(entry.file_name());
+        let ty = entry.file_type()?;
+        if ty.is_dir() {
+            copy_dir_recursive(&path, &dest)?;
+        } else if ty.is_file() {
+            fs::copy(&path, &dest)
+                .with_context(|| format!("copy {} -> {}", path.display(), dest.display()))?;
+        } else if ty.is_symlink() {
+            let target = fs::read_link(&path)
+                .with_context(|| format!("readlink {}", path.display()))?;
+            std::os::unix::fs::symlink(&target, &dest)
+                .with_context(|| format!("symlink {} -> {}", target.display(), dest.display()))?;
+        }
+    }
+    Ok(())
 }
 
 fn find_project_src_dir(pkg_dir: &Path) -> Result<PathBuf> {

@@ -1,0 +1,1554 @@
+--- xauth-1.1.2.orig/.gitlab-ci.yml
++++ xauth-1.1.2/.gitlab-ci.yml
+@@ -0,0 +1,104 @@
++# vim: set expandtab shiftwidth=2 tabstop=8 textwidth=0 filetype=yaml:
++#
++# This CI uses the freedesktop.org ci-templates.
++# Please see the ci-templates documentation for details:
++# https://freedesktop.pages.freedesktop.org/ci-templates/
++
++.templates_sha: &template_sha 34f4ade99434043f88e164933f570301fd18b125 # see https://docs.gitlab.com/ee/ci/yaml/#includefile
++
++
++include:
++  # Arch container builder template
++  - project: 'freedesktop/ci-templates'
++    ref: *template_sha
++    file: '/templates/arch.yml'
++  - project: 'freedesktop/ci-templates'
++    ref: *template_sha
++    file: '/templates/ci-fairy.yml'
++  - template: Security/SAST.gitlab-ci.yml
++
++
++stages:
++  - prep             # prep work like rebuilding the container images if there is a change
++  - build            # for actually building and testing things in a container
++  - test
++  - deploy
++
++
++variables:
++  FDO_UPSTREAM_REPO: 'xorg/app/xauth'
++  # The tag should be updated each time the list of packages is updated.
++  # Changing a tag forces the associated image to be rebuilt.
++  # Note: the tag has no meaning, we use a date format purely for readability
++  FDO_DISTRIBUTION_TAG:  '2021-11-30.1'
++  FDO_DISTRIBUTION_PACKAGES:  'git gcc pkgconf autoconf automake make xorg-util-macros xorgproto xtrans libx11 libxau libxext libxmu'
++
++
++#
++# Verify that commit messages are as expected, signed-off, etc.
++#
++check-commits:
++  extends:
++    - .fdo.ci-fairy
++  stage: prep
++  script:
++    - ci-fairy check-commits --junit-xml=results.xml
++  except:
++    - master@xorg/app/xauth
++  variables:
++    GIT_DEPTH: 100
++  artifacts:
++    reports:
++      junit: results.xml
++
++#
++# Verify that the merge request has the allow-collaboration checkbox ticked
++#
++check-merge-request:
++  extends:
++    - .fdo.ci-fairy
++  stage: deploy
++  script:
++    - ci-fairy check-merge-request --require-allow-collaboration --junit-xml=results.xml
++  artifacts:
++    when: on_failure
++    reports:
++      junit: results.xml
++  allow_failure: true
++
++
++#
++# Build a container with the given tag and the packages pre-installed.
++# This only happens if when the tag changes, otherwise the existing image is
++# re-used.
++#
++container-prep:
++  extends:
++    - .fdo.container-build@arch
++  stage: prep
++  variables:
++    GIT_STRATEGY: none
++
++
++#
++# The default build, runs on the image built above.
++#
++build:
++  stage: build
++  extends:
++    - .fdo.distribution-image@arch
++  script:
++    - autoreconf -ivf
++    - mkdir _builddir
++    - pushd _builddir > /dev/null
++    - ../configure --disable-silent-rules
++    - make
++    - make check
++    - make distcheck
++    - popd > /dev/null
++  artifacts:
++    when: always
++    reports:
++    paths:
++      - _builddir/tests/test-suite.log
++      - _builddir/tests/test_xauth.log
+--- xauth-1.1.2.orig/ChangeLog
++++ xauth-1.1.2/ChangeLog
+@@ -1,511 +1,3 @@
+-commit c5783216c07fa9870da1b5cce023e24d649254c3
+-Author: Matt Turner <mattst88@gmail.com>
+-Date:   Tue Apr 19 19:04:26 2022 -0700
+-
+-    xauth 1.1.2
+-    
+-    Signed-off-by: Matt Turner <mattst88@gmail.com>
+-
+-commit ce87ae39d5ab28733b4125a09d0a643d1581b1c8
+-Author: Larry Doolittle <larry@doolittle.boa.org>
+-Date:   Sat Apr 16 15:28:31 2022 -0700
+-
+-    Expand checks of socket file with S_ISSOCK
+-    
+-    Extend work done in commit 18a3c3a to earlier in the socket detection process
+-    Fixes issue #6.
+-
+-commit 83e97b2bf683f341da177bd5df5b1297cbdc16a4
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Sat Apr 16 13:11:36 2022 -0700
+-
+-    gitlab CI: stop requiring Signed-off-by in commits
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit a5c70489f99c8259d4770aeb96524a91395b8ab9
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Sun Apr 10 10:46:51 2022 -0700
+-
+-    Fix off-by-one in quote-stripping routines
+-    
+-    Reported by Oracle Parfait:
+-    
+-    Error: Buffer overrun
+-       Buffer overflow [buffer-overflow] (CWE 120):
+-          In pointer dereference of key[(len - 1)] with index (len - 1)
+-          Array size >= 1 bytes, index >= 1
+-            at line 1647 of process.c in function 'do_add'.
+-    
+-    Error: Buffer overrun
+-       Buffer overflow [buffer-overflow] (CWE 120):
+-          In pointer dereference of authdata[(authdatalen - 1)] with index (authdatalen - 1)
+-          Array size is ??? bytes, index is ???
+-            at line 1965 of process.c in function 'do_generate'.
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit 999691ffaef492d4bebea69605d274fa2023dfee
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Sat Dec 4 10:29:07 2021 -0800
+-
+-    Build xz tarballs instead of bzip2
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit cb0ef91ea63105b0629324837a4dc752e32d6d67
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Tue Nov 30 17:07:42 2021 -0800
+-
+-    gitlab CI: add a basic build test
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit 25f94d50523f8967f6f22a631d462355dbd680a3
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Tue Nov 30 17:05:46 2021 -0800
+-
+-    configure.ac: fail build if xtrans is not found
+-    
+-    Copied from libX11/configure.ac
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit f17b241220fef63a32d1b7329edfbcf6f435fabe
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Tue Nov 30 17:29:59 2021 -0800
+-
+-    tests: report failure if stderr has unexpected output
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit 6ad2fc509b55003a10fe9d973e2f8672946d4180
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Tue Nov 30 17:23:07 2021 -0800
+-
+-    tests: Fix failure to make distcheck
+-    
+-    Add test_xauth to EXTRA_DIST
+-    Add test output files to CLEANFILES
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit 5598b8612b095d9f5f513ada2a4bbacaca1bfea8
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Tue Nov 30 15:11:43 2021 -0800
+-
+-    tests: make tests work in out-of-tree builds
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit 3d6519f11867183b9698cbf8cc9515bc767b98af
+-Author: Dr. Tilmann Bubeck <tilmann@bubecks.de>
+-Date:   Mon Nov 29 15:05:39 2021 +0100
+-
+-    Fix warning -Wstringop-truncation for strncpy by using memcpy instead
+-
+-commit 5da9a32e638f4bce66ec92dff64ed68a1bbd6b6b
+-Author: Dr. Tilmann Bubeck <tilmann@bubecks.de>
+-Date:   Mon Nov 29 12:30:17 2021 +0100
+-
+-    Removed build requirement "cmdtest".
+-    Replaced by a shell script with the needed functionality.
+-
+-commit d6d1423fabdaec25d4a677e794f91a91f7c09c70
+-Author: Baptiste Daroussin <bapt@FreeBSD.org>
+-Date:   Mon Feb 6 22:28:44 2017 +0100
+-
+-    Improve portability
+-    
+-    there is no need to hard depend on bash given almost all the code is
+-    /bin/sh compliant
+-    
+-    Remove the function keyword from setup-source to make it /bin/sh
+-    compliant
+-    
+-    pipe wc -l output to xargs to make the command output compatible with
+-    both GNU wc and BSD wc (which prefix the output with a tab)
+-
+-commit 477307d00c1220f8594622e1af982fb0e4e215bf
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Sun Nov 28 15:32:37 2021 -0800
+-
+-    xauth 1.1.1
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit 1bfa5bff47654213f1d40af64bae0e9e23b4bed4
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Sun Nov 28 15:03:37 2021 -0800
+-
+-    Fix spelling/wording issues
+-    
+-    Found by using:
+-        codespell --builtin clear,rare,usage,informal,code,names
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit c2811c953620cf946269db2b74b29e0dc707e26a
+-Author: Alex Gendin <ukkeefy@gmail.com>
+-Date:   Sat Sep 26 23:26:07 2020 -0400
+-
+-    Fix segfault when X starts
+-    
+-    This patch potentially fixes bug https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=884934
+-    
+-    System log entries when this bug occurs:
+-        kernel: xauth[16729]: segfault at 1 ip 00007f51f517f5a5 sp 00007ffdec846568 error 4
+-                              in libc-2.31.so[7f51f5102000+144000]
+-        kernel: Code: bc d1 f3 0f 7f 27 f3 0f 7f 6f 10 f3 0f 7f 77 20 f3 0f 7f 7f 30 49 83 c0
+-                      0f 49 29 d0 48 8d 7c 17 31 e9 8f 0b 00 00 66 0f ef c0 <f3> 0f 6f 0e f3
+-                      0f 6f 56 10 66 0f 74 c1 66 0f d7 d0 49 83 f8 11 0f
+-    
+-    This bug happens when function get_address_info() in gethost.c is called
+-    with a display name without forward slash, for example 'myhost.mydomain:0'
+-
+-commit d7e5021416444e3cc545ffa4f8d1e613cabec633
+-Author: Karol Herbst <kherbst@redhat.com>
+-Date:   Thu Apr 22 13:26:50 2021 +0200
+-
+-    Check malloc calls in process.c
+-    
+-    Fixes warnings like
+-    
+-    warning[-Wanalyzer-possible-null-argument]: use of possibly-NULL 'authdata' where non-null expected
+-    
+-    Found-by: gcc static analysis
+-    Signed-off-by: Karol Herbst <kherbst@redhat.com>
+-
+-commit 18a3c3a7672ff5d65bf0b79b89464eac7540b95b
+-Author: Dr. Tilmann Bubeck <tilmann@bubecks.de>
+-Date:   Thu Aug 20 20:28:52 2020 +0200
+-
+-    Additionally check socket file with S_ISSOCK
+-    This fixes bug https://bugzilla.redhat.com/show_bug.cgi?id=1870201
+-
+-commit aaf037ec5c576e46318935feaf6e2b7407ff11a0
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Sun May 10 13:21:50 2020 -0700
+-
+-    Avoid memory leaks in error paths in do_generate
+-    
+-    Reported by Oracle Parfait:
+-    Error: Memory leak
+-       Memory leak [memory-leak] (CWE 401):
+-          Memory leak of pointer authdata allocated with malloc((authdatalen - 1))
+-            at line 1955 of process.c in function 'do_generate'.
+-              authdata allocated at line 1946 with malloc((authdatalen - 1))
+-          Memory leak of pointer authdata allocated with malloc((authdatalen - 1))
+-            at line 1971 of process.c in function 'do_generate'.
+-              authdata allocated at line 1946 with malloc((authdatalen - 1))
+-              authdata leaks when (i + 1) >= argc at line 1910.
+-            at line 1980 of process.c in function 'do_generate'.
+-              authdata allocated at line 1946 with malloc((authdatalen - 1))
+-              authdata leaks when (i + 1) >= argc at line 1910.
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit 4faf0f63f0563513252967a2da1c51de6f5f7b0c
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Sun May 10 11:46:16 2020 -0700
+-
+-    Use reallocarray() when adding members to array in split_into_words()
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit af7a74e28b33c18c4cb90f0d25bdfd5dff2e29d3
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Sun May 10 11:27:25 2020 -0700
+-
+-    Avoid memory leak when realloc() fails in split_into_words()
+-    
+-    Reported by Oracle Parfait:
+-    Error: Memory leak
+-       Memory leak [memory-leak] (CWE 401):
+-          Memory leak of pointer argv allocated with malloc(32)
+-            at line 283 of process.c in function 'split_into_words'.
+-              argv allocated at line 264 with malloc(32)
+-              argv leaks when cur == total at line 280.
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit f5af3b21bc94cb020f3530c3cc70f8a9fd6c6452
+-Author: Tobias Stoeckmann <tobias@stoeckmann.org>
+-Date:   Sun May 3 12:29:53 2020 +0200
+-
+-    Prevent OOB write with long file names.
+-    
+-    If an -f argument is exactly 1022 characters in size, an off-by-one
+-    stack overflow happens in auth_finalize. The overflow could be even
+-    larger if locks are ignored for authentication files.
+-    
+-    Make sure that a given authentication file name fits into temporary
+-    buffer and that this buffer matches buffer sizes of libXau which is
+-    used by xauth.
+-
+-commit cb98d3b3c5e0f8a7585ab6e2c909fad68c52fd55
+-Author: Tobias Stoeckmann <tobias@stoeckmann.org>
+-Date:   Sun May 3 12:25:21 2020 +0200
+-
+-    Fix segmentation fault on invalid add argument.
+-    
+-    The hex key supplied with an add command can be quoted, in which
+-    case the quotation marks are removed.
+-    
+-    The check itself makes sure that a given string starts with a
+-    double quotation mark and ends with a double quotation mark.
+-    
+-    Buf if only " is supplied, the code crashes because it subtracts
+-    2 from the length (which is 1) and therefore copies too much
+-    memory into a 0 allocated memory area.
+-    
+-    Proof of concept:
+-    
+-    $ xauth add :0 0 \"
+-
+-commit e97992671b3870878709a1c01991488965b61b94
+-Author: Adam Jackson <ajax@redhat.com>
+-Date:   Thu Jul 11 13:49:26 2019 -0400
+-
+-    xauth 1.1
+-
+-commit 0932418d9b47e8240160bcbacbdc38b9bc9870d3
+-Author: Adam Jackson <ajax@redhat.com>
+-Date:   Tue Jun 18 12:03:33 2019 -0400
+-
+-    process: Close a window where no authority file would exist
+-    
+-    unlink()ing the old auth file before link()ing the temp to the new is
+-    just silly. rename() is atomic and will happily clobber the destination,
+-    and the only thing link() can give you here is the ability to fail on
+-    filesystems that don't support hardlinks.
+-    
+-    Fixes: xorg/app/xauth#2
+-
+-commit 42239054b088dcdfc637880a8edf39b841c5ea51
+-Author: Michal Srb <msrb@suse.com>
+-Date:   Thu May 31 15:12:36 2018 +0200
+-
+-    Sort entries from most specific to most generic.
+-    
+-    There is no point in adding entry or merging lists if a FamilyWild entry would
+-    end in front of any entry, or entry without display number would end in front
+-    of entry with number.
+-    
+-    This sorts all entries in order:
+-      * FamilyWild without display number
+-      * FamilyWild with display number
+-      * Other family without display number
+-      * Other family with display number
+-    
+-    The order of the entries in each category is kept.
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit 06a21f7c3d5eb5dc9a86418e87946cc7ac83e437
+-Author: Michal Srb <msrb@suse.com>
+-Date:   Thu May 31 15:12:35 2018 +0200
+-
+-    Merge only entries with equal dpy and protoname.
+-    
+-    Merging two lists, or adding entry a into list acts unexpectedly if the list
+-    contains FamilyWild or entry with an empty display numbers. For example:
+-    
+-      > xauth list
+-      #ffff#6f70656e737573652d74756d626c6577656564#:  MIT-MAGIC-COOKIE-1  1500d80327733252cc42ba469138a259
+-    
+-      > xauth add test/unix:2 MIT-MAGIC-COOKIE-1 aabbccddeeff00112233445566778899
+-      > xauth list
+-      test/unix:2  MIT-MAGIC-COOKIE-1  aabbccddeeff00112233445566778899
+-    
+-    This is because merge_entries compares entries using `match_auth`, which
+-    follows the same rules as XauGetBestAuthByAddr. Following these rules is good
+-    when filtering the output of `xauth list`, but for merging we should compare
+-    for equality. It used to be done that way before commit 1555fff4. That commit
+-    changed it to improve the `xauth list` behavior, but did not seem consider the
+-    impact on merge.
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit 673d42c5ffbbb07ad6b9b3d99a9cc78198999dd1
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Wed Nov 21 16:58:33 2018 -0800
+-
+-    Update configure.ac bug URL for gitlab migration
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit fa5c2797921b2b0c6dcdde5cf1832a90a0a9dfbf
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Fri Nov 16 21:03:57 2018 -0800
+-
+-    Update README for gitlab migration
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit 4a3a9fc5271cd04ab9123e4713d00b161daf0b6a
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Sat May 5 14:58:15 2018 -0700
+-
+-    Change fall through comment in process.c to match gcc's requirements
+-    
+-    Needs to match one of the regexps shown under
+-    https://gcc.gnu.org/onlinedocs/gcc-7.3.0/gcc/Warning-Options.html#index-Wimplicit-fallthrough
+-    
+-    Silences warning from gcc 7.3:
+-    process.c: In function ‘dump_entry’:
+-    process.c:1007:9: warning: this statement may fall through [-Wimplicit-fallthrough=]
+-          if (dpyname) {
+-             ^
+-    process.c:1012:4: note: here
+-        default:
+-        ^~~~~~~
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit 536d1003a5c4d5ac24cd3b8afd10492e4e6242df
+-Author: Matt Turner <mattst88@gmail.com>
+-Date:   Sun Jan 29 13:09:12 2017 -0800
+-
+-    xauth 1.0.10
+-    
+-    Signed-off-by: Matt Turner <mattst88@gmail.com>
+-
+-commit 72717ccee0b6bdbf161cc9d44abe3dc1d824fe46
+-Author: Matt Turner <mattst88@gmail.com>
+-Date:   Sun Jan 29 13:09:39 2017 -0800
+-
+-    Build xauth before running tests.
+-    
+-    Otherwise make check fails if make hasn't previously been run.
+-    
+-    Signed-off-by: Matt Turner <mattst88@gmail.com>
+-
+-commit 4dee6a980fdc0174d3825389f95ac1f27c2427db
+-Author: Mihail Konev <k.mvc@ya.ru>
+-Date:   Thu Jan 26 14:00:20 2017 +1000
+-
+-    autogen: add default patch prefix
+-    
+-    Signed-off-by: Mihail Konev <k.mvc@ya.ru>
+-
+-commit 4933bc594087c25dfbc9b1f6db46440f19d0b360
+-Author: Emil Velikov <emil.l.velikov@gmail.com>
+-Date:   Mon Mar 9 12:00:52 2015 +0000
+-
+-    autogen.sh: use quoted string variables
+-    
+-    Place quotes around the $srcdir, $ORIGDIR and $0 variables to prevent
+-    fall-outs, when they contain space.
+-    
+-    Signed-off-by: Emil Velikov <emil.l.velikov@gmail.com>
+-    Reviewed-by: Peter Hutterer <peter.hutterer@who-t.net>
+-    Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+-
+-commit eaeb306e67c23657f713b3ca48765d1c6ed99986
+-Author: Peter Hutterer <peter.hutterer@who-t.net>
+-Date:   Tue Jan 24 10:32:07 2017 +1000
+-
+-    autogen.sh: use exec instead of waiting for configure to finish
+-    
+-    Syncs the invocation of configure with the one from the server.
+-    
+-    Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+-    Reviewed-by: Emil Velikov <emil.velikov@collabora.com>
+-
+-commit 179459471e83a0cd235a0c8ead99b3156390e00c
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Sun Jun 1 21:03:14 2014 -0700
+-
+-    autogen.sh: Honor NOCONFIGURE=1
+-    
+-    See http://people.gnome.org/~walters/docs/build-api.txt
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit 0e4c17c6d6980f07896f0631cffeb82a0e9705f7
+-Author: Peter Hutterer <peter.hutterer@who-t.net>
+-Date:   Thu Jan 26 10:26:30 2017 +1000
+-
+-    autogen.sh: stop using maintainer mode
+-    
+-    See xserver commit 4bf3eac5fe20f
+-    
+-    Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+-
+-commit a64ca3aafcde516658d699047382ab294e3e974f
+-Author: Søren Sandmann Pedersen <ssp@redhat.com>
+-Date:   Thu Sep 26 12:30:03 2013 -0400
+-
+-    usage(): Print summary for the -n option
+-    
+-    This option is mentioned in the man page, but not in the help text
+-    
+-    Signed-off-by: Hans de Goede <hdegoede@redhat.com>
+-    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-
+-commit ad26f2137f6414c8cadc070f96a4476d435e994b
+-Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+-Date:   Fri Jan 2 09:49:52 2015 -0800
+-
+-    include POSIX-standard limits.h for PATH_MAX instead of sys/syslimits.h
+-    
+-    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-    Reviewed-by: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+-    Reviewed-by: Mark Kettenis <kettenis@openbsd.org>
+-
+-commit a58c9d74c8f9c4292d367c6e23d15c4cba03dfde
+-Author: Jon TURNEY <jon.turney@dronecode.org.uk>
+-Date:   Fri Jan 2 16:18:52 2015 +0000
+-
+-    Fix !HAVE_STRLCPY case
+-    
+-    Fix error in the !HAVE_STRLCPY case, introduced in commit
+-    f990dd936b5fd1a40290bb88cde517a0ac38f823
+-    
+-    It seems that "path[sizeof(path) - 1]" rather than "buf[sizeof(path) - 1]" must
+-    be meant here, especially as the second instance doesn't even compile...
+-    
+-    parsedpy.c: In function ‘parse_displayname’:
+-    parsedpy.c:176:9: error: ‘buf’ undeclared (first use in this function)
+-    
+-    Signed-off-by: Jon TURNEY <jon.turney@dronecode.org.uk>
+-    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+-    Reviewed-by: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+-
+-commit f990dd936b5fd1a40290bb88cde517a0ac38f823
+-Author: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+-Date:   Wed Dec 31 02:42:17 2014 -0800
+-
+-    Update DISPLAY parsing to work with new launchd paths in Yosemite
+-    
+-    Signed-off-by: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+-
+-commit 047f92a85796fca563d9345d6c4798b64be77cff
+-Author: Dr. Tilmann Bubeck <tilmann@bubecks.de>
+-Date:   Tue Jun 24 00:22:54 2014 +0200
+-
+-    Fix for xauth failing on ENOSPC (= disk full)
+-    
+-    If xauth must store its XAUTHORITY file on a file system which is
+-    full, it will be unable to write the changes. This condition was
+-    not detected and therefore often the whole XAUTHORITY file was
+-    cleared. Here is the fix.
+-    
+-    Fixes: https://bugs.freedesktop.org/show_bug.cgi?id=21260
+-    
+-    Signed-off-by: Dr. Tilmann Bubeck <tilmann@bubecks.de>
+-
+-commit 12e63de4e0b3a45fad15863a66723609b068e668
+-Author: Dr. Tilmann Bubeck <tilmann@bubecks.de>
+-Date:   Wed Apr 2 22:13:48 2014 +0200
+-
+-    Clarified RELEASING in README
+-    
+-    Changed clone URL and improved text. Removed section GARBAGE.
+-    
+-    Signed-off-by: Dr. Tilmann Bubeck <tilmann@bubecks.de>
+-
+ commit 0b120e37be8ed44188b3497bf02db48e9cf638bc
+ Author: Dr. Tilmann Bubeck <tilmann@bubecks.de>
+ Date:   Wed Apr 2 20:02:00 2014 +0200
+--- xauth-1.1.2.orig/autogen.sh
++++ xauth-1.1.2/autogen.sh
+@@ -0,0 +1,17 @@
++#! /bin/sh
++
++srcdir=`dirname "$0"`
++test -z "$srcdir" && srcdir=.
++
++ORIGDIR=`pwd`
++cd "$srcdir"
++
++autoreconf -v --install || exit 1
++cd "$ORIGDIR" || exit $?
++
++git config --local --get format.subjectPrefix >/dev/null 2>&1 ||
++    git config --local format.subjectPrefix "PATCH app/xauth"
++
++if test -z "$NOCONFIGURE"; then
++    exec "$srcdir"/configure "$@"
++fi
+--- xauth-1.1.2.orig/compile
++++ xauth-1.1.2/compile
+@@ -1,9 +1,9 @@
+ #! /bin/sh
+-# Wrapper for compilers which do not understand '-c -o'.
++# Wrapper for compilers which do not understand `-c -o'.
+ 
+-scriptversion=2018-03-07.03; # UTC
++scriptversion=2005-05-14.22
+ 
+-# Copyright (C) 1999-2021 Free Software Foundation, Inc.
++# Copyright (C) 1999, 2000, 2003, 2004, 2005 Free Software Foundation, Inc.
+ # Written by Tom Tromey <tromey@cygnus.com>.
+ #
+ # This program is free software; you can redistribute it and/or modify
+@@ -17,7 +17,8 @@
+ # GNU General Public License for more details.
+ #
+ # You should have received a copy of the GNU General Public License
+-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
++# along with this program; if not, write to the Free Software
++# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ 
+ # As a special exception to the GNU General Public License, if you
+ # distribute this file as part of a program that contains a
+@@ -28,224 +29,21 @@
+ # bugs to <bug-automake@gnu.org> or send patches to
+ # <automake-patches@gnu.org>.
+ 
+-nl='
+-'
+-
+-# We need space, tab and new line, in precisely that order.  Quoting is
+-# there to prevent tools from complaining about whitespace usage.
+-IFS=" ""	$nl"
+-
+-file_conv=
+-
+-# func_file_conv build_file lazy
+-# Convert a $build file to $host form and store it in $file
+-# Currently only supports Windows hosts. If the determined conversion
+-# type is listed in (the comma separated) LAZY, no conversion will
+-# take place.
+-func_file_conv ()
+-{
+-  file=$1
+-  case $file in
+-    / | /[!/]*) # absolute file, and not a UNC file
+-      if test -z "$file_conv"; then
+-	# lazily determine how to convert abs files
+-	case `uname -s` in
+-	  MINGW*)
+-	    file_conv=mingw
+-	    ;;
+-	  CYGWIN* | MSYS*)
+-	    file_conv=cygwin
+-	    ;;
+-	  *)
+-	    file_conv=wine
+-	    ;;
+-	esac
+-      fi
+-      case $file_conv/,$2, in
+-	*,$file_conv,*)
+-	  ;;
+-	mingw/*)
+-	  file=`cmd //C echo "$file " | sed -e 's/"\(.*\) " *$/\1/'`
+-	  ;;
+-	cygwin/* | msys/*)
+-	  file=`cygpath -m "$file" || echo "$file"`
+-	  ;;
+-	wine/*)
+-	  file=`winepath -w "$file" || echo "$file"`
+-	  ;;
+-      esac
+-      ;;
+-  esac
+-}
+-
+-# func_cl_dashL linkdir
+-# Make cl look for libraries in LINKDIR
+-func_cl_dashL ()
+-{
+-  func_file_conv "$1"
+-  if test -z "$lib_path"; then
+-    lib_path=$file
+-  else
+-    lib_path="$lib_path;$file"
+-  fi
+-  linker_opts="$linker_opts -LIBPATH:$file"
+-}
+-
+-# func_cl_dashl library
+-# Do a library search-path lookup for cl
+-func_cl_dashl ()
+-{
+-  lib=$1
+-  found=no
+-  save_IFS=$IFS
+-  IFS=';'
+-  for dir in $lib_path $LIB
+-  do
+-    IFS=$save_IFS
+-    if $shared && test -f "$dir/$lib.dll.lib"; then
+-      found=yes
+-      lib=$dir/$lib.dll.lib
+-      break
+-    fi
+-    if test -f "$dir/$lib.lib"; then
+-      found=yes
+-      lib=$dir/$lib.lib
+-      break
+-    fi
+-    if test -f "$dir/lib$lib.a"; then
+-      found=yes
+-      lib=$dir/lib$lib.a
+-      break
+-    fi
+-  done
+-  IFS=$save_IFS
+-
+-  if test "$found" != yes; then
+-    lib=$lib.lib
+-  fi
+-}
+-
+-# func_cl_wrapper cl arg...
+-# Adjust compile command to suit cl
+-func_cl_wrapper ()
+-{
+-  # Assume a capable shell
+-  lib_path=
+-  shared=:
+-  linker_opts=
+-  for arg
+-  do
+-    if test -n "$eat"; then
+-      eat=
+-    else
+-      case $1 in
+-	-o)
+-	  # configure might choose to run compile as 'compile cc -o foo foo.c'.
+-	  eat=1
+-	  case $2 in
+-	    *.o | *.[oO][bB][jJ])
+-	      func_file_conv "$2"
+-	      set x "$@" -Fo"$file"
+-	      shift
+-	      ;;
+-	    *)
+-	      func_file_conv "$2"
+-	      set x "$@" -Fe"$file"
+-	      shift
+-	      ;;
+-	  esac
+-	  ;;
+-	-I)
+-	  eat=1
+-	  func_file_conv "$2" mingw
+-	  set x "$@" -I"$file"
+-	  shift
+-	  ;;
+-	-I*)
+-	  func_file_conv "${1#-I}" mingw
+-	  set x "$@" -I"$file"
+-	  shift
+-	  ;;
+-	-l)
+-	  eat=1
+-	  func_cl_dashl "$2"
+-	  set x "$@" "$lib"
+-	  shift
+-	  ;;
+-	-l*)
+-	  func_cl_dashl "${1#-l}"
+-	  set x "$@" "$lib"
+-	  shift
+-	  ;;
+-	-L)
+-	  eat=1
+-	  func_cl_dashL "$2"
+-	  ;;
+-	-L*)
+-	  func_cl_dashL "${1#-L}"
+-	  ;;
+-	-static)
+-	  shared=false
+-	  ;;
+-	-Wl,*)
+-	  arg=${1#-Wl,}
+-	  save_ifs="$IFS"; IFS=','
+-	  for flag in $arg; do
+-	    IFS="$save_ifs"
+-	    linker_opts="$linker_opts $flag"
+-	  done
+-	  IFS="$save_ifs"
+-	  ;;
+-	-Xlinker)
+-	  eat=1
+-	  linker_opts="$linker_opts $2"
+-	  ;;
+-	-*)
+-	  set x "$@" "$1"
+-	  shift
+-	  ;;
+-	*.cc | *.CC | *.cxx | *.CXX | *.[cC]++)
+-	  func_file_conv "$1"
+-	  set x "$@" -Tp"$file"
+-	  shift
+-	  ;;
+-	*.c | *.cpp | *.CPP | *.lib | *.LIB | *.Lib | *.OBJ | *.obj | *.[oO])
+-	  func_file_conv "$1" mingw
+-	  set x "$@" "$file"
+-	  shift
+-	  ;;
+-	*)
+-	  set x "$@" "$1"
+-	  shift
+-	  ;;
+-      esac
+-    fi
+-    shift
+-  done
+-  if test -n "$linker_opts"; then
+-    linker_opts="-link$linker_opts"
+-  fi
+-  exec "$@" $linker_opts
+-  exit 1
+-}
+-
+-eat=
+-
+ case $1 in
+   '')
+-     echo "$0: No command.  Try '$0 --help' for more information." 1>&2
++     echo "$0: No command.  Try \`$0 --help' for more information." 1>&2
+      exit 1;
+      ;;
+   -h | --h*)
+     cat <<\EOF
+ Usage: compile [--help] [--version] PROGRAM [ARGS]
+ 
+-Wrapper for compilers which do not understand '-c -o'.
+-Remove '-o dest.o' from ARGS, run PROGRAM with the remaining
++Wrapper for compilers which do not understand `-c -o'.
++Remove `-o dest.o' from ARGS, run PROGRAM with the remaining
+ arguments, and rename the output as expected.
+ 
+ If you are trying to build a whole package this is not the
+-right script to run: please start by reading the file 'INSTALL'.
++right script to run: please start by reading the file `INSTALL'.
+ 
+ Report bugs to <bug-automake@gnu.org>.
+ EOF
+@@ -255,14 +53,11 @@
+     echo "compile $scriptversion"
+     exit $?
+     ;;
+-  cl | *[/\\]cl | cl.exe | *[/\\]cl.exe | \
+-  icl | *[/\\]icl | icl.exe | *[/\\]icl.exe )
+-    func_cl_wrapper "$@"      # Doesn't return...
+-    ;;
+ esac
+ 
+ ofile=
+ cfile=
++eat=
+ 
+ for arg
+ do
+@@ -271,8 +66,8 @@
+   else
+     case $1 in
+       -o)
+-	# configure might choose to run compile as 'compile cc -o foo foo.c'.
+-	# So we strip '-o arg' only if arg is an object.
++	# configure might choose to run compile as `compile cc -o foo foo.c'.
++	# So we strip `-o arg' only if arg is an object.
+ 	eat=1
+ 	case $2 in
+ 	  *.o | *.obj)
+@@ -299,22 +94,22 @@
+ done
+ 
+ if test -z "$ofile" || test -z "$cfile"; then
+-  # If no '-o' option was seen then we might have been invoked from a
++  # If no `-o' option was seen then we might have been invoked from a
+   # pattern rule where we don't need one.  That is ok -- this is a
+   # normal compilation that the losing compiler can handle.  If no
+-  # '.c' file was seen then we are probably linking.  That is also
++  # `.c' file was seen then we are probably linking.  That is also
+   # ok.
+   exec "$@"
+ fi
+ 
+ # Name of file we expect compiler to create.
+-cofile=`echo "$cfile" | sed 's|^.*[\\/]||; s|^[a-zA-Z]:||; s/\.c$/.o/'`
++cofile=`echo "$cfile" | sed -e 's|^.*/||' -e 's/\.c$/.o/'`
+ 
+ # Create the lock directory.
+-# Note: use '[/\\:.-]' here to ensure that we don't use the same name
++# Note: use `[/.-]' here to ensure that we don't use the same name
+ # that we are using for the .o file.  Also, base the name on the expected
+ # object file name, since that is what matters with a parallel build.
+-lockdir=`echo "$cofile" | sed -e 's|[/\\:.-]|_|g'`.d
++lockdir=`echo "$cofile" | sed -e 's|[/.-]|_|g'`.d
+ while true; do
+   if mkdir "$lockdir" >/dev/null 2>&1; then
+     break
+@@ -329,9 +124,9 @@
+ ret=$?
+ 
+ if test -f "$cofile"; then
+-  test "$cofile" = "$ofile" || mv "$cofile" "$ofile"
++  mv "$cofile" "$ofile"
+ elif test -f "${cofile}bj"; then
+-  test "${cofile}bj" = "$ofile" || mv "${cofile}bj" "$ofile"
++  mv "${cofile}bj" "$ofile"
+ fi
+ 
+ rmdir "$lockdir"
+@@ -340,9 +135,8 @@
+ # Local Variables:
+ # mode: shell-script
+ # sh-indentation: 2
+-# eval: (add-hook 'before-save-hook 'time-stamp)
++# eval: (add-hook 'write-file-hooks 'time-stamp)
+ # time-stamp-start: "scriptversion="
+ # time-stamp-format: "%:y-%02m-%02d.%02H"
+-# time-stamp-time-zone: "UTC0"
+-# time-stamp-end: "; # UTC"
++# time-stamp-end: "$"
+ # End:
+--- xauth-1.1.2.orig/debian/README.source
++++ xauth-1.1.2/debian/README.source
+@@ -0,0 +1,49 @@
++------------------------------------------------------
++Quick Guide To Patching This Package For The Impatient
++------------------------------------------------------
++
++1. Make sure you have quilt installed
++2. Unpack the package as usual with "dpkg-source -x"
++3. Run the "patch" target in debian/rules
++4. Create a new patch with "quilt new" (see quilt(1))
++5. Edit all the files you want to include in the patch with "quilt edit"
++   (see quilt(1)).
++6. Write the patch with "quilt refresh" (see quilt(1))
++7. Run the "clean" target in debian/rules
++
++Alternatively, instead of using quilt directly, you can drop the patch in to
++debian/patches and add the name of the patch to debian/patches/series.
++
++------------------------------------
++Guide To The X Strike Force Packages
++------------------------------------
++
++The X Strike Force team maintains X packages in git repositories on
++git.debian.org in the pkg-xorg subdirectory. Most upstream packages
++are actually maintained in git repositories as well, so they often
++just need to be pulled into git.debian.org in a "upstream-*" branch.
++Otherwise, the upstream sources are manually installed in the Debian
++git repository.
++
++The .orig.tar.gz upstream source file could be generated this
++"upstream-*" branch in the Debian git repository but it is actually
++copied from upstream tarballs directly.
++
++Due to X.org being highly modular, packaging all X.org applications
++as their own independent packages would have created too many Debian
++packages. For this reason, some X.org applications have been grouped
++into larger packages: xutils, xutils-dev, x11-apps, x11-session-utils,
++x11-utils, x11-xfs-utils, x11-xkb-utils, x11-xserver-utils.
++Most packages, including the X.org server itself and all libraries
++and drivers are, however maintained independently.
++
++The Debian packaging is added by creating the "debian-*" git branch
++which contains the aforementioned "upstream-*" branch plus the debian/
++repository files.
++When a patch has to be applied to the Debian package, two solutions
++are involved:
++* If the patch is available in one of the upstream branches, it
++  may be git'cherry-picked into the Debian repository. In this
++  case, it appears directly in the .diff.gz.
++* Otherwise, the patch is added to debian/patches/ which is managed
++  with quilt as documented in /usr/share/doc/quilt/README.source.
+--- xauth-1.1.2.orig/debian/changelog
++++ xauth-1.1.2/debian/changelog
+@@ -0,0 +1,433 @@
++xauth (1:1.1.2-1.1) unstable; urgency=medium
++
++  * Non-maintainer upload.
++  * Drop unneeded cmdtest from Build-Depends. (Closes: #1087700)
++
++ -- Chris Hofstaedtler <zeha@debian.org>  Mon, 02 Dec 2024 13:00:26 +0100
++
++xauth (1:1.1.2-1) unstable; urgency=medium
++
++  [ Debian Janitor ]
++  * Remove constraints unnecessary since buster (oldstable):
++    + Build-Depends: Drop versioned constraint on libx11-dev, libxext-dev,
++      libxmuu-dev and xutils-dev.
++
++  [ Marius Gripsgard ]
++  * New upstream release v1.1.2
++
++ -- Marius Gripsgard <marius@ubports.com>  Tue, 24 Jan 2023 17:29:22 +0100
++
++xauth (1:1.1.1-1) unstable; urgency=medium
++
++  * New upstream release.
++  * control, rules: Bump debhelper-compat to 13.
++
++ -- Timo Aaltonen <tjaalton@debian.org>  Fri, 01 Apr 2022 10:05:54 +0300
++
++xauth (1:1.1-1) unstable; urgency=medium
++
++  * New upstream release.
++  * control, rules: Migrate to debhelper-compat, bump to 12.
++  * control: Update Vcs urls.
++  * copyright, watch: Use https urls.
++  * source: Use format 1.0.
++
++ -- Timo Aaltonen <tjaalton@debian.org>  Tue, 05 Jan 2021 12:27:43 +0200
++
++xauth (1:1.0.10-1) unstable; urgency=medium
++
++  [ Colin Watson ]
++  * Mark xauth Multi-Arch: foreign. (Closes: #695087)
++
++  [ Helmut Grohne ]
++  * Cross satisfiable Build-Depends: annotate cmdtest with <!nocheck>
++    (Closes: #840085).
++
++  [ Emilio Pozuelo Monfort ]
++  * New upstream release. Closes: #880487.
++    - Doesn't empty Xauthority file when there's no space left on the
++      filesystem. Closes: #596630, #684723.
++  * Bump to debhelper compat 10.
++    - Rely on that to get autoreconf and verbose builds.
++  * Bump Standards-Version to 4.1.1; no changes needed.
++
++ -- Emilio Pozuelo Monfort <pochu@debian.org>  Tue, 21 Nov 2017 20:47:37 +0100
++
++xauth (1:1.0.9-1) unstable; urgency=medium
++
++  * New upstream release.
++  * Remove Cyril from Uploaders.
++  * Disable silent build rules and silent tests.
++  * Add build-dep on cmdtest for make check.
++
++ -- Julien Cristau <jcristau@debian.org>  Sun, 13 Jul 2014 10:34:06 +0200
++
++xauth (1:1.0.7-1) unstable; urgency=low
++
++  * New upstream release.
++
++ -- Julien Cristau <jcristau@debian.org>  Tue, 01 May 2012 10:15:53 +0200
++
++xauth (1:1.0.6-1) unstable; urgency=low
++
++  * New upstream release.
++  * Update Uploaders list. Thanks, David & Brice!
++  * Wrap Depends.
++  * Remove long-obsolete Replaces.
++  * Switch to dh:
++    - Use dh-autoreconf and quilt sequences.
++    - Bump dh build-dep and compat.
++    - Rewrite debian/rules.
++    - Add a placeholder for quilt.
++  * Get rid of xsfbs accordingly.
++  * Bump Standards-Version (no changes needed).
++
++ -- Cyril Brulebois <kibi@debian.org>  Sat, 04 Jun 2011 01:02:46 +0200
++
++xauth (1:1.0.5-1) unstable; urgency=low
++
++  [ Julien Cristau ]
++  * Remove myself from Uploaders.
++  * Rename the build directory to not include DEB_BUILD_GNU_TYPE for no
++    good reason.  Thanks, Colin Watson!
++
++  [ Cyril Brulebois ]
++  * New upstream release.
++  * Bump xutils-dev build-dep for new macros.
++  * Fix dh_makeshlibs, dh_shlibdeps, dh_installdeb order.
++  * Add myself to Uploaders.
++
++ -- Cyril Brulebois <kibi@debian.org>  Wed, 03 Nov 2010 10:07:13 +0100
++
++xauth (1:1.0.4-1) unstable; urgency=low
++
++  [ Timo Aaltonen ]
++  * New upstream release.
++  * Run autoreconf on build. Add build-deps on automake and xutils-dev.
++  * Parse space-separated DEB_BUILD_OPTIONS, and handle parallel=N.
++  * Bump Standards-Version to 3.8.3.
++  * Drop pre-dependency on x11-common. This was needed for upgrades
++    from sarge.
++
++ -- Brice Goglin <bgoglin@debian.org>  Sun, 06 Dec 2009 21:31:13 +0100
++
++xauth (1:1.0.3-2) unstable; urgency=low
++
++  [ Julien Cristau ]
++  * Drop useless dependency on cpp (closes: #479655).
++    Thanks, Jon DeVree <jadevree@mtu.edu>!
++  * Drop Suggests on pdksh and mention of the xauth_switch_to_sun-des-1
++    script, which isn't shipped in this package.
++
++ -- Brice Goglin <bgoglin@debian.org>  Fri, 13 Jun 2008 19:08:04 +0200
++
++xauth (1:1.0.3-1) unstable; urgency=low
++
++  * New upstream release.
++  * Bump Standards-Version to 3.7.3
++  * Drop XS- prefix from Vcs debian/control fields
++  * Drop debian revisions from Build-Depends to please lintian
++
++ -- Julien Cristau <jcristau@debian.org>  Wed, 19 Mar 2008 00:03:01 +0100
++
++xauth (1:1.0.2-2) unstable; urgency=low
++
++  * Add upstream URL to debian/copyright.
++  * Add myself to Uploaders, and remove Branden with his permission.
++
++ -- Brice Goglin <bgoglin@debian.org>  Fri, 14 Sep 2007 22:58:48 +0200
++
++xauth (1:1.0.2-1) experimental; urgency=low
++
++  [ Timo Aaltonen ]
++  * Split from xbase-clients, new versioning using the module version.
++  * debian/control:
++    - Rename Package and Source.
++    - Remove unnecessary Build-Deps.
++    - Modify description.
++    - Replaces: xbase-clients (<= 1:7.2.ds2-3) to make upgrades smoother.
++  * debian/copyright: Leave only copyright notices that relate to
++    this package.
++  * debian/xauth.install, rules: Edit to reflect new packaging.
++  * debian/xauth.dirs: Remove.
++  * debian/local/: Remove.
++  * debian/patches: Remove.
++
++  [ Julien Cristau ]
++  * Add watch file.
++  * Install the upstream changelog.
++
++ -- Julien Cristau <jcristau@debian.org>  Wed, 30 May 2007 20:45:22 +0200
++
++xbase-clients (1:7.2.ds2-3) unstable; urgency=low
++
++  * Add patch to xsm's configure.ac to not override the user-provided RSH
++    variable, so we can drop the openssh build-dep (closes: #362787).
++
++ -- Julien Cristau <jcristau@debian.org>  Wed, 09 May 2007 16:26:06 +0200
++
++xbase-clients (1:7.2.ds2-2) unstable; urgency=low
++
++  [ Julien Cristau ]
++  * Autoreconf with patches applied.
++  * Add build-dep on libxinerama-dev, so xdpyinfo is built with support for
++    the xinerama extension.
++  * Add patch 17_xmodmap_manpage.diff to make xmodmap(1) refer to
++    /usr/share/X11/XKeysymDB instead of /usr/lib/X11/XKeysymDB
++    (closes: #394077).  Thanks, Joachim Breitner!
++  * Document each app's build-dependencies in debian/control for reference.
++  * Update long description: XKB configuration data is in xkb-data, bitmap
++    images in xbitmaps.
++  * Add XS-Vcs-* in debian/control.
++  * Upload to unstable.
++
++  [ Brice Goglin ]
++  * Restore Depends: on cpp (got lost during modularization)
++    since xrdb needs it to process .Xdefaults.
++    Thanks Marcus C. Gottwald (closes: #413298).
++  * Remove mention of xf86cfg in package description.
++    Thanks Daniel Leidert (really closes: #362066).
++
++ -- Julien Cristau <jcristau@debian.org>  Fri, 20 Apr 2007 22:00:14 +0200
++
++xbase-clients (1:7.2.ds2-1) experimental; urgency=low
++
++  * Update to xrandr 1.2.0.
++  * Build-dep on libxrandr 1.2.0.
++  * New patch to install beforelight's app-defaults file correctly.
++
++ -- Julien Cristau <jcristau@debian.org>  Mon, 19 Feb 2007 10:46:11 +0100
++
++xbase-clients (1:7.2.ds1-2) experimental; urgency=low
++
++  * Build-dep on libpng12-dev instead of libpng-dev.  xcursorgen requires
++    libpng12.pc, which is not available in libpng14-dev, despite it providing
++    libpng-dev and libpng12-dev, *sigh*.
++
++ -- Julien Cristau <jcristau@debian.org>  Mon, 12 Feb 2007 05:35:18 +0100
++
++xbase-clients (1:7.2.ds1-1) experimental; urgency=low
++
++  * Patch setxkbmap(1) to refer to the correct location for xkb files, thanks
++    to Celejar <celejar@gmail.com> for noticing.
++  * Update to appres 1.0.1.
++  * Update to beforelight 1.0.2.
++  * Update to bitmap 1.0.3.
++  * Update to editres 1.0.3.
++  * Update to setxkbmap 1.0.3.
++  * Update to xauth 1.0.2.
++  * Update to xdbedizzy 1.0.2.
++    + patch 16_xdbedizzy_fix_crash.diff dropped, included upstream.
++    + patch pkgconfig_naughtiness dropped, now unnecessary.
++  * Update to xedit 1.0.2.
++  * Update to xev 1.0.2.
++  * Update to xf86dga 1.0.2.
++    + relevant part dropped from 14_SECURITY_setuid.diff.
++  * Update to xfontsel 1.0.2.
++  * Update to xinit 1.0.3.
++    + relevant part dropped from 14_SECURITY_setuid.diff.
++  * Update to xkbcomp 1.0.3.
++  * Update to xlsfonts 1.0.2.
++  * Update to xmodmap 1.0.2.
++  * Update to xprop 1.0.2.
++  * Update to xrdb 1.0.3.
++  * Update to xsetpointer 1.0.1.
++    + Add build-dep on x11proto-input-dev >= 1.4.
++  * Update to xtrap 1.0.2.
++  * Modify patch 08_xlsfonts_do_not_spew_usage_on_connection_error.diff to
++    apply to xprop, xwd and xwininfo as well, since they all use a copy of
++    dsimple.c.
++  * Change my email address in debian/control.
++
++ -- Julien Cristau <jcristau@debian.org>  Sun, 11 Feb 2007 15:42:54 +0100
++
++xbase-clients (1:7.1.ds1-2) unstable; urgency=low
++
++  * Add patch by Eugene Konev to fix xdbedizzy crash (closes: #365291).
++
++ -- Julien Cristau <julien.cristau@ens-lyon.org>  Fri, 12 Jan 2007 17:54:07 +0100
++
++xbase-clients (1:7.1.ds1-1) unstable; urgency=low
++
++  * Add patch by Eugene Konev to fix xmore crash (closes: #365292).
++  * Remove version string from subdirectory names, thus new tarball, and
++    update patches to match.
++  * Define MANCONF when configuring xman, to make it look for man pages in the
++    right path instead of in /usr/man (closes: 404757).
++  * Remove Fabio from Uploaders with his permission, and add myself.
++
++ -- Julien Cristau <julien.cristau@ens-lyon.org>  Mon,  8 Jan 2007 00:50:31 +0100
++
++xbase-clients (1:7.1.ds-3) unstable; urgency=low
++
++  [ Branden Robinson ]
++  * Patch xprop to stop segfaulting when deleted atoms are requested.
++    Committed upstream as git 47514347db811d002e7f3ca05d390565bc3ee5e5.
++    (Closes: #197526)
++
++  [ Denis Barbier ]
++  * Acknowledge NMU, thanks dann frazier. (closes: #363198)
++  * The rsh program is required to build xsm.  Replace Build-Depends: ssh | rsh
++    by Build-Depends: openssh-client | ssh
++  * Fix debian/rules so that xkbcomp look for XKB files in /usr/share/X11/xkb.
++    Thanks Steinar H. Gunderson  (closes: #381884)
++    All XKB related programs share now the same build system, so factor
++    commands in debian/rules.
++
++ -- Denis Barbier <barbier@debian.org>  Sat, 12 Aug 2006 15:08:47 +0200
++
++xbase-clients (1:7.1.ds-2.1) unstable; urgency=low
++
++  * Non-maintainer upload.
++  * Fix implicit pointer conversion in xconsole.c (closes: #363198)
++    (Was fixed in 1:7.1.ds-1.1 NMU, but silently dropped in 1:7.1.ds-2 MU)
++
++ -- dann frazier <dannf@debian.org>  Sat, 29 Jul 2006 13:59:40 -0600
++
++xbase-clients (1:7.1.ds-2) unstable; urgency=high
++
++  * Security update. Fix for setuid privledge escalation vulernabilities in
++    xinit, xf86dga, and xload. See
++    http://lists.freedesktop.org/archives/xorg/2006-June/016146.html for the
++    full advisory. This package applies the patches for the 7.0 release of
++    those apps.
++
++ -- David Nusinow <dnusinow@debian.org>  Fri, 30 Jun 2006 01:10:17 -0400
++
++xbase-clients (1:7.1.ds-1) unstable; urgency=low
++
++  [ Steve Langasek ]
++  * Drop broken build-dependency on xprint-utils, no thanks to anonymous
++    someone.
++  * Pass --disable-xprint to invocations of configure instead, which is
++    the real fix for the symptoms described:  we want the xbase-clients
++    package to consistently build *without* xprint support, instead of
++    autodetecting (and possibly failing) based on whether libxp-dev is
++    installed.  Properly closes: #366275.
++  * Also call PKG_PROG_PKG_CONFIG explicitly from xdbebizzy's
++    configure.ac, since otherwise --disable-xprint leaves us without
++    PKG_CONFIG defined.
++
++  [ David Nusinow ]
++  * This update should include all the apps released with X11R7.1. Version the
++    package to match this.
++  * Update bitmap to 1.0.2
++  * Update xcursorgen to 1.0.1
++  * Autoreconf everything in order to ensure that manpages have the proper
++    section
++  * Update 11_xkb_documentation_updates.diff to not use __manpagesuffix__
++    imakeism
++  * Bump standards version to 3.7.2.0
++  * Bump debhelper compat to 5
++
++ -- David Nusinow <dnusinow@debian.org>  Sun, 11 Jun 2006 21:51:54 -0400
++
++xbase-clients (1:7.0.1-2) unstable; urgency=low
++
++  * Add xprint-utils to build-depends. Thanks anonymous someone.
++    (closes: #366275)
++
++ -- David Nusinow <dnusinow@debian.org>  Sun, 14 May 2006 22:57:13 -0400
++
++xbase-clients (1:7.0.1-1) unstable; urgency=low
++
++  * Move xserverrc back to this package from xserver-xorg-core. Thanks
++    Benjamin Mesing. (closes: #365022)
++  * Update smproxy to version 1.0.2
++  * Update xhost to version 1.0.1
++  * Update fstobdf to version 1.0.2
++  * Update xdriinfo to version 1.0.1
++  * Update xinit to version 1.0.2
++    * Remove obsolete patch 03_startx_dummy.diff
++  * Update xkbevd to version 1.0.2
++  * Update xman to version 1.0.2
++  * Update xrefresh to version 1.0.2
++  * Update xwininfo to version 1.0.2
++  * Update xclock to version 1.0.2
++  * Update xconsole to version 1.0.2
++  * Update xkbcomp to version 1.0.2
++  * Update xmodmap to version 1.0.1
++  * Update xrandr to version 1.0.2
++  * Update xrdb to version 1.0.2
++  * Update xset to version 1.0.2
++
++ -- David Nusinow <dnusinow@debian.org>  Tue,  2 May 2006 22:58:57 -0400
++
++xbase-clients (1:7.0.0-5) unstable; urgency=low
++
++  * Patch startx so that it points to /etc/X11/xinit for xserverrc and
++    xinitrc. Thanks Vasilis Vasaitis and Bastian Kleineidam.
++  * Move xserverrc back to /etc/X11/xinit
++  * Use --list-missing with dh_install
++
++ -- David Nusinow <dnusinow@debian.org>  Tue, 25 Apr 2006 21:37:22 -0400
++
++xbase-clients (1:7.0.0-4) unstable; urgency=low
++
++  * Add quilt to build-depends.
++
++ -- David Nusinow <dnusinow@debian.org>  Sat, 15 Apr 2006 19:49:02 -0400
++
++xbase-clients (1:7.0.0-3) unstable; urgency=low
++
++  * Remove mention of xorgconfig and xorgcfg in package description. Thanks
++    Daniel Leidert. (closes: #362066)
++  * Add 12_startx_paths.diff to use X11R7 paths for startx and xinit. Thanks
++    Arjan Opmeer. (closes: #357713)
++  * Add libxi-dev to build-depends
++  * Make xbase-clients explicitly pre-depend on x11-common >= 1:7.0.0, rather
++    than implicitly. Thanks Vasilis Vasaitis. (closes: #357713)
++
++ -- David Nusinow <dnusinow@debian.org>  Thu, 13 Apr 2006 22:39:46 -0400
++
++xbase-clients (1:7.0.0-2) unstable; urgency=low
++
++  * Upload to unstable
++  * Add build-depends on libgl1-mesa-dev, versioned build-depneds on
++    libdrender-dev, and re-version build-depend on libxft-dev. Thanks Frank
++    Lichtenheld. (closes: #361821)
++
++ -- David Nusinow <dnusinow@debian.org>  Mon, 10 Apr 2006 19:49:23 -0400
++
++xbase-clients (1:7.0.0-1) experimental; urgency=low
++
++  [ Denis Barbier ]
++  * Set XKB base path to /usr/share/X11/xkb.
++
++  [ David Nusinow ]
++  * Update to x11perf 1.4.1 and setxkbmap 1.0.2 upstream releases
++  * Bump version number to match upstream's current katamari release
++
++ -- David Nusinow <dnusinow@debian.org>  Thu, 16 Mar 2006 23:06:15 -0500
++
++xbase-clients (1:1.0.1-2) experimental; urgency=low
++
++  * Add an empty /var/lib/xkb directory so that the server loads the correct
++    keymaps. Thanks Silvestre Zabala, Eugene Konev, and Daniel Stone.
++    (closes: #354130)
++  * Port patches from trunk
++    + general/014_startx_hostname_fix.diff
++    + general/015_startx_dummy_fix.diff
++    + general/073_xev_flush_standard_output.diff
++    + general/025c_bitmap_manpage_typo.diff
++    + general/025d_xedit_manpage_typos.diff
++    + general/025e_xvinfo_manpage_typo.diff
++    + general/099r_xlsfonts_do_not_spew_usage_on_connection_error.diff
++    + debian/902_debian_startx_manpage.diff
++    + debian/916_add_XKBPATH_env_variable.diff
++    + general/051_xkb_documentation_updates.diff
++  * Suggest mesa-utils, where glxinfo and glxgears have been moved.
++    Thanks Mike Hommey. (closes: #354246)
++
++ -- David Nusinow <dnusinow@debian.org>  Sat,  4 Mar 2006 18:59:20 -0500
++
++xbase-clients (1:1.0.1-1) experimental; urgency=low
++
++  [ David Nusinow ]
++  * First modular upload to Debian
++
++  [ Eugene Konev ]
++  * Divide packages that we process in debian/rules by category so we can pass
++    the xkb packages the proper configure flags
++
++ -- David Nusinow <dnusinow@debian.org>  Sun, 19 Feb 2006 19:46:46 -0500
+--- xauth-1.1.2.orig/debian/control
++++ xauth-1.1.2/debian/control
+@@ -0,0 +1,26 @@
++Source: xauth
++Section: x11
++Priority: optional
++Maintainer: Debian X Strike Force <debian-x@lists.debian.org>
++Build-Depends:
++ debhelper-compat (= 13),
++ quilt,
++ pkg-config,
++ libx11-dev,
++ libxext-dev,
++ libxmuu-dev,
++ xutils-dev,
++Standards-Version: 4.1.1
++Vcs-Git: https://salsa.debian.org/xorg-team/app/xauth.git
++Vcs-Browser: https://salsa.debian.org/xorg-team/app/xauth
++
++Package: xauth
++Architecture: any
++Multi-Arch: foreign
++Depends:
++ ${shlibs:Depends},
++ ${misc:Depends},
++Description: X authentication utility
++ xauth is a small utility to read and manipulate Xauthority files, which
++ are used by servers and clients alike to control authentication and access
++ to X sessions.
+--- xauth-1.1.2.orig/debian/copyright
++++ xauth-1.1.2/debian/copyright
+@@ -0,0 +1,27 @@
++This package was downloaded from
++https://xorg.freedesktop.org/releases/individual/app/
++
++Copyright 1989,1998  The Open Group
++
++Permission to use, copy, modify, distribute, and sell this software and its
++documentation for any purpose is hereby granted without fee, provided that
++the above copyright notice appear in all copies and that both that
++copyright notice and this permission notice appear in supporting
++documentation.
++
++The above copyright notice and this permission notice shall be included in
++all copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
++OPEN GROUP BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
++AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
++CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
++
++Except as contained in this notice, the name of The Open Group shall not be
++used in advertising or otherwise to promote the sale, use or other dealings
++in this Software without prior written authorization from The Open Group.
++ * *
++ * Author:  Jim Fulton, MIT X Consortium
++ */
+--- xauth-1.1.2.orig/debian/patches/series
++++ xauth-1.1.2/debian/patches/series
+@@ -0,0 +1 @@
++# placeholder
+--- xauth-1.1.2.orig/debian/rules
++++ xauth-1.1.2/debian/rules
+@@ -0,0 +1,11 @@
++#!/usr/bin/make -f
++
++# Install in debian/tmp to retain control through dh_install:
++override_dh_auto_install:
++	dh_auto_install --destdir=debian/tmp
++
++override_dh_auto_test:
++	dh_auto_test -- VERBOSE=1
++
++%:
++	dh $@ --with quilt --builddirectory=build/
+--- xauth-1.1.2.orig/debian/source/format
++++ xauth-1.1.2/debian/source/format
+@@ -0,0 +1 @@
++1.0
+--- xauth-1.1.2.orig/debian/watch
++++ xauth-1.1.2/debian/watch
+@@ -0,0 +1,3 @@
++#git=git://anongit.freedesktop.org/xorg/app/xauth
++version=3
++https://xorg.freedesktop.org/releases/individual/app/xauth-([\d\.]+)\.tar\.gz
+--- xauth-1.1.2.orig/debian/xauth.install
++++ xauth-1.1.2/debian/xauth.install
+@@ -0,0 +1,2 @@
++usr/bin/*
++usr/share/man/man1/*
