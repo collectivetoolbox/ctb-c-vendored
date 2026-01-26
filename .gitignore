@@ -1,5 +1,6 @@
 ctb-vendored
 target
+vendor.tar
 x11/tmp
 icecat-bin.tar.gz
 

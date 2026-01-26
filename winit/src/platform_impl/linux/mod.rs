@@ -251,7 +251,7 @@ impl MonitorHandle {
     }
 
     #[inline]
-    pub fn video_modes(&self) -> Box<dyn Iterator<Item = VideoModeHandle>> {
+    pub fn video_modes(&self) -> Box<dyn Iterator<Item = VideoModeHandle> + '_> {
         x11_or_wayland!(match self; MonitorHandle(m) => Box::new(m.video_modes()))
     }
 }
@@ -560,11 +560,11 @@ impl Window {
     pub fn available_monitors(&self) -> VecDeque<MonitorHandle> {
         match self {
             #[cfg(x11_platform)]
-            Window::X(ref window) => {
+            Window::X(window) => {
                 window.available_monitors().into_iter().map(MonitorHandle::X).collect()
             },
             #[cfg(wayland_platform)]
-            Window::Wayland(ref window) => {
+            Window::Wayland(window) => {
                 window.available_monitors().into_iter().map(MonitorHandle::Wayland).collect()
             },
         }

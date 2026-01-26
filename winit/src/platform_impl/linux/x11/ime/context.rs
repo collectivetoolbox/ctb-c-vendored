@@ -1,5 +1,4 @@
 use std::ffi::CStr;
-use std::os::raw::c_char;
 use std::os::raw::c_short;
 use std::sync::Arc;
 use std::{mem, ptr};
@@ -243,7 +242,7 @@ impl ImeContext {
     }
 
     unsafe fn create_none_ic(
-        xconn: &Arc<XConnection>,
+        _xconn: &Arc<XConnection>,
         im: ffi::XIM,
         style: XIMStyle,
         window: ffi::Window,
@@ -303,7 +302,7 @@ impl ImeContext {
     }
 
     unsafe fn create_nothing_ic(
-        xconn: &Arc<XConnection>,
+        _xconn: &Arc<XConnection>,
         im: ffi::XIM,
         style: XIMStyle,
         window: ffi::Window,

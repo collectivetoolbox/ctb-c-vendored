@@ -105,7 +105,7 @@ pub enum xkb_compose_feed_result {
 }
 
 #[link(name = "xkbcommon")]
-extern "C" {
+unsafe extern "C" {
     pub fn xkb_keysym_to_utf8(keysym: xkb_keysym_t, buffer: *mut c_char, size: usize) -> c_int;
 
     pub fn xkb_context_new(flags: xkb_context_flags) -> *mut xkb_context;
@@ -180,7 +180,7 @@ pub enum xkb_x11_setup_xkb_extension_flags {
 
 #[cfg(x11_platform)]
 #[link(name = "xkbcommon-x11")]
-extern "C" {
+unsafe extern "C" {
     pub fn xkb_x11_setup_xkb_extension(
         conn: *mut crate::platform_impl::linux::x11::ffi::xcb_connection_t,
         major_xkb_version: c_uint,

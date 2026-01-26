@@ -37,7 +37,7 @@ pub struct InputMethod {
 }
 
 impl InputMethod {
-    fn new(xconn: &Arc<XConnection>, im: ffi::XIM, name: String) -> Option<Self> {
+    fn new(_xconn: &Arc<XConnection>, im: ffi::XIM, name: String) -> Option<Self> {
         let mut styles: *mut XIMStyles = std::ptr::null_mut();
 
         // Query the styles supported by the XIM.
