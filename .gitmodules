@@ -1,0 +1,3 @@
+[submodule "ctb-vendored"]
+	path = ctb-vendored
+	url = https://gitlab.com/collectivetoolbox/ctb-vendored.git
