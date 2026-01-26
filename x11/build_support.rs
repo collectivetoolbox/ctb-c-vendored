@@ -56,8 +56,8 @@ pub(crate) fn build_autotools(
     // Regenerate the build system to match the user's installed autotools.
     //
     // Today this is required at least for xtrans and libxext.
-    let should_autoreconf =
-        pkg == "xtrans" || pkg == "libxext" || pkg == "xorgproto" || env::var_os("CTB_X11_AUTORECONF_ALL").is_some();
+    let should_autoreconf = true;
+    //       pkg == "xtrans" || pkg == "libxext" || pkg == "xorgproto" || env::var_os("CTB_X11_AUTORECONF_ALL").is_some();
     if should_autoreconf {
         run_autoreconf(&src_copy, base_env, pkg)?;
     }
