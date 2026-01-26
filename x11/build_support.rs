@@ -252,7 +252,9 @@ pub(crate) fn build_meson_xkbcommon(
     setup.arg("-Denable-xkbregistry=false");
     setup.arg("-Denable-bash-completion=false");
     setup.arg("-Denable-docs=false");
-    // setup.arg("-Dtests=false");
+    // NOTE: libxkbcommon does not expose a project option to disable tests.
+    // Instead, we constrain pkg-config so optional deps (like ICU) are not
+    // discovered from the host during cross builds.
     // Explicitly request the X11 helper library (libxkbcommon-x11).
     setup.arg("-Denable-x11=true");
     for (k, v) in base_env {

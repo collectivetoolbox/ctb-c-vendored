@@ -149,10 +149,25 @@ fn build_vendored_x11(c_src_dir: &Path, out_dir: &Path, prefix: &Path) -> Result
     base_env.push(("ACLOCAL".to_string(), "aclocal".to_string()));
 
     base_env.push(("PKG_CONFIG_ALLOW_CROSS".to_string(), "1".to_string()));
+    // IMPORTANT: for cross builds, do not allow pkg-config to discover host
+    // libraries (wrong architecture). Keep the search path constrained to our
+    // private prefix.
+    let pkg_config_path_prefix_only = {
+        let parts = [
+            prefix.join("lib").join("pkgconfig"),
+            prefix.join("share").join("pkgconfig"),
+        ];
+        env::join_paths(parts)
+            .map(|p| p.to_string_lossy().into_owned())
+            .unwrap_or_default()
+    };
     base_env.push((
         "PKG_CONFIG_PATH".to_string(),
-        build_support::pkg_config_path_with_prefix(prefix),
+        pkg_config_path_prefix_only.clone(),
     ));
+    // Override pkg-config's built-in default search directories to avoid
+    // accidentally picking up host .pc files (common culprit: ICU).
+    base_env.push(("PKG_CONFIG_LIBDIR".to_string(), pkg_config_path_prefix_only));
 
     // Preserve user-provided flags, but prepend target tool args.
     let user_cflags = env::var("CFLAGS").unwrap_or_default();
