@@ -61,14 +61,49 @@ pub(crate) fn build_autotools(
         run_autoreconf(&src_copy, base_env, pkg)?;
     }
 
+    let configure_script = src_copy.join("configure");
+    if !configure_script.exists() {
+        return Err(anyhow!(
+            "missing configure script for {pkg} at {}",
+            configure_script.display()
+        ));
+    }
+
+    // Not every X.Org/X11 project supports the same set of configure flags.
+    // Some (e.g. xorgproto) don't recognize libtool/static flags, which is
+    // noisy and can be misleading in build logs. Probe `configure --help` and
+    // only pass flags that are actually supported by the specific package.
+    let help = autotools_configure_help(&configure_script, &build_dir, base_env)
+        .with_context(|| format!("query configure help for {pkg}"))?;
+    let candidate_opts = [
+        "--disable-maintainer-mode",
+        "--disable-shared",
+        "--enable-static",
+        "--with-pic",
+    ];
+    let mut supported_opts = Vec::<&'static str>::new();
+    let mut skipped_opts = Vec::<&'static str>::new();
+    for opt in candidate_opts {
+        if help.contains(opt) {
+            supported_opts.push(opt);
+        } else {
+            skipped_opts.push(opt);
+        }
+    }
+    if !skipped_opts.is_empty() {
+        println!(
+            "cargo:warning=vendored x11: {pkg} configure does not advertise support for: {}; skipping",
+            skipped_opts.join(" ")
+        );
+    }
+
     let mut configure_cmd = Command::new("sh");
     configure_cmd.current_dir(&build_dir);
-    configure_cmd.arg(src_copy.join("configure"));
+    configure_cmd.arg(&configure_script);
     configure_cmd.arg(format!("--prefix={}", prefix.display()));
-    configure_cmd.arg("--disable-maintainer-mode");
-    configure_cmd.arg("--disable-shared");
-    configure_cmd.arg("--enable-static");
-    configure_cmd.arg("--with-pic");
+    for opt in supported_opts {
+        configure_cmd.arg(opt);
+    }
     if let Some(host) = host_arg {
         configure_cmd.arg(format!("--host={host}"));
     }
@@ -98,6 +133,37 @@ pub(crate) fn build_autotools(
     run(&mut install_cmd).with_context(|| format!("make install {pkg}"))?;
 
     Ok(())
+}
+
+fn autotools_configure_help(
+    configure_script: &Path,
+    build_dir: &Path,
+    base_env: &[(String, String)],
+) -> Result<String> {
+    let mut cmd = Command::new("sh");
+    cmd.current_dir(build_dir);
+    cmd.arg(configure_script);
+    cmd.arg("--help");
+    for (k, v) in base_env {
+        cmd.env(k, v);
+    }
+
+    let output = cmd
+        .output()
+        .with_context(|| format!("failed to execute {} --help", configure_script.display()))?;
+
+    if !output.status.success() {
+        return Err(anyhow!(
+            "configure --help failed with exit code {}",
+            output.status
+        ));
+    }
+
+    // Some configure scripts write help to stderr.
+    let mut combined = String::new();
+    combined.push_str(&String::from_utf8_lossy(&output.stdout));
+    combined.push_str(&String::from_utf8_lossy(&output.stderr));
+    Ok(combined)
 }
 
 fn run_autoreconf(src_dir: &Path, base_env: &[(String, String)], pkg: &str) -> Result<()> {
@@ -175,8 +241,19 @@ pub(crate) fn build_meson_xkbcommon(
     setup.arg("--libdir=lib");
     setup.arg("--default-library=static");
     setup.arg(format!("--cross-file={}", cross_file.display()));
-    setup.arg("-Ddocs=false");
+    // Keep this build minimal and target-friendly.
+    //
+    // For ctoolbox we only need the libraries (not the CLI tools, registry,
+    // docs, bash completion, etc). Disabling tools also reduces the chance of
+    // cross-builds trying to execute target binaries.
+    setup.arg("-Denable-tools=false");
+    setup.arg("-Denable-wayland=false");
+    setup.arg("-Denable-xkbregistry=false");
+    setup.arg("-Denable-bash-completion=false");
+    setup.arg("-Denable-docs=false");
     setup.arg("-Dtests=false");
+    // Explicitly request the X11 helper library (libxkbcommon-x11).
+    setup.arg("-Denable-x11=true");
     for (k, v) in base_env {
         setup.env(k, v);
     }
