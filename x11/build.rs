@@ -294,7 +294,33 @@ fn build_vendored_x11(c_src_dir: &Path, out_dir: &Path, prefix: &Path) -> Result
     // libxkbcommon uses meson. We'll build it if meson/ninja are available;
     // otherwise, downstream code may still link against a sysroot-provided
     // libxkbcommon.
-    let _ = build_support::build_meson_xkbcommon(c_src_dir, out_dir, prefix, &base_env, &target);
+    build_support::build_meson_xkbcommon(c_src_dir, out_dir, prefix, &base_env, &target)?;
+
+    // winit links to libxkbcommon/libxkbcommon-x11 directly (via `#[link]`).
+    // For fully static builds (common for musl targets), we must ensure the
+    // static archives exist in the prefix or the final link will fail with
+    // `cannot find -lxkbcommon`.
+    let target_features = env::var("CARGO_CFG_TARGET_FEATURE").unwrap_or_default();
+    let wants_static = target.contains("musl")
+        || target_features
+            .split(',')
+            .any(|feature| feature.trim() == "crt-static");
+    if wants_static {
+        let lib_dir = prefix.join("lib");
+        let xkbcommon_a = lib_dir.join("libxkbcommon.a");
+        let xkbcommon_x11_a = lib_dir.join("libxkbcommon-x11.a");
+        if !xkbcommon_a.exists() || !xkbcommon_x11_a.exists() {
+            return Err(anyhow!(
+                "vendored x11: missing static xkbcommon libraries in {} (expected {} and {}). \
+This usually means libxkbcommon was skipped (meson/ninja missing) or failed to build. \
+Install meson+ninja, ensure vendor/x11/c_src/libxkbcommon exists (run scripts/download-x11), \
+and rebuild.",
+                lib_dir.display(),
+                xkbcommon_a.display(),
+                xkbcommon_x11_a.display()
+            ));
+        }
+    }
 
     Ok(())
 }

@@ -33,7 +33,8 @@ fn main() {
         let screen = xlib::XDefaultScreen(display);
         let root = xlib::XRootWindow(display, screen);
 
-        let mut attributes: xlib::XSetWindowAttributes = mem::MaybeUninit::uninit().assume_init();
+        let mut attributes: xlib::XSetWindowAttributes =
+            mem::MaybeUninit::zeroed().assume_init();
         attributes.background_pixel = xlib::XWhitePixel(display, screen);
 
         let window = xlib::XCreateWindow(
@@ -76,14 +77,15 @@ fn main() {
         xlib::XMapWindow(display, window);
 
         // Main loop.
-        let mut event: xlib::XEvent = mem::MaybeUninit::uninit().assume_init();
+        let mut event = mem::MaybeUninit::<xlib::XEvent>::uninit();
 
         loop {
-            xlib::XNextEvent(display, &mut event);
+            xlib::XNextEvent(display, event.as_mut_ptr());
+            let event = event.assume_init_ref();
 
             match event.get_type() {
                 xlib::ClientMessage => {
-                    let xclient = xlib::XClientMessageEvent::from(event);
+                    let xclient = xlib::XClientMessageEvent::from(*event);
 
                     if xclient.message_type == wm_protocols && xclient.format == 32 {
                         let protocol = xclient.data.get_long(0) as xlib::Atom;
