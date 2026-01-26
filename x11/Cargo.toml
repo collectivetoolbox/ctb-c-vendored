@@ -12,7 +12,7 @@ license = "MIT AND GPL-3+ AND GPL-2+ AND BSD-1-clause AND MIT AND public-domain 
 repository = "https://github.com/AltF02/x11-rs.git"
 build = "build.rs"
 documentation = "https://docs.rs/x11"
-workspace = ".."
+workspace = "../../ctoolbox"
 edition = "2021"
 
 [features]

@@ -2,13 +2,16 @@
 // The X11 libraries are available under the MIT license.
 // These bindings are public domain.
 
+#![allow(clippy::vec_init_then_push)]
+
 extern crate pkg_config;
+
+mod build_support;
 
 use anyhow::{anyhow, Context, Result};
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 fn main() {
     if cfg!(feature = "dox") {
@@ -23,7 +26,10 @@ fn main() {
 
 fn try_main() -> Result<()> {
     println!("cargo:rerun-if-changed=build.rs");
+    println!("cargo:rerun-if-changed=build_support.rs");
     println!("cargo:rerun-if-changed=c_src");
+    println!("cargo:rerun-if-env-changed=CTB_X11_USE_PKG_CONFIG");
+    println!("cargo:rerun-if-env-changed=CTB_X11_AUTORECONF_ALL");
 
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").context("CARGO_MANIFEST_DIR not set")?);
     let c_src_dir = manifest_dir.join("c_src");
@@ -45,7 +51,7 @@ fn try_main() -> Result<()> {
     build_vendored_x11(&c_src_dir, &out_dir, &prefix)?;
 
     // Ensure subsequent pkg-config probes use our prefix first.
-    let pkg_config_path = pkg_config_path_with_prefix(&prefix);
+    let pkg_config_path = build_support::pkg_config_path_with_prefix(&prefix);
     env::set_var("PKG_CONFIG_PATH", &pkg_config_path);
     env::set_var("PKG_CONFIG_ALLOW_CROSS", "1");
 
@@ -99,21 +105,6 @@ fn probe_with_pkg_config(pkg_config_path: Option<&str>) -> Result<()> {
     Ok(())
 }
 
-fn pkg_config_path_with_prefix(prefix: &Path) -> String {
-    let mut parts = Vec::new();
-    parts.push(prefix.join("lib").join("pkgconfig"));
-    parts.push(prefix.join("share").join("pkgconfig"));
-
-    if let Some(existing) = env::var_os("PKG_CONFIG_PATH") {
-        parts.extend(env::split_paths(&existing));
-    }
-
-    match env::join_paths(parts) {
-        Ok(joined) => joined.to_string_lossy().into_owned(),
-        Err(_) => String::new(),
-    }
-}
-
 fn build_vendored_x11(c_src_dir: &Path, out_dir: &Path, prefix: &Path) -> Result<()> {
     // If these are missing, the user likely hasn't run scripts/download-x11 yet.
     if !c_src_dir.exists() {
@@ -140,10 +131,13 @@ fn build_vendored_x11(c_src_dir: &Path, out_dir: &Path, prefix: &Path) -> Result
 
     let mut base_env = Vec::<(String, String)>::new();
     base_env.push(("CC".to_string(), tool.path().to_string_lossy().to_string()));
-    base_env.push(("AR".to_string(), command_to_string(&ar)));
+    base_env.push((
+        "AR".to_string(),
+        build_support::command_to_string(&ar),
+    ));
     base_env.push((
         "RANLIB".to_string(),
-        command_to_string(&ranlib),
+        build_support::command_to_string(&ranlib),
     ));
 
     // Some of the vendored autotools projects may enable maintainer rules that
@@ -156,7 +150,10 @@ fn build_vendored_x11(c_src_dir: &Path, out_dir: &Path, prefix: &Path) -> Result
     base_env.push(("ACLOCAL".to_string(), "aclocal".to_string()));
 
     base_env.push(("PKG_CONFIG_ALLOW_CROSS".to_string(), "1".to_string()));
-    base_env.push(("PKG_CONFIG_PATH".to_string(), pkg_config_path_with_prefix(prefix)));
+    base_env.push((
+        "PKG_CONFIG_PATH".to_string(),
+        build_support::pkg_config_path_with_prefix(prefix),
+    ));
 
     // Preserve user-provided flags, but prepend target tool args.
     let user_cflags = env::var("CFLAGS").unwrap_or_default();
@@ -178,7 +175,7 @@ fn build_vendored_x11(c_src_dir: &Path, out_dir: &Path, prefix: &Path) -> Result
     let host_arg = if host != target { Some(target.as_str()) } else { None };
 
     // Build order matters (proto/tools first).
-    build_autotools(
+    build_support::build_autotools(
         c_src_dir,
         out_dir,
         prefix,
@@ -187,7 +184,7 @@ fn build_vendored_x11(c_src_dir: &Path, out_dir: &Path, prefix: &Path) -> Result
         jobs.as_deref(),
         "xorgproto",
     )?;
-    build_autotools(
+    build_support::build_autotools(
         c_src_dir,
         out_dir,
         prefix,
@@ -196,7 +193,7 @@ fn build_vendored_x11(c_src_dir: &Path, out_dir: &Path, prefix: &Path) -> Result
         jobs.as_deref(),
         "xtrans",
     )?;
-    build_autotools(
+    build_support::build_autotools(
         c_src_dir,
         out_dir,
         prefix,
@@ -205,7 +202,7 @@ fn build_vendored_x11(c_src_dir: &Path, out_dir: &Path, prefix: &Path) -> Result
         jobs.as_deref(),
         "xcb-proto",
     )?;
-    build_autotools(
+    build_support::build_autotools(
         c_src_dir,
         out_dir,
         prefix,
@@ -215,7 +212,20 @@ fn build_vendored_x11(c_src_dir: &Path, out_dir: &Path, prefix: &Path) -> Result
         "libxdmcp",
     )?;
 
-    build_autotools(
+    // libxcb's `xcb_auth.c` includes <X11/Xauth.h>, which is provided by
+    // libXau. When building against a minimal sysroot (e.g. musl), we must
+    // build/install libXau into the prefix before libxcb.
+    build_support::build_autotools(
+        c_src_dir,
+        out_dir,
+        prefix,
+        &base_env,
+        host_arg,
+        jobs.as_deref(),
+        "libxau",
+    )?;
+
+    build_support::build_autotools(
         c_src_dir,
         out_dir,
         prefix,
@@ -224,7 +234,7 @@ fn build_vendored_x11(c_src_dir: &Path, out_dir: &Path, prefix: &Path) -> Result
         jobs.as_deref(),
         "libxcb",
     )?;
-    build_autotools(
+    build_support::build_autotools(
         c_src_dir,
         out_dir,
         prefix,
@@ -233,7 +243,28 @@ fn build_vendored_x11(c_src_dir: &Path, out_dir: &Path, prefix: &Path) -> Result
         jobs.as_deref(),
         "libx11",
     )?;
-    build_autotools(
+
+    // Higher-level client libs required by several of the dependencies below
+    // (and often missing from minimal sysroots).
+    build_support::build_autotools(
+        c_src_dir,
+        out_dir,
+        prefix,
+        &base_env,
+        host_arg,
+        jobs.as_deref(),
+        "libxrender",
+    )?;
+    build_support::build_autotools(
+        c_src_dir,
+        out_dir,
+        prefix,
+        &base_env,
+        host_arg,
+        jobs.as_deref(),
+        "libxext",
+    )?;
+    build_support::build_autotools(
         c_src_dir,
         out_dir,
         prefix,
@@ -242,7 +273,7 @@ fn build_vendored_x11(c_src_dir: &Path, out_dir: &Path, prefix: &Path) -> Result
         jobs.as_deref(),
         "libxfixes",
     )?;
-    build_autotools(
+    build_support::build_autotools(
         c_src_dir,
         out_dir,
         prefix,
@@ -251,7 +282,7 @@ fn build_vendored_x11(c_src_dir: &Path, out_dir: &Path, prefix: &Path) -> Result
         jobs.as_deref(),
         "libxi",
     )?;
-    build_autotools(
+    build_support::build_autotools(
         c_src_dir,
         out_dir,
         prefix,
@@ -264,548 +295,7 @@ fn build_vendored_x11(c_src_dir: &Path, out_dir: &Path, prefix: &Path) -> Result
     // libxkbcommon uses meson. We'll build it if meson/ninja are available;
     // otherwise, downstream code may still link against a sysroot-provided
     // libxkbcommon.
-    let _ = build_meson_xkbcommon(c_src_dir, out_dir, prefix, &base_env, &target);
+    let _ = build_support::build_meson_xkbcommon(c_src_dir, out_dir, prefix, &base_env, &target);
 
-    Ok(())
-}
-
-fn build_autotools(
-    c_src_dir: &Path,
-    out_dir: &Path,
-    prefix: &Path,
-    base_env: &[(String, String)],
-    host_arg: Option<&str>,
-    jobs: Option<&str>,
-    pkg: &str,
-) -> Result<()> {
-    let pkg_dir = c_src_dir.join(pkg);
-    if !pkg_dir.exists() {
-        println!("cargo:warning=vendored x11: missing {pkg_dir:?}; skipping {pkg}");
-        return Ok(());
-    }
-
-    let src_dir = prepare_source_tree(&pkg_dir, &out_dir.join("ctb-vendored-x11").join("unpacked").join(pkg))
-        .with_context(|| format!("could not prepare source dir for {pkg} in {}", pkg_dir.display()))?;
-    let build_root = out_dir.join("ctb-vendored-x11").join("build").join(pkg);
-    let src_copy = build_root.join("src");
-    let build_dir = build_root.join("build");
-
-    // Clean build dirs to avoid subtle cross-target reuse.
-    let _ = fs::remove_dir_all(&build_root);
-    fs::create_dir_all(&build_dir).with_context(|| format!("create build dir for {pkg}"))?;
-    copy_dir_recursive(&src_dir, &src_copy).with_context(|| format!("copy sources for {pkg}"))?;
-
-    let mut configure_cmd = Command::new("sh");
-    configure_cmd.current_dir(&build_dir);
-    configure_cmd.arg(src_copy.join("configure"));
-    configure_cmd.arg(format!("--prefix={}", prefix.display()));
-    configure_cmd.arg("--disable-maintainer-mode");
-    configure_cmd.arg("--disable-shared");
-    configure_cmd.arg("--enable-static");
-    configure_cmd.arg("--with-pic");
-    if let Some(host) = host_arg {
-        configure_cmd.arg(format!("--host={host}"));
-    }
-
-    for (k, v) in base_env {
-        configure_cmd.env(k, v);
-    }
-
-    run(&mut configure_cmd).with_context(|| format!("configure {pkg}"))?;
-
-    let mut make_cmd = Command::new("make");
-    make_cmd.current_dir(&build_dir);
-    if let Some(j) = jobs {
-        make_cmd.arg(format!("-j{j}"));
-    }
-    for (k, v) in base_env {
-        make_cmd.env(k, v);
-    }
-    run(&mut make_cmd).with_context(|| format!("make {pkg}"))?;
-
-    let mut install_cmd = Command::new("make");
-    install_cmd.current_dir(&build_dir);
-    install_cmd.arg("install");
-    for (k, v) in base_env {
-        install_cmd.env(k, v);
-    }
-    run(&mut install_cmd).with_context(|| format!("make install {pkg}"))?;
-
-    Ok(())
-}
-
-fn build_meson_xkbcommon(
-    c_src_dir: &Path,
-    out_dir: &Path,
-    prefix: &Path,
-    base_env: &[(String, String)],
-    target: &str,
-) -> Result<()> {
-    let pkg_dir = c_src_dir.join("libxkbcommon");
-    if !pkg_dir.exists() {
-        println!("cargo:warning=vendored x11: missing libxkbcommon sources; skipping");
-        return Ok(());
-    }
-
-    let src_dir = prepare_source_tree(
-        &pkg_dir,
-        &out_dir
-            .join("ctb-vendored-x11")
-            .join("unpacked")
-            .join("libxkbcommon"),
-    )
-    .context("locate libxkbcommon source")?;
-    let build_root = out_dir.join("ctb-vendored-x11").join("build").join("libxkbcommon");
-    let src_copy = build_root.join("src");
-    let build_dir = build_root.join("build");
-    let cross_file = build_root.join("cross.ini");
-
-    let _ = fs::remove_dir_all(&build_root);
-    fs::create_dir_all(&build_dir).context("create xkbcommon build dir")?;
-    copy_dir_recursive(&src_dir, &src_copy).context("copy xkbcommon sources")?;
-
-    if !program_exists("meson")? || !program_exists("ninja")? {
-        println!("cargo:warning=vendored x11: meson/ninja not found; skipping libxkbcommon build");
-        return Ok(());
-    }
-
-    write_meson_cross_file(&cross_file, base_env, target)?;
-
-    let mut setup = Command::new("meson");
-    setup.current_dir(&build_root);
-    setup.arg("setup");
-    setup.arg(&build_dir);
-    setup.arg(&src_copy);
-    setup.arg(format!("--prefix={}", prefix.display()));
-    setup.arg("--libdir=lib");
-    setup.arg("--default-library=static");
-    setup.arg(format!("--cross-file={}", cross_file.display()));
-    setup.arg("-Ddocs=false");
-    setup.arg("-Dtests=false");
-    for (k, v) in base_env {
-        setup.env(k, v);
-    }
-    run(&mut setup).context("meson setup libxkbcommon")?;
-
-    let mut build = Command::new("ninja");
-    build.current_dir(&build_dir);
-    for (k, v) in base_env {
-        build.env(k, v);
-    }
-    run(&mut build).context("ninja build libxkbcommon")?;
-
-    let mut install = Command::new("ninja");
-    install.current_dir(&build_dir);
-    install.arg("install");
-    for (k, v) in base_env {
-        install.env(k, v);
-    }
-    run(&mut install).context("ninja install libxkbcommon")?;
-
-    Ok(())
-}
-
-fn program_exists(program: &str) -> Result<bool> {
-    let status = Command::new(program).arg("--version").status();
-    match status {
-        Ok(s) => Ok(s.success()),
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(false),
-        Err(e) => Err(e).with_context(|| format!("failed to run {program} --version")),
-    }
-}
-
-fn command_to_string(cmd: &Command) -> String {
-    let mut s = cmd.get_program().to_string_lossy().to_string();
-    for arg in cmd.get_args() {
-        s.push(' ');
-        s.push_str(&arg.to_string_lossy());
-    }
-    s
-}
-
-fn write_meson_cross_file(path: &Path, base_env: &[(String, String)], target: &str) -> Result<()> {
-    let cc = env_value(base_env, "CC").unwrap_or("cc");
-    let ar = env_value(base_env, "AR").unwrap_or("ar");
-    let pkg_config = env::var("PKG_CONFIG").unwrap_or_else(|_| "pkg-config".to_string());
-
-    let (cpu_family, cpu) = cpu_info_from_target(target);
-    let system = if target.contains("linux") { "linux" } else { "unknown" };
-    let endian = if target.contains("mips") || target.contains("powerpc64") {
-        // Most of our current targets are little-endian; keep this conservative.
-        "little"
-    } else {
-        "little"
-    };
-
-    let content = format!(
-        "[binaries]\n\
-c = '{cc}'\n\
-ar = '{ar}'\n\
-pkgconfig = '{pkg_config}'\n\
-\n\
-[host_machine]\n\
-system = '{system}'\n\
-cpu_family = '{cpu_family}'\n\
-cpu = '{cpu}'\n\
-endian = '{endian}'\n\
-\n\
-[properties]\n\
-needs_exe_wrapper = true\n",
-    );
-    fs::write(path, content).with_context(|| format!("write meson cross file at {}", path.display()))?;
-    Ok(())
-}
-
-fn env_value<'a>(pairs: &'a [(String, String)], key: &str) -> Option<&'a str> {
-    pairs.iter().find_map(|(k, v)| if k == key { Some(v.as_str()) } else { None })
-}
-
-fn cpu_info_from_target(target: &str) -> (&'static str, &'static str) {
-    if target.starts_with("x86_64") {
-        return ("x86_64", "x86_64");
-    }
-    if target.starts_with("i686") || target.starts_with("i586") {
-        return ("x86", "i686");
-    }
-    if target.starts_with("aarch64") {
-        return ("aarch64", "aarch64");
-    }
-    if target.starts_with("armv7") || target.starts_with("arm") {
-        return ("arm", "arm");
-    }
-    if target.starts_with("riscv64") {
-        return ("riscv64", "riscv64");
-    }
-    ("unknown", "unknown")
-}
-
-fn prepare_source_tree(pkg_dir: &Path, unpack_root: &Path) -> Result<PathBuf> {
-    // scripts/download-x11 downloads Debian source artifacts and unpacks the
-    // upstream sources without applying Debian patches. Apply Debian patches
-    // here (without relying on dpkg tools) so builds are consistent.
-
-    let upstream_src = find_project_src_dir(pkg_dir)
-        .with_context(|| format!("locate upstream source dir under {}", pkg_dir.display()))?;
-
-    let _ = fs::remove_dir_all(unpack_root);
-    fs::create_dir_all(unpack_root)
-        .with_context(|| format!("create unpack root {}", unpack_root.display()))?;
-
-    let src_copy = unpack_root.join("src");
-    fs::create_dir_all(&src_copy)
-        .with_context(|| format!("create src dir {}", src_copy.display()))?;
-    copy_dir_recursive(&upstream_src, &src_copy).with_context(|| {
-        format!(
-            "copy upstream sources {} -> {}",
-            upstream_src.display(),
-            src_copy.display()
-        )
-    })?;
-
-    apply_debian_patches(pkg_dir, &src_copy)
-        .with_context(|| format!("apply Debian patches for {}", pkg_dir.display()))?;
-
-    Ok(src_copy)
-}
-
-fn apply_debian_patches(pkg_dir: &Path, src_root: &Path) -> Result<()> {
-    // Debian source formats:
-    // - 3.0 (quilt): <pkg>_<ver>.debian.tar.* + debian/patches/series
-    // - 1.0: <pkg>_<ver>.diff.gz
-    //
-    // We avoid dpkg/quilt and use common Unix tools instead.
-
-    if !program_exists("patch")? {
-        return Err(anyhow!(
-            "required program not found: patch (needed to apply Debian patches)"
-        ));
-    }
-
-    if let Some(debian_tar) = find_debian_tar(pkg_dir)? {
-        overlay_debian_tar(&debian_tar, src_root)
-            .with_context(|| format!("overlay {}", debian_tar.display()))?;
-        apply_quilt_series(src_root).context("apply quilt patch series")?;
-        return Ok(());
-    }
-
-    if let Some(diff_gz) = find_diff_gz(pkg_dir)? {
-        apply_diff_gz(&diff_gz, src_root)
-            .with_context(|| format!("apply {}", diff_gz.display()))?;
-        return Ok(());
-    }
-
-    // No patches.
-    Ok(())
-}
-
-fn find_debian_tar(pkg_dir: &Path) -> Result<Option<PathBuf>> {
-    let mut candidates = Vec::new();
-    for entry in fs::read_dir(pkg_dir).with_context(|| format!("read dir {}", pkg_dir.display()))?
-    {
-        let entry = entry?;
-        if !entry.file_type()?.is_file() {
-            continue;
-        }
-        let path = entry.path();
-        let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
-            continue;
-        };
-        if name.contains(".debian.tar.") && !name.ends_with(".asc") {
-            candidates.push(path);
-        }
-    }
-    candidates.sort();
-    Ok(candidates.into_iter().next())
-}
-
-fn find_diff_gz(pkg_dir: &Path) -> Result<Option<PathBuf>> {
-    let mut candidates = Vec::new();
-    for entry in fs::read_dir(pkg_dir).with_context(|| format!("read dir {}", pkg_dir.display()))?
-    {
-        let entry = entry?;
-        if !entry.file_type()?.is_file() {
-            continue;
-        }
-        let path = entry.path();
-        let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
-            continue;
-        };
-        if name.ends_with(".diff.gz") {
-            candidates.push(path);
-        }
-    }
-    candidates.sort();
-    Ok(candidates.into_iter().next())
-}
-
-fn overlay_debian_tar(debian_tar: &Path, src_root: &Path) -> Result<()> {
-    if !program_exists("tar")? {
-        return Err(anyhow!(
-            "required program not found: tar (needed to unpack Debian patch tarballs)"
-        ));
-    }
-
-    let scratch = src_root
-        .parent()
-        .context("src root has no parent")?
-        .join("debian-tar");
-    let _ = fs::remove_dir_all(&scratch);
-    fs::create_dir_all(&scratch)
-        .with_context(|| format!("create scratch dir {}", scratch.display()))?;
-
-    let mut cmd = Command::new("tar");
-    cmd.current_dir(&scratch);
-    match debian_tar
-        .file_name()
-        .and_then(|n| n.to_str())
-        .unwrap_or_default()
-    {
-        name if name.ends_with(".tar.gz") || name.ends_with(".tgz") => {
-            cmd.arg("-xzf").arg(debian_tar);
-        }
-        name if name.ends_with(".tar.xz") => {
-            cmd.arg("-xJf").arg(debian_tar);
-        }
-        name if name.ends_with(".tar.bz2") => {
-            cmd.arg("-xjf").arg(debian_tar);
-        }
-        name if name.ends_with(".tar") => {
-            cmd.arg("-xf").arg(debian_tar);
-        }
-        _ => {
-            return Err(anyhow!(
-                "unsupported Debian patch archive: {}",
-                debian_tar.display()
-            ));
-        }
-    }
-    run(&mut cmd).context("extract debian.tar")?;
-
-    // debian.tar.* usually contains <pkg>-<ver>/debian/...; overlay contents.
-    let inner = single_child_dir(&scratch)?;
-    let overlay_root = inner.as_deref().unwrap_or(&scratch);
-    copy_dir_contents_recursive(overlay_root, src_root)
-        .with_context(|| format!("overlay {} into {}", overlay_root.display(), src_root.display()))?;
-
-    Ok(())
-}
-
-fn single_child_dir(dir: &Path) -> Result<Option<PathBuf>> {
-    let mut dirs = Vec::new();
-    for entry in fs::read_dir(dir).with_context(|| format!("read dir {}", dir.display()))? {
-        let entry = entry?;
-        let path = entry.path();
-        if path.is_dir() {
-            dirs.push(path);
-        }
-    }
-    dirs.sort();
-    if dirs.len() == 1 {
-        return Ok(Some(
-            dirs.into_iter()
-                .next()
-                .context("single dir unexpectedly missing")?,
-        ));
-    }
-    Ok(None)
-}
-
-fn apply_quilt_series(src_root: &Path) -> Result<()> {
-    let series = src_root.join("debian").join("patches").join("series");
-    if !series.is_file() {
-        return Ok(());
-    }
-
-    let content = fs::read_to_string(&series)
-        .with_context(|| format!("read quilt series {}", series.display()))?;
-    for line in content.lines() {
-        let line = line.trim();
-        if line.is_empty() || line.starts_with('#') {
-            continue;
-        }
-        // series can contain options after the patch name; keep the first token.
-        let patch_rel = line.split_whitespace().next().unwrap_or("");
-        if patch_rel.is_empty() {
-            continue;
-        }
-        let patch_path = src_root
-            .join("debian")
-            .join("patches")
-            .join(patch_rel);
-        if !patch_path.is_file() {
-            return Err(anyhow!(
-                "quilt series references missing patch: {}",
-                patch_path.display()
-            ));
-        }
-
-        let mut cmd = Command::new("patch");
-        cmd.current_dir(src_root);
-        cmd.arg("-p1");
-        cmd.arg("--forward");
-        cmd.arg("--batch");
-        cmd.arg("-i");
-        cmd.arg(&patch_path);
-        run(&mut cmd).with_context(|| format!("patch -p1 -i {}", patch_path.display()))?;
-    }
-    Ok(())
-}
-
-fn apply_diff_gz(diff_gz: &Path, src_root: &Path) -> Result<()> {
-    if !program_exists("gzip")? {
-        return Err(anyhow!(
-            "required program not found: gzip (needed to unpack .diff.gz patches)"
-        ));
-    }
-
-    let mut unzip = Command::new("gzip");
-    unzip.arg("-dc");
-    unzip.arg(diff_gz);
-    unzip.stdout(std::process::Stdio::piped());
-
-    let mut unzip_child = unzip
-        .spawn()
-        .with_context(|| format!("spawn gzip -dc {}", diff_gz.display()))?;
-    let unzip_out = unzip_child
-        .stdout
-        .take()
-        .context("gzip stdout not captured")?;
-
-    let mut patch = Command::new("patch");
-    patch.current_dir(src_root);
-    patch.arg("-p1");
-    patch.arg("--forward");
-    patch.arg("--batch");
-    patch.stdin(unzip_out);
-
-    let patch_status = patch
-        .status()
-        .with_context(|| format!("run patch for {}", diff_gz.display()))?;
-
-    let unzip_status = unzip_child
-        .wait()
-        .with_context(|| format!("wait for gzip -dc {}", diff_gz.display()))?;
-
-    if !unzip_status.success() {
-        return Err(anyhow!("gzip failed with exit code {unzip_status}"));
-    }
-    if !patch_status.success() {
-        return Err(anyhow!("patch failed with exit code {patch_status}"));
-    }
-    Ok(())
-}
-
-fn copy_dir_contents_recursive(from: &Path, to: &Path) -> Result<()> {
-    fs::create_dir_all(to).with_context(|| format!("create dir {}", to.display()))?;
-    for entry in fs::read_dir(from).with_context(|| format!("read dir {}", from.display()))? {
-        let entry = entry?;
-        let path = entry.path();
-        let dest = to.join(entry.file_name());
-        let ty = entry.file_type()?;
-        if ty.is_dir() {
-            copy_dir_recursive(&path, &dest)?;
-        } else if ty.is_file() {
-            fs::copy(&path, &dest)
-                .with_context(|| format!("copy {} -> {}", path.display(), dest.display()))?;
-        } else if ty.is_symlink() {
-            let target = fs::read_link(&path)
-                .with_context(|| format!("readlink {}", path.display()))?;
-            std::os::unix::fs::symlink(&target, &dest)
-                .with_context(|| format!("symlink {} -> {}", target.display(), dest.display()))?;
-        }
-    }
-    Ok(())
-}
-
-fn find_project_src_dir(pkg_dir: &Path) -> Result<PathBuf> {
-    // The repo format is: c_src/<pkg>/<unpacked-project-dir> plus various .dsc/.diff files.
-    // Pick the first child directory that looks like a project root.
-    let mut candidates = Vec::new();
-    for entry in fs::read_dir(pkg_dir).with_context(|| format!("read dir {}", pkg_dir.display()))? {
-        let entry = entry?;
-        let path = entry.path();
-        if !path.is_dir() {
-            continue;
-        }
-        if path.join("configure").is_file() || path.join("meson.build").is_file() {
-            candidates.push(path);
-        }
-    }
-
-    candidates
-        .into_iter()
-        .next()
-        .ok_or_else(|| anyhow!("no project dir with configure/meson.build found"))
-}
-
-fn copy_dir_recursive(from: &Path, to: &Path) -> Result<()> {
-    fs::create_dir_all(to).with_context(|| format!("create dir {}", to.display()))?;
-    for entry in fs::read_dir(from).with_context(|| format!("read dir {}", from.display()))? {
-        let entry = entry?;
-        let path = entry.path();
-        let dest = to.join(entry.file_name());
-        let ty = entry.file_type()?;
-        if ty.is_dir() {
-            copy_dir_recursive(&path, &dest)?;
-        } else if ty.is_file() {
-            fs::copy(&path, &dest)
-                .with_context(|| format!("copy {} -> {}", path.display(), dest.display()))?;
-        } else if ty.is_symlink() {
-            let target = fs::read_link(&path)
-                .with_context(|| format!("readlink {}", path.display()))?;
-            std::os::unix::fs::symlink(&target, &dest)
-                .with_context(|| format!("symlink {} -> {}", target.display(), dest.display()))?;
-        }
-    }
-    Ok(())
-}
-
-fn run(cmd: &mut Command) -> Result<()> {
-    let status = cmd
-        .status()
-        .with_context(|| format!("failed to spawn command: {:?}", cmd))?;
-    if !status.success() {
-        return Err(anyhow!("command failed with exit code {status}"));
-    }
     Ok(())
 }
