@@ -58,7 +58,48 @@ fn try_main() -> Result<()> {
     println!("cargo:rustc-link-search=native={}", prefix.join("lib").display());
     println!("cargo:rustc-link-search=native={}", prefix.join("lib64").display());
 
-    probe_with_pkg_config(Some(&pkg_config_path))
+    probe_with_pkg_config(Some(&pkg_config_path))?;
+
+    // Fully static links (common for musl) do not automatically pull in
+    // transitive dependencies of static archives.
+    //
+    // In particular, `winit` links `xkbcommon-x11` directly via `#[link]`,
+    // which can leave required XCB/X11 helper libraries out of the final link
+    // unless we explicitly request them.
+    let target = env::var("TARGET").context("TARGET not set")?;
+    let target_features = env::var("CARGO_CFG_TARGET_FEATURE").unwrap_or_default();
+    let wants_static = target.contains("musl")
+        || target_features
+            .split(',')
+            .any(|feature| feature.trim() == "crt-static");
+    if wants_static {
+        // For static archives, link order matters. To avoid fragile ordering
+        // between crates (winit links some X11 libs directly), explicitly
+        // group the relevant libraries so the linker can resolve circular and
+        // transitive dependencies.
+        println!("cargo:rustc-link-arg=-Wl,--start-group");
+
+        // libxkbcommon-x11 -> libxcb-xkb -> libxcb -> (libXau, libXdmcp)
+        println!("cargo:rustc-link-lib=static=xcb-xkb");
+        println!("cargo:rustc-link-lib=static=xcb");
+        println!("cargo:rustc-link-lib=static=Xau");
+        println!("cargo:rustc-link-lib=static=Xdmcp");
+
+        // Higher-level X11 client libs frequently referenced from within
+        // other static X11 archives.
+        println!("cargo:rustc-link-lib=static=Xcursor");
+        println!("cargo:rustc-link-lib=static=Xi");
+        println!("cargo:rustc-link-lib=static=Xfixes");
+        println!("cargo:rustc-link-lib=static=Xrender");
+        println!("cargo:rustc-link-lib=static=Xext");
+        // libXcursor also references core X11 symbols.
+        println!("cargo:rustc-link-lib=static=X11");
+        println!("cargo:rustc-link-lib=static=X11-xcb");
+
+        println!("cargo:rustc-link-arg=-Wl,--end-group");
+    }
+
+    Ok(())
 }
 
 fn probe_with_pkg_config(pkg_config_path: Option<&str>) -> Result<()> {
