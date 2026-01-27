@@ -294,6 +294,46 @@ pub(crate) fn build_meson_xkbcommon(
     Ok(())
 }
 
+pub(crate) fn install_xkeyboard_config(
+    c_src_dir: &Path,
+    out_dir: &Path,
+    prefix: &Path,
+) -> Result<()> {
+    let pkg = "xkeyboard-config";
+    let pkg_dir = c_src_dir.join(pkg);
+    if !pkg_dir.exists() {
+        println!("cargo:warning=vendored x11: missing {pkg_dir:?}; skipping {pkg}");
+        return Ok(());
+    }
+
+    let src_dir = prepare_source_tree(
+        &pkg_dir,
+        &out_dir
+            .join("ctb-vendored-x11")
+            .join("unpacked")
+            .join(pkg),
+    )
+    .with_context(|| format!("could not prepare source dir for {pkg} in {}", pkg_dir.display()))?;
+
+    let dst_root = prefix.join("share").join("X11").join("xkb");
+    fs::create_dir_all(&dst_root)
+        .with_context(|| format!("create xkb data dir {}", dst_root.display()))?;
+
+    // Keep this minimal: only install the directories libxkbcommon expects
+    // under $XKB_CONFIG_ROOT.
+    let subdirs = ["compat", "geometry", "keycodes", "rules", "symbols", "types"];
+    for subdir in subdirs {
+        let src = src_dir.join(subdir);
+        if !src.is_dir() {
+            continue;
+        }
+        copy_dir_recursive(&src, &dst_root.join(subdir))
+            .with_context(|| format!("install xkeyboard-config {}", subdir))?;
+    }
+
+    Ok(())
+}
+
 fn program_exists(program: &str) -> Result<bool> {
     let status = Command::new(program).arg("--version").status();
     match status {

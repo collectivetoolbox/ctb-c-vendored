@@ -347,6 +347,11 @@ fn build_vendored_x11(c_src_dir: &Path, out_dir: &Path, prefix: &Path) -> Result
         "libxcursor",
     )?;
 
+    // Install the XKB data files from xkeyboard-config into the prefix so
+    // libxkbcommon can resolve keymaps in environments without a system-wide
+    // xkeyboard-config installation.
+    build_support::install_xkeyboard_config(c_src_dir, out_dir, prefix)?;
+
     // libxkbcommon uses meson. We'll build it if meson/ninja are available;
     // otherwise, downstream code may still link against a sysroot-provided
     // libxkbcommon.
