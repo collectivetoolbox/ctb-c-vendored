@@ -18,7 +18,7 @@ constify = { path = "constify", version = "0.0.1"}
 rayon = { version = "1.11.0", optional = true }
 log = { version = "0.4.28", optional = true }
 winit = {version = "0.30", optional = true }
-softbuffer = { version = "0.4", optional = true }
+softbuffer = { version = "0.4", optional = true, features = ["wayland", "x11", "kms"], default-features = false }
 egui-winit = { version = "0.33", default-features = false, optional = true}
 bytemuck = { version = "1.23", optional = true }
 
@@ -35,7 +35,7 @@ egui_extras = { version = "0.33", features = ["all_loaders"] }
 egui-winit = { version = "0.33", default-features = false }
 epaint_default_fonts = "0.33"
 
-softbuffer = { version = "0.4" }
+softbuffer = { version = "0.4", features = ["wayland", "x11", "kms"], default-features = false }
 image = { version = "0.25", features = ["jpeg", "png"] }
 winit = { version = "0.30" }
 bytemuck = { version = "1.23" }
