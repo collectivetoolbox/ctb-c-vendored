@@ -1,0 +1,4354 @@
+--- xkeyboard-config-2.42.orig/.gitlab-ci.yml
++++ xkeyboard-config-2.42/.gitlab-ci.yml
+@@ -0,0 +1,354 @@
++# vim: set expandtab shiftwidth=2 tabstop=8 textwidth=0:
++
++.templates_sha: &template_sha 007f3e2fe2235328e77d3cd4ce007ab41cd9ce6c # see https://docs.gitlab.com/ee/ci/yaml/#includefile
++
++
++include:
++  # Arch container builder template
++  - project: 'freedesktop/ci-templates'
++    ref: *template_sha
++    file: '/templates/arch.yml'
++  - project: 'freedesktop/ci-templates'
++    ref: *template_sha
++    file: '/templates/ci-fairy.yml'
++
++
++workflow:
++  rules:
++    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
++    - if: $CI_PIPELINE_SOURCE == 'push'
++
++
++# global variables to be used by most/all jobs.
++variables:
++  FDO_UPSTREAM_REPO: 'xkeyboard-config/xkeyboard-config'
++
++  BUILDDIR: '_build'
++  # installation directory must be inside $CI_PROJECT_DIR to allow for artifact caching
++  INSTDIR: '$CI_PROJECT_DIR/_inst'
++  # Override these in the jobs to pass commands to configure/make
++  CONFIGURE_ARGS: ''
++  MAKE_EXTRA_ARG: ''
++
++  # Changing the tag will rebuild the container images. The value is just a
++  # string, but we use the date for human benefits.
++  FDO_DISTRIBUTION_TAG: '2024-01-10.0'
++
++  # xkbcommon: needed to share artifacts between jobs
++  XKBCOMMON_DIR: 'libxkbcommon'
++  XKBCOMMON_INST_DIR: $CI_PROJECT_DIR/$XKBCOMMON_DIR/_inst
++
++
++stages:
++  - sanity
++  - prep
++  - build
++  - dist
++  - test
++  - gitlab
++
++
++container-prep:
++  extends:
++    - .fdo.container-build@arch
++  stage: prep
++  variables:
++    GIT_STRATEGY: none
++    # minimal set of packages required to build xkeyboard-config.
++    BASE_PACKAGES: 'xorg-util-macros gettext pkg-config gcc grep m4 python meson ninja git diffutils'
++    # extra packages we need for various tests
++    EXTRA_PACKAGES: 'tree libxml2 bison xorg-xkbcomp python-pytest python-libevdev python-yaml python-pycountry python-jinja yq libxkbcommon libxslt ruff'
++    FDO_DISTRIBUTION_PACKAGES: $BASE_PACKAGES $EXTRA_PACKAGES
++
++
++.default_setup:
++  extends:
++    - .fdo.distribution-image@arch
++
++
++
++.meson_build:
++  extends: .default_setup
++  script:
++    - if [ x"$TARBALL" != "x" ]; then
++        mkdir tarball;
++        tar xf "$BUILDDIR/$TARBALL" -C tarball/ --strip-components=1;
++        pushd tarball > /dev/null;
++      fi
++    - meson "$BUILDDIR" -Dprefix="$INSTDIR"
++    - meson configure "$BUILDDIR"
++    - ninja -C "$BUILDDIR"
++    - if test x"$NINJA_EXTRA_COMMAND" != "x"; then ninja -C "$BUILDDIR" $NINJA_EXTRA_COMMAND; fi
++
++#
++# Verify that the merge request has the allow-collaboration checkbox ticked
++#
++
++check-merge-request:
++  extends:
++    - .fdo.ci-fairy
++  stage: gitlab
++  script:
++    - ci-fairy check-merge-request --require-allow-collaboration --junit-xml=results.xml
++  artifacts:
++    when: on_failure
++    reports:
++      junit: results.xml
++  allow_failure: true
++  dependencies: []
++
++#
++# Verify that commit messages are as expected
++#
++
++check-commit:
++  extends:
++    - .fdo.ci-fairy
++  stage: sanity
++  script:
++    - ci-fairy -vv check-commits --junit-xml=results.xml
++  except:
++    - master@$FDO_UPSTREAM_REPO
++  variables:
++    GIT_DEPTH: 100
++  artifacts:
++    reports:
++      junit: results.xml
++
++#
++# Format Python code with python-black
++#
++ruff-format:
++  extends:
++    - .default_setup
++  stage: test
++  script:
++    - ruff format --line-length=88 --check --diff .
++  needs: ['container-prep']
++
++meson_install:
++  extends: .meson_build
++  stage: build
++  variables:
++      NINJA_EXTRA_COMMAND: "install"
++  after_script:
++    - tree $INSTDIR
++  artifacts:
++    name: installed files
++    expire_in: 2 weeks
++    paths:
++      - $INSTDIR/
++
++meson_test:
++  extends: .meson_build
++  stage: build
++  variables:
++      NINJA_EXTRA_COMMAND: "test"
++
++meson_dist:
++  extends: .meson_build
++  stage: build
++  variables:
++      NINJA_EXTRA_COMMAND: "dist"
++  artifacts:
++    name: tarball
++    expire_in: 2 weeks
++    paths:
++      - $BUILDDIR/meson-dist/xkeyboard-config-*.tar.xz
++
++
++# Download and build xkbcommon
++xkbcommon build:
++  extends: .default_setup
++  stage: build
++  script:
++    # Ensure there are no leftovers
++    - rm -rf xorgproto libxkbcommon
++    # Get latest xorgproto so we definitely have all keysyms
++    - git clone --depth=1 https://gitlab.freedesktop.org/xorg/proto/xorgproto
++    - export X11_HEADERS_PREFIX="$PWD/xorgproto/"
++    # Get latest xkbcommon
++    - git clone --depth=1 https://github.com/xkbcommon/libxkbcommon "$XKBCOMMON_DIR"
++    - pushd "$XKBCOMMON_DIR" > /dev/null
++    - ./scripts/update-keysyms
++    # Setup meson for minimal xkbcommon build with explicit paths.
++    # NOTE: we set the library directory as it may depend on the host architecture.
++    - >
++      meson setup "$BUILDDIR" \
++        -Denable-wayland=false \
++        -Denable-x11=false \
++        -Denable-docs=false \
++        -Dxkb-config-root="$INSTDIR/share/X11/xkb" \
++        -Dxkb-config-extra-path="$INSTDIR/share/X11/xkb" \
++        -Dprefix="$XKBCOMMON_INST_DIR" \
++        -Dlibdir="lib"
++    - meson compile -C "$BUILDDIR"
++    - meson install -C "$BUILDDIR"
++    # We want also the test script. It requires "xkbcli-compile-keymap".
++    - cp "$BUILDDIR/xkeyboard-config-test" "$XKBCOMMON_INST_DIR/bin"
++  artifacts:
++    when: on_success
++    name: xkbcommon build
++    expire_in: 3 hours
++    paths:
++      # Keep artifact as small as possible.
++      # At the moment only "layout_tests" and "keymap_tests" require our build.
++      # The other jobs use the distro xkbcommon.
++      - $XKBCOMMON_INST_DIR/bin
++      - $XKBCOMMON_INST_DIR/lib/libxkbcommon.so*
++      - $XKBCOMMON_INST_DIR/libexec/xkbcommon/xkbcli-compile-keymap
++
++
++# Checks for new evdev keycodes to be added to keycodes/evdev
++evdev keycode check:
++  extends:
++    - .default_setup
++  stage: test
++  script:
++    - .gitlab-ci/generate-evdev-keycodes.py --verbose || (echo "keycodes/evdev file needs to be updated" && false)
++  allow_failure: true
++  artifacts:
++    when: on_failure
++    name: Updated evdev keycodes
++    expire_in: 2 weeks
++    paths:
++      - keycodes/evdev
++  needs: ['container-prep']
++
++
++# Checks for new keysyms to be added to symbols/inet (using xorgproto master)
++evdev keysym check (xorgproto master):
++  extends:
++    - .default_setup
++  stage: test
++  script:
++    # Check out the latest xorgproto tag
++    - git clone https://gitlab.freedesktop.org/xorg/proto/xorgproto
++    - .gitlab-ci/generate-evdev-keysyms.py --header xorgproto/include/X11/XF86keysym.h
++    - git diff --exit-code || (echo "New keysyms available, please update symbols/inet" && false)
++  allow_failure: true
++  artifacts:
++    when: on_failure
++    name: Updated inet keysyms
++    expire_in: 2 weeks
++    paths:
++      - symbols/inet
++  needs: ['container-prep']
++
++
++xmllint:
++  extends:
++    - .default_setup
++  dependencies: ['meson_install']
++  needs: ['meson_install']
++  stage: test
++  script:
++    - xmllint --dtdvalid "$INSTDIR/share/X11/xkb/rules/xkb.dtd" $INSTDIR/share/X11/xkb/rules/*.xml > /dev/null
++
++
++match group names to registry:
++  extends:
++    - .default_setup
++  needs: ['container-prep']
++  stage: test
++  script:
++    - "./tests/verify-group-names.sh"
++
++
++# libxkbcommon's xkbcli list prints out YAML-like format, if yq cannot parse it, our
++# evdev.xml file is off
++xkbcli list check:
++  extends:
++    - .default_setup
++  dependencies: ['meson_install']
++  needs: ['meson_install']
++  stage: test
++  script:
++    - xkbcli list --skip-default-paths --load-exotic "$INSTDIR/share/X11/xkb" > rmlvo.yaml
++    - head -n20 rmlvo.yaml
++    - yq . rmlvo.yaml > /dev/null
++  artifacts:
++    when: on_failure
++    name: xbkcli list output
++    expire_in: 2 weeks
++    paths:
++      - rmlvo.yaml
++
++
++# Run the libxkbcommon layout test program. This will
++# run a basic keymap compile test against every combination of
++# layout/variant/option. Syntax errors will fail the test, check the
++# archived file for details.
++layout_tests:
++  extends: .default_setup
++  stage: test
++  needs:
++    - job: meson_install
++      artifacts: true
++    - job: xkbcommon build
++      artifacts: true
++  script:
++    # make sure the custom layout resolves to something
++    - ln -s "$INSTDIR/share/X11/xkb/symbols/us" "$INSTDIR/share/X11/xkb/symbols/custom"
++    # make sure the custom types resolves to something
++    - ln -s "$INSTDIR/share/X11/xkb/types/basic" "$INSTDIR/share/X11/xkb/types/custom"
++    # run xkbcommon test
++    - echo Running test script - this will take several minutes
++    # Ensure we use our local version of xkbcommon
++    - export LD_LIBRARY_PATH="$XKBCOMMON_INST_DIR/lib:$LD_LIBRARY_PATH"
++    # Ensure xkeyboard-config-test and xkbcli-compile-keymap are in the PATH
++    - export PATH="$XKBCOMMON_INST_DIR/bin:$XKBCOMMON_INST_DIR/libexec/xkbcommon:$PATH"
++    # For debugging: check if executable is working and output its XKB_CONFIG_ROOT
++    - xkbcli-compile-keymap --layout pc --verbose > /dev/null
++    - >
++      xkeyboard-config-test --verbose \
++          "$INSTDIR/share/X11/xkb/rules/evdev.xml" \
++          >  $INSTDIR/keymaps-success.yaml \
++          2> $INSTDIR/keymaps-failed.yaml
++    - >
++      xkeyboard-config-test --verbose \
++          "$INSTDIR/share/X11/xkb/rules/evdev.extras.xml" \
++          >>  $INSTDIR/keymaps-success.yaml \
++          2>> $INSTDIR/keymaps-failed.yaml
++  after_script:
++    - echo "Failed keymap compilations:"
++    - yq -c ".[] | select(.status != 0) | .cmd, .error" $INSTDIR/keymaps-failed.yaml
++    - successful_tests=$(yq ". | length" "$INSTDIR/keymaps-success.yaml")
++    - >
++      .gitlab-ci/yaml-to-junit-xml.py \
++        --additional-successful-tests $successful_tests \
++        "$INSTDIR/keymaps-failed.yaml" \
++        > junit-results.xml
++    - xz -z "$INSTDIR/keymaps-success.yaml"
++    - xz -z "$INSTDIR/keymaps-failed.yaml"
++  variables:
++    GIT_DEPTH: 1
++  artifacts:
++    when: on_failure
++    name: xkeyboard-config test output
++    expire_in: 2 weeks
++    paths:
++    - $INSTDIR/keymaps-success.yaml.xz
++    - $INSTDIR/keymaps-failed.yaml.xz
++    reports:
++      junit: junit-results.xml
++
++keymap_tests:
++  extends: .default_setup
++  stage: test
++  needs:
++    # use the installed tree from the meson_install job
++    - job: meson_install
++      artifacts: true
++    - job: xkbcommon build
++      artifacts: true
++  script:
++    # Configure the environment for our local xkbcommon build & Python bindings.
++    - export XKB_CONFIG_ROOT="$INSTDIR/share/X11/xkb"
++    - export XKBCOMMON_LIB_PATH="$XKBCOMMON_INST_DIR/lib/libxkbcommon.so"
++    - export PYTHONPATH="$PWD/tests:$PYTHONPATH"
++    # Run the tests
++    - pytest --junitxml=results.xml
++  artifacts:
++    reports:
++      junit: results.xml
+--- xkeyboard-config-2.42.orig/.gitlab-ci/evdev.in
++++ xkeyboard-config-2.42/.gitlab-ci/evdev.in
+@@ -0,0 +1,214 @@
++// translation from evdev scancodes to something resembling xfree86 keycodes.
++
++default xkb_keycodes "evdev" {
++	minimum = 8;
++	maximum = 255;
++
++	<TLDE> = 49;
++	<AE01> = 10;
++	<AE02> = 11;
++	<AE03> = 12;
++	<AE04> = 13;
++	<AE05> = 14;
++	<AE06> = 15;
++	<AE07> = 16;
++	<AE08> = 17;
++	<AE09> = 18;
++	<AE10> = 19;
++	<AE11> = 20;
++	<AE12> = 21;
++	<BKSP> = 22;
++
++	<TAB> = 23;
++	<AD01> = 24;
++	<AD02> = 25;
++	<AD03> = 26;
++	<AD04> = 27;
++	<AD05> = 28;
++	<AD06> = 29;
++	<AD07> = 30;
++	<AD08> = 31;
++	<AD09> = 32;
++	<AD10> = 33;
++	<AD11> = 34;
++	<AD12> = 35;
++	<BKSL> = 51;
++	<RTRN> = 36;
++
++	<CAPS> = 66;
++	<AC01> = 38;
++	<AC02> = 39;
++	<AC03> = 40;
++	<AC04> = 41;
++	<AC05> = 42;
++	<AC06> = 43;
++	<AC07> = 44;
++	<AC08> = 45;
++	<AC09> = 46;
++	<AC10> = 47;
++	<AC11> = 48;
++	alias <AC12> = <BKSL>;
++
++	<LFSH> = 50;
++	<LSGT> = 94;
++	<AB01> = 52;
++	<AB02> = 53;
++	<AB03> = 54;
++	<AB04> = 55;
++	<AB05> = 56;
++	<AB06> = 57;
++	<AB07> = 58;
++	<AB08> = 59;
++	<AB09> = 60;
++	<AB10> = 61;
++	<RTSH> = 62;
++
++	<LCTL> = 37;
++	<LWIN> = 133;
++	<LALT> = 64;
++	<SPCE> = 65;
++	<RALT> = 108;
++	alias <ALGR> = <RALT>;
++	<RWIN> = 134;
++	<COMP> = 135;
++	alias <MENU> = <COMP>;
++	<RCTL> = 105;
++
++	<ESC> = 9;
++	<FK01> = 67;
++	<FK02> = 68;
++	<FK03> = 69;
++	<FK04> = 70;
++	<FK05> = 71;
++	<FK06> = 72;
++	<FK07> = 73;
++	<FK08> = 74;
++	<FK09> = 75;
++	<FK10> = 76;
++	<FK11> = 95;
++	<FK12> = 96;
++
++	<PRSC> = 107;
++	<SCLK> = 78;
++	<PAUS> = 127;
++
++	<INS> = 118;
++	<HOME> = 110;
++	<PGUP> = 112;
++	<DELE> = 119;
++	<END> = 115;
++	<PGDN> = 117;
++
++	<UP> = 111;
++	<LEFT> = 113;
++	<DOWN> = 116;
++	<RGHT> = 114;
++
++	<NMLK> = 77;
++	<KPDV> = 106;
++	<KPMU> = 63;
++	<KPSU> = 82;
++
++	<KP7> = 79;
++	<KP8> = 80;
++	<KP9> = 81;
++	<KPAD> = 86;
++
++	<KP4> = 83;
++	<KP5> = 84;
++	<KP6> = 85;
++
++	<KP1> = 87;
++	<KP2> = 88;
++	<KP3> = 89;
++	<KPEN> = 104;
++
++	<KP0> = 90;
++	<KPDL> = 91;
++	<KPEQ> = 125;
++
++	<FK13> = 191;
++	<FK14> = 192;
++	<FK15> = 193;
++	<FK16> = 194;
++	<FK17> = 195;
++	<FK18> = 196;
++	<FK19> = 197;
++	<FK20> = 198;
++	<FK21> = 199;
++	<FK22> = 200;
++	<FK23> = 201;
++	<FK24> = 202;
++
++	// Keys that are generated on Japanese keyboards
++
++	alias <HZTG> = <TLDE>;	// Hankaku/Zenkaku toggle
++	<HKTG> = 101;	// Hiragana/Katakana toggle
++	<AB11> =  97;	// backslash/underscore
++	<HENK> = 100;	// Henkan
++	<MUHE> = 102;	// Muhenkan
++	<AE13> = 132;	// Yen
++	<KATA> =  98;	// Katakana
++	<HIRA> =  99;	// Hiragana
++	<JPCM> = 103;	// KPJPComma
++
++	// Keys that are generated on Korean keyboards
++
++	<HNGL> = 130;	// Hangul Latin toggle
++	<HJCV> = 131;	// Hangul to Hanja conversion
++
++	// Solaris compatibility
++
++	alias <LMTA> = <LWIN>;
++	alias <RMTA> = <RWIN>;
++	<MUTE> = 121;
++	<VOL-> = 122;
++	<VOL+> = 123;
++	<POWR> = 124;
++	<STOP> = 136;
++	<AGAI> = 137;
++	<PROP> = 138;
++	<UNDO> = 139;
++	<FRNT> = 140;
++	<COPY> = 141;
++	<OPEN> = 142;
++	<PAST> = 143;
++	<FIND> = 144;
++	<CUT>  = 145;
++	<HELP> = 146;
++	alias <OUTP> = <I235>;
++	alias <KITG> = <I236>;
++	alias <KIDN> = <I237>;
++	alias <KIUP> = <I238>;
++
++	// Extended keys that may be generated on "Internet" keyboards.
++	// evdev has standardize names for these.
++
++	<LNFD> = 109;	// #define KEY_LINEFEED            101
++
++	@evdevkeys@
++
++	// Fake keycodes for virtual keys
++	<LVL3> =   92;
++	<LVL5> =   203;
++	alias <MDSW> = <LVL5>;
++	<ALT>  =   204;
++	<META> =   205;
++	<SUPR> =   206;
++	<HYPR> =   207;
++
++	indicator 1  = "Caps Lock";
++	indicator 2  = "Num Lock";
++	indicator 3  = "Scroll Lock";
++	indicator 4  = "Compose";
++	indicator 5  = "Kana";
++	indicator 6  = "Sleep";
++	indicator 7  = "Suspend";
++	indicator 8  = "Mute";
++	indicator 9  = "Misc";
++	indicator 10 = "Mail";
++	indicator 11 = "Charging";
++
++	// For Brazilian ABNT2
++	alias <KPPT> = <I129>;
++};
+--- xkeyboard-config-2.42.orig/.gitlab-ci/generate-evdev-keycodes.py
++++ xkeyboard-config-2.42/.gitlab-ci/generate-evdev-keycodes.py
+@@ -0,0 +1,228 @@
++#!/usr/bin/env python3
++#
++# Generate the keycodes/evdev file from the names defined in
++# linux/input-event-codes.h
++#
++# Note that this script relies on libevdev to provide the key names and
++# those are compiled in. Ensure you have a recent-enough libevdev to
++# generate this list.
++#
++
++import argparse
++import contextlib
++import re
++import sys
++
++try:
++    import libevdev
++except ImportError:
++    print(
++        "WARNING: python-libevdev not available, cannot check for new evdev keycodes",
++        file=sys.stderr,
++    )
++    sys.exit(77)
++
++
++# The marker to search for in the template file, replaced with our generated
++# codes.
++replacement_marker = "@evdevkeys@"
++
++# These markers are put into the result file and are used to detect
++# the section that we added when parsing an existing file.
++section_header = "Key codes below are autogenerated"
++section_footer = "End of autogenerated key codes"
++
++
++def evdev_codes():
++    """
++    Return the dict {code, name} for all known evdev codes.
++
++    The list of names is compiled into libevdev.so, use a recent libevdev
++    release to get the most up-to-date list.
++    """
++    codes = {}
++    for c in libevdev.EV_KEY.codes:
++        # 112 because that's where our 1:1 keycode entries historically
++        # started.
++        # Undefined keys are those with a code < KEY_MAX but without a
++        # #define in the kernel header file
++        if c.value < 112 or not c.is_defined:
++            continue
++
++        if c.name.startswith("BTN_") or c.name == "KEY_MAX":
++            continue
++
++        codes[c.value] = c.name
++
++    return codes
++
++
++def existing_keys(lines):
++    """
++    Return the dict {code, name} for all existing keycodes in the templates
++    file.
++
++    This is a very simple parser, good enough for the keycodes/evdev file
++    but that's about it.
++    """
++    pattern = re.compile(r"\s+\<([^>]+)\>\s+=\s+(\d+);")
++    keys = {}
++    for line in lines:
++        match = re.match(pattern, line)
++        if not match:
++            continue
++        keys[int(match.group(2))] = match.group(1)
++
++    return keys
++
++
++def generate_keycodes_file(template, codes):
++    """
++    Generate a new keycodes/evdev file with line containing @evdevkeys@
++    replaced by the full list of known evdev key codes, including our
++    section_header/footer. Expected output:
++
++    ::
++
++    // $section_header
++    <I$keycode> = <$keycode + 8> // #define $kernel_name
++    ...
++    // $section_footer
++
++    """
++    lines = template.readlines()
++    existing = existing_keys(lines)
++
++    output = []
++    for line in lines:
++        if replacement_marker not in line:
++            output.append(line)
++            continue
++
++        output.append(f"\t// {section_header}\n")
++
++        warned = False
++        for code, name in codes.items():
++            xkeycode = code + 8
++
++            if xkeycode > 255 and not warned:
++                warned = True
++                output.append("\n")
++                output.append("\t// Key codes below cannot be used in X\n")
++                output.append("\n")
++
++            if xkeycode in existing:
++                output.append(
++                    f"\talias <I{xkeycode}> = <{existing[xkeycode]}>;	// #define {name:23s} {code}\n"
++                )
++                continue
++
++            output.append(
++                f"\t<I{xkeycode}> = {xkeycode};\t\t// #define {name:23s} {code}\n"
++            )
++
++        output.append(f"\t// {section_footer}\n")
++
++    return output
++
++
++def extract_generated_keycodes(fp):
++    """
++    Return an iterator the keycode of any <I123> keys between the section
++    header and footer.
++    """
++    in_generated_section = False
++    pattern = re.compile(".*<I([0-9]*)>.*")
++
++    for line in fp:
++        if section_header in line:
++            in_generated_section = True
++            continue
++        elif section_footer in line:
++            return
++        elif in_generated_section:
++            match = pattern.match(line)
++            if match:
++                yield int(match[1])
++
++
++def compare_with(codes, oldfile):
++    """
++    Extract the <I123> keycodes from between the section_header/footer of
++    oldfile and return a list of keycodes that are in codes but not in
++    oldfile.
++    """
++    old_keycodes = extract_generated_keycodes(oldfile)
++    keycodes = [c + 8 for c in codes]  # X keycode offset
++
++    # This does not detect keycodes in old_keycode but not in the new
++    # generated list - should never happen anyway.
++    return sorted(set(keycodes).difference(old_keycodes))
++
++
++def log_msg(msg):
++    print(msg, file=sys.stderr)
++
++
++def main():
++    parser = argparse.ArgumentParser(description="Generate the evdev keycode lists.")
++    parser.add_argument(
++        "--template",
++        type=argparse.FileType("r"),
++        default=open(".gitlab-ci/evdev.in"),
++        help="The template file (default: .gitlab-ci/evdev.in)",
++    )
++    parser.add_argument(
++        "--output",
++        type=str,
++        default="keycodes/evdev",
++        required=False,
++        help="The file to be written to (default: keycodes/evdev)",
++    )
++    parser.add_argument(
++        "--compare-with",
++        type=argparse.FileType("r"),
++        default=open("keycodes/evdev"),
++        help="Compare generated output with the given file (default: keycodes/evdev)",
++    )
++    parser.add_argument(
++        "--verbose",
++        action=argparse.BooleanOptionalAction,
++        help="Print verbose output to stderr",
++    )
++    ns = parser.parse_args()
++
++    codes = evdev_codes()
++    rc = 0
++    if ns.verbose:
++        kmin, kmax = min(codes.keys()), max(codes.keys())
++        log_msg(f"evdev keycode range: {kmin} ({kmin:#x}) → {kmax} ({kmax:#x})")
++
++    # We compare before writing so we can use the same filename for
++    # --compare-with and --output. That's also why --output has to be type
++    # str instead of FileType('w').
++    if ns.compare_with:
++        diff = compare_with(codes, ns.compare_with)
++        if diff:
++            rc = 1
++            if ns.verbose:
++                log_msg(
++                    f"File {ns.compare_with.name} is out of date, missing keycodes:"
++                )
++                for k in diff:
++                    name = codes[k - 8]  # remove the X offset
++                    log_msg(f"  <I{k}> // #define {name}")
++
++    with contextlib.ExitStack() as stack:
++        if ns.output == "-":
++            fd = sys.stdout
++        else:
++            fd = stack.enter_context(open(ns.output, "w"))
++        output = generate_keycodes_file(ns.template, codes)
++        fd.write("".join(output))
++
++    sys.exit(rc)
++
++
++if __name__ == "__main__":
++    main()
+--- xkeyboard-config-2.42.orig/.gitlab-ci/generate-evdev-keysyms.py
++++ xkeyboard-config-2.42/.gitlab-ci/generate-evdev-keysyms.py
+@@ -0,0 +1,161 @@
++#!/usr/bin/env python3
++#
++# Usage: generate-evdev-keysyms.py .gitlab-ci/inet.in > symbols/inet
++#
++# Generate the symbols/inet file from the names defined in
++# linux/input-event-codes.h
++#
++# Note that this script relies on libevdev to provide the key names and
++# those are compiled in. Ensure you have a recent-enough libevdev to
++# generate this list.
++#
++
++import contextlib
++import argparse
++import re
++import sys
++
++
++# The marker to search for in the template file, replaced with our generated
++# codes.
++replacement_marker = "@evdevsyms@"
++
++# These markers are put into the result file and are used to detect
++# the section that we added when parsing an existing file.
++section_header = "Key symbol mappings below are autogenerated"
++section_footer = "End of autogenerated key symbol mappings"
++
++
++def existing_keysyms(template):
++    """
++    Return an iterator of type (keycode, [keysym, keysym]) with the strings
++    representing the internal keycode (e.g. I123) and the assigned keysyms.
++
++    Only the "evdev" xkb_symbols section is parsed.
++    """
++    start_pattern = re.compile(r"xkb_symbols \"evdev\" {")
++    end_pattern = re.compile(r"^};")
++
++    # This does not handle multiline keysyms
++    keysym_pattern = re.compile(
++        r"\s+key \<(?P<keycode>\w+)\>\s+{\s+\[(?P<keysyms>[^]]+)\s*\]\s*};"
++    )
++
++    in_evdev = False
++
++    template.seek(0)
++    for line in template.readlines():
++        if re.match(start_pattern, line):
++            in_evdev = True
++            continue
++        if in_evdev:
++            if re.match(end_pattern, line):
++                break
++            match = re.match(keysym_pattern, line)
++            if match:
++                keycode = match.group("keycode")
++                keysyms = [k.strip() for k in match.group("keysyms").split(",")]
++                yield keycode, keysyms
++
++
++def xorgproto_evdev_keysyms(header):
++    """
++    Return an iterator of type ('XF86Foo', xkeycode, kernelname) for the keysyms in the
++    given header file (usually XF86keysym.h).
++
++    The returned xkeycode is the X keycode value (i.e. kernel value + 8)
++    """
++
++    # The two allowed formats in the proto header are:
++    # #define XF86XK_FooBar _EVDEVK(0x123) ... KEY_FOOBAR
++    # /* Use: XF86XK_FooBar _EVDEVK(0x123) ... KEY_FOOBAR
++    # The keysym may not start with XF86XK_ (e.g. "dollar" or "euro")
++    pattern = re.compile(
++        r"(#define|/\* Use:)\s(?P<keyname>\w+)\s+_EVDEVK\(0x(?P<keycode>[0-9A-Fa-f]+)\).*(?P<kernelname>KEY_\w+)"
++    )
++    for line in header:
++        match = re.match(pattern, line)
++        if match:
++            kernelname = match.group("kernelname")
++            keyname = match.group("keyname").replace("XK_", "")
++            keycode = int(match.group("keycode"), 16)
++            xkeycode = keycode + 8
++            yield keyname, xkeycode, kernelname
++
++
++def generate_symbols_file(template, header):
++    """
++    Generate a new symbols/inet file with line containing @evdevsyms@
++    replaced by the full list of evdev keysym mappings, including our
++    section_header/footer. Expected output: ::
++
++        // $section_header
++           key <I$keycode> {      [ XF86Foo       ]       }; // KEY_FOO
++        // key <I$keycode> { if assignment already exists }; // KEY_FOO
++        ...
++        // $section_footer
++
++    Assignments that already exist in the file are commented out.
++    """
++
++    # We only care about the I123-style keysyms here
++    keysyms = {
++        int(kc[1:])
++        for kc, _ in existing_keysyms(template)
++        if re.match(r"I[0-9]{3}", kc)
++    }
++
++    output = []
++    template.seek(0)
++    for line in template.readlines():
++        if replacement_marker not in line:
++            output.append(line)
++            continue
++
++        output.append(f"   // {section_header}\n")
++        for name, xkeycode, kernelname in xorgproto_evdev_keysyms(header):
++            if xkeycode in keysyms:
++                prefix = "//"
++            else:
++                prefix = "  "
++            output.append(
++                f"{prefix} key <I{xkeycode}>   {{       [ {name:30s} ]      }}; // {kernelname}\n"
++            )
++        output.append(f"  // {section_footer}\n")
++
++    return output
++
++
++def main():
++    parser = argparse.ArgumentParser(description="Generate the evdev symbol lists.")
++    parser.add_argument(
++        "--template",
++        type=argparse.FileType("r"),
++        default=".gitlab-ci/inet.in",
++        help="The template file, usually .gitlab-ci/inet.in",
++    )
++    parser.add_argument(
++        "--header",
++        type=argparse.FileType("r"),
++        help="Path to the XF86keysym.h header file",
++        default="/usr/include/X11/XF86keysym.h",
++    )
++    parser.add_argument(
++        "--output",
++        type=str,
++        help="The file to be written to, usually symbols/inet",
++        default="symbols/inet",
++    )
++    ns = parser.parse_args()
++
++    with contextlib.ExitStack() as stack:
++        if ns.output == "-":
++            fd = sys.stdout
++        else:
++            fd = stack.enter_context(open(ns.output, "w"))
++        output = generate_symbols_file(ns.template, ns.header)
++        fd.write("".join(output))
++
++
++if __name__ == "__main__":
++    main()
+--- xkeyboard-config-2.42.orig/.gitlab-ci/inet.in
++++ xkeyboard-config-2.42/.gitlab-ci/inet.in
+@@ -0,0 +1,1867 @@
++// EAK (Easy Access keyboards: Internet, Multimedia, PDA)
++// Copyright (C) 2002 Stanislav Brabec <sbrabec@suse.cz>
++//
++// Based on the LinEAK project.
++// LinEAK - Linux support for Easy Access and Internets
++// Copyright (C) 2001, 2002 Mark Smulders <Mark@PIRnet.nl>
++
++// Usage in XF86Config:
++// Option "XkbLayout"	"my_kb_layout"
++// Option "XkbVariant"	"my_kb_variant"
++// Option "XkbModel"	"my_eak_type"
++// Option "XkbRules"	"xfree86"
++// Simple command line usage:
++// setxkbmap 'my_kb_layout' -variant 'my_kb_variant' -model 'my_eak_type'
++
++// Very common set of media keys.
++hidden partial alphanumeric_keys
++xkb_symbols "media_common" {
++    key <I01>   {       [ XF86AudioMedia        ] };
++    key <I10>   {       [ XF86AudioPrev         ] };
++    key <I19>   {       [ XF86AudioNext         ] };
++    key <I20>   {       [ XF86AudioMute         ] };
++    key <I22>   {       [ XF86AudioPlay, XF86AudioPause ] };
++    key <I24>   {       [ XF86AudioStop, XF86Eject ] };
++    key <I2E>   {       [ XF86AudioLowerVolume  ] };
++    key <I30>   {       [ XF86AudioRaiseVolume  ] };
++    key <K5A>   {       [ XF86Eject             ] };
++    key <K6C>   {       [ XF86Eject             ] };
++};
++
++// Popular web navigation keys.
++hidden partial alphanumeric_keys
++xkb_symbols "nav_common" {
++    key <I21>   {       [ XF86Calculator        ] };
++    key <I32>   {       [ XF86WWW               ] };
++    key <I65>   {       [ XF86Search            ] };
++    key <I66>   {       [ XF86Favorites         ] };
++    key <I67>   {       [ XF86Reload            ] };
++    key <I68>   {       [ XF86Stop              ] };
++    key <I69>   {       [ XF86Forward           ] };
++    key <I6A>   {       [ XF86Back              ] };
++    key <I6B>   {       [ XF86MyComputer        ] };
++    key <I6C>   {       [ XF86Mail              ] };
++    key <I6D>   {       [ XF86AudioMedia        ] };
++};
++
++// ACPI Standard
++hidden partial alphanumeric_keys
++xkb_symbols "acpi_common" {
++    key <I5E>	{	[ XF86PowerOff		]	};
++    key <I5F>	{	[ XF86Standby		]	};
++    key <I63>	{	[ XF86WakeUp		]	};
++    key <I74>	{	[ XF86Battery		]	};
++    key <I76>	{	[ XF86WLAN		]	};
++    key <I16>	{	[ XF86Sleep		]	};
++};
++
++// Combined sections, for simplicity.
++hidden partial alphanumeric_keys
++xkb_symbols "media_nav_common" {
++    include "inet(media_common)"
++    include "inet(nav_common)"
++};
++
++hidden partial alphanumeric_keys
++xkb_symbols "media_nav_acpi_common" {
++    include "inet(media_common)"
++    include "inet(nav_common)"
++    include "inet(acpi_common)"
++};
++
++hidden partial alphanumeric_keys
++xkb_symbols "nav_acpi_common" {
++    include "inet(nav_common)"
++    include "inet(acpi_common)"
++};
++
++hidden partial alphanumeric_keys
++xkb_symbols "media_acpi_common" {
++    include "inet(media_common)"
++    include "inet(acpi_common)"
++};
++
++// Evdev Standardized Keycodes
++partial alphanumeric_keys
++xkb_symbols "evdev" {
++    key <MUTE>   {      [ XF86AudioMute         ]       };
++    key <VOL->   {      [ XF86AudioLowerVolume  ]       };
++    key <VOL+>   {      [ XF86AudioRaiseVolume  ]       };
++    key <POWR>   {      [ XF86PowerOff          ]       };
++    key <STOP>   {      [ Cancel                ]       };
++    key <AGAI>   {      [ Redo                  ]       };
++    key <PROP>   {      [ SunProps              ]       };
++    key <UNDO>   {      [ Undo                  ]       };
++    key <FRNT>   {      [ SunFront              ]       };
++    key <COPY>   {      [ XF86Copy              ]       };
++    key <OPEN>   {      [ XF86Open              ]       };
++    key <PAST>   {      [ XF86Paste             ]       };
++    key <FIND>   {      [ Find                  ]       };
++    key <CUT>    {      [ XF86Cut               ]       };
++    key <HELP>   {      [ Help                  ]       };
++    key <LNFD>   {      [ Linefeed              ]       };
++
++    key <FK21>   {      [ XF86TouchpadToggle    ]       };
++    key <FK22>   {      [ XF86TouchpadOn        ]       };
++    key <FK23>   {      [ XF86TouchpadOff       ]       };
++
++    key <FK20>   {      [ XF86AudioMicMute      ]       };
++
++//  key <I120>   {      [ ]       }; // KEY_MACRO
++    key <I126>   {      [ plusminus             ]       };
++    key <I128>   {      [ XF86LaunchA           ]       };
++    key <I147>   {      [ XF86MenuKB            ]       };
++    key <I148>   {      [ XF86Calculator        ]       };
++//  key <I149>   {      [ ]       }; // KEY_SETUP
++    key <I150>   {      [ XF86Sleep             ]       };
++    key <I151>   {      [ XF86WakeUp            ]       };
++    key <I152>   {      [ XF86Explorer          ]       };
++    key <I153>   {      [ XF86Send              ]       };
++//  key <I154>   {      [ ]       }; // KEY_DELETEFILE
++    key <I155>   {      [ XF86Xfer              ]       };
++    key <I156>   {      [ XF86Launch1           ]       };
++    key <I157>   {      [ XF86Launch2           ]       };
++    key <I158>   {      [ XF86WWW               ]       };
++    key <I159>   {      [ XF86DOS               ]       };
++    key <I160>   {      [ XF86ScreenSaver       ]       };
++    key <I161>   {      [ XF86RotateWindows     ]       };
++    key <I162>   {      [ XF86TaskPane          ]       };
++    key <I163>   {      [ XF86Mail              ]       };
++    key <I164>   {      [ XF86Favorites         ]       };
++    key <I165>   {      [ XF86MyComputer        ]       };
++    key <I166>   {      [ XF86Back              ]       };
++    key <I167>   {      [ XF86Forward           ]       };
++//  key <I168>   {      [ ]       }; // KEY_CLOSECD (opposite of eject)
++    key <I169>   {      [ XF86Eject             ]       };
++    key <I171>   {      [ XF86AudioNext         ]       };
++    key <I172>   {      [ XF86AudioPlay, XF86AudioPause ] };
++    key <I173>   {      [ XF86AudioPrev         ]       };
++    key <I174>   {      [ XF86AudioStop, XF86Eject ]    };
++    key <I175>   {      [ XF86AudioRecord       ]       };
++    key <I176>   {      [ XF86AudioRewind       ]       };
++    key <I177>   {      [ XF86Phone             ]       };
++//  key <I178>   {      [ ]       }; // KEY_ISO
++    key <I179>   {      [ XF86Tools             ]       };
++    key <I180>   {      [ XF86HomePage          ]       };
++    key <I181>   {      [ XF86Reload           ]       };
++    key <I182>   {      [ XF86Close             ]       };
++//  key <I183>   {      [ ]       }; // KEY_MOVE
++//  key <I184>   {      [ ]       }; // KEY_EDIT
++    key <I185>   {      [ XF86ScrollUp          ]       };
++    key <I186>   {      [ XF86ScrollDown        ]       };
++    key <I187>   {      [ parenleft             ]       };
++    key <I188>   {      [ parenright            ]       };
++    key <I192>   {      [ XF86LaunchA           ]       };
++    key <I193>   {      [ XF86LaunchC           ]       };
++    key <I194>   {      [ XF86LaunchD           ]       };
++    key <I195>   {      [ XF86LaunchE           ]       };
++    key <I196>   {      [ XF86LaunchF           ]       };
++    key <I208>   {      [ XF86AudioPlay         ]       };
++    key <I209>   {      [ XF86AudioPause        ]       };
++    key <I210>   {      [ XF86Launch3           ]       };
++    key <I211>   {      [ XF86Launch4           ]       };
++    key <I213>   {      [ XF86Suspend           ]       };
++    key <I214>   {      [ XF86Close             ]       };
++    key <I215>   {      [ XF86AudioPlay         ]       };
++    key <I216>   {      [ XF86AudioForward      ]       };
++//  key <I217>   {      [ ]       }; // KEY_BASSBOOST
++    key <I218>   {      [ Print                 ]       };
++//  key <I219>   {      [ ]       }; // KEY_HP
++    key <I220>   {      [ XF86WebCam            ]       };
++    key <I221>   {      [ XF86AudioPreset       ]       };
++//  key <I222>   {      [ ]       }; // KEY_QUESTION
++    key <I223>   {      [ XF86Mail              ]       };
++    key <I224>   {      [ XF86Messenger         ]       }; // KEY_CHAT
++    key <I225>   {      [ XF86Search            ]       };
++    key <I226>   {      [ XF86Go                ]       }; // KEY_CONNECT
++    key <I227>   {      [ XF86Finance           ]       };
++    key <I228>   {      [ XF86Game              ]       }; // KEY_SPORT
++    key <I229>   {      [ XF86Shop              ]       };
++//  key <I230>   {      [ ]       }; // KEY_ALTERASE
++    key <I231>   {      [ Cancel                ]       };
++    key <I232>   {      [ XF86MonBrightnessDown ]       };
++    key <I233>   {      [ XF86MonBrightnessUp   ]       };
++    key <I234>   {      [ XF86AudioMedia        ]       };
++//  key <I235>   {      [ ]                             }; // see <OUTP>
++//  key <I236>   {      [ ]                             }; // see <KITG>
++//  key <I237>   {      [ ]                             }; // see <KIDN>
++//  key <I238>   {      [ ]                             }; // see <KIUP>
++
++    key <I372>  {       [ XF86Favorites          ]       };
++    key <I382>  {       [ XF86Keyboard           ]       };
++
++    key <FK13>   {      [ XF86Tools         ]       };
++    key <FK14>   {      [ XF86Launch5       ]       };
++    key <FK15>   {      [ XF86Launch6       ]       };
++    key <FK16>   {      [ XF86Launch7       ]       };
++    key <FK17>   {      [ XF86Launch8       ]       };
++    key <FK18>   {      [ XF86Launch9       ]       };
++
++    @evdevsyms@
++};
++
++
++// Acer
++
++// Acer AirKey V
++partial alphanumeric_keys
++xkb_symbols "airkey" {
++    include "inet(acpi_common)"
++    key <I13>	{	[ XF86AudioNext		]	};
++    key <I15>	{	[ XF86AudioPlay, XF86AudioPause ] };
++    key <I16>	{	[ XF86Mail		]	};
++    key <I18>	{	[ XF86AudioPrev		]	};
++    key <I19>	{	[ XF86AudioMute		]	};
++    key <I24>	{	[ XF86WWW		]	};
++    key <I26>	{	[ XF86AudioLowerVolume	]	};
++    key <I2D>	{	[ XF86AudioRaiseVolume	]	};
++    key <I2F>	{	[ XF86Terminal		]	};
++    key <I31>	{	[ XF86AudioStop, XF86Eject ]	};
++};
++
++// Acer C300 laptop
++partial alphanumeric_keys
++xkb_symbols "acer_c300" {
++    include "inet(nav_common)"
++    key <I17>   {       [ F14                   ]       };
++    key <I1F>   {       [ F13                   ]       };
++    key <I20>   {       [ XF86AudioMute         ]       };
++    key <I2E>   {       [ XF86AudioLowerVolume  ]       };
++    key <I30>   {       [ XF86AudioRaiseVolume  ]       };
++    key <I5E>   {       [ XF86Launch2           ]       };
++    key <I75>   {       [ Help                  ]       };
++    key <IR7C>  {       [ XF86Launch1           ]       };
++};
++
++// Acer Ferrari 4000 Keyboard
++// From Alex Dubov <oakad@yahoo.com>
++partial alphanumeric_keys
++xkb_symbols "acer_ferrari4k" {
++    include "inet(media_nav_common)"
++    key <I24>   {       [ dollar                ]       };
++    key <I25>   {       [ EuroSign              ]       };
++    key <I26>   {       [ XF86Display           ]       };
++    // Missing keycodes - set-up with setkeycodes
++    key <I70>   {       [ Help                  ]       };
++    key <I71>   {       [ XF86Launch1           ]       };
++    key <I72>   {       [ XF86Launch2           ]       };
++    key <I73>   {       [ XF86Launch3           ]       };
++    key <I74>   {       [ XF86Launch4           ]       };
++};
++
++// Acer laptop (Generic layout for Acer laptops from 2004 onwards)
++// From Carlos Corbacho <cathectic@gmail.com>
++// Keys marked (HAL) require HAL 0.5.10 (or newer) to be set up correctly
++// (Your laptop must also be added to hal-info)
++// (Not all these keys will be available on every Acer laptop)
++partial alphanumeric_keys
++xkb_symbols "acer_laptop" {
++    include "inet(media_nav_acpi_common)"
++    key <I17>   {       [ XF86Launch2           ]        }; // "P" or "P2" (HAL)
++    key <I1F>   {       [ XF86Launch1           ]        }; // "e" or "P1" (HAL)
++
++    // Hotkeys (Function)
++    // Launch Keys
++    // Device keys
++    key <I56>   {       [ XF86Display           ]        }; // Fn+F5 (HAL)
++    key <I71>   {       [ XF86Launch4           ]        }; // Fn+F3 (HAL)
++    key <I72>   {       [ XF86LaunchB           ]        }; // Bluetooth (HAL)
++    key <I73>   {       [ XF86LaunchA           ]        }; // Wireless (HAL)
++    key <I75>   {       [ Help                  ]        }; // Fn+F1 (HAL)
++    key <I79>   {       [ XF86Launch5           ]        }; // Fn+F7 (HAL)
++    key <K66>   {       [ XF86Launch3           ]        }; // Fn+F2 (HAL)
++
++    // Special Characters
++    // To avoid setting a precedent/standard that will be broken in later
++    // versions of HAL, these keys are commented out for now. When they are no
++    // longer marked 'FIXME' and have saner keycodes, these two entries can be
++    // fixed and permanently uncommented. In the meantime, just uncomment these
++    // to make the keys work.
++//  key <K5D>   {       [ EuroSign              ]        }; // Euro (HAL)
++//  key <K5E>   {       [ dollar                ]        }; // Dollar (HAL)
++};
++
++
++// Azona
++
++// Azona RF2300 Wireless Internet
++partial alphanumeric_keys
++xkb_symbols "azonaRF2300" {
++    // From Radics Laszlo <garaboncias@mailbox.hu>
++    include "inet(nav_acpi_common)"
++    key <I02>   {       [ XF86HomePage          ]       };
++    key <I17>   {       [ XF86AudioStop         ]       };
++    key <I1E>   {       [ XF86AudioRaiseVolume  ]       };
++    key <I1F>   {       [ XF86AudioPlay, XF86AudioPause ] };
++    key <I22>   {       [ XF86AudioNext         ]       };
++    key <I24>   {       [ XF86AudioPrev         ]       };
++    key <I25>   {       [ XF86AudioLowerVolume  ]       };
++    key <I26>   {       [ XF86AudioMute         ]       };
++    key <I3C>   {       [ XF86Copy              ]       };
++    key <I78>   {       [ XF86Cut               ]       };
++//  key <RCTL>  {       [ XF86Paste             ]       };
++};
++
++
++// Brother
++
++// Brother Internet
++partial alphanumeric_keys
++xkb_symbols "brother" {
++    include "inet(acpi_common)"
++    key <I10>	{	[ XF86ScrollUp		]	};
++    key <I12>	{	[ XF86AudioPlay, XF86AudioPause ] };
++    key <I17>	{	[ XF86AudioPrev		]	};
++    key <I18>	{	[ XF86ScrollDown	]	};
++    key <I19>	{	[ XF86ZoomOut		]	};
++    key <I1E>	{	[ XF86AudioMute		]	};
++    key <I21>	{	[ XF86WWW		]	};
++    key <I22>	{	[ Menu			]	};
++    key <I23>	{	[ XF86AudioStop		]	};
++    key <I24>	{	[ XF86Calculator	]	};
++    key <I25>	{	[ XF86Xfer		]	};
++    key <I26>	{	[ XF86Mail		]	};
++    key <I2E>	{	[ XF86AudioNext		]	};
++    key <I30>	{	[ XF86AudioRaiseVolume	]	};
++    key <I32>	{	[ XF86ZoomIn		]	};
++    key <I68>	{	[ XF86AudioLowerVolume	]	};
++};
++
++
++// BTC
++
++// BTC 5113RF Multimedia
++partial alphanumeric_keys
++xkb_symbols "btc5113rf" {
++    include "inet(acpi_common)"
++    key <I10>	{	[ XF86AudioStop		]	};
++    key <I12>	{	[ XF86AudioMute		]	};
++    key <I19>	{	[ XF86AudioPlay, XF86AudioPause ] };
++    key <I1E>	{	[ XF86AudioRaiseVolume	]	};
++    key <I20>	{	[ XF86Favorites		]	};
++    key <I21>	{	[ XF86Eject		]	};
++    key <I22>	{	[ XF86AudioPrev		]	};
++    key <I24>	{	[ XF86AudioNext		]	};
++    key <I25>	{	[ XF86AudioLowerVolume	]	};
++    key <I26>	{	[ XF86Back		]	};
++    key <I30>	{	[ XF86WWW		]	};
++    key <I32>	{	[ XF86Search		]	};
++};
++
++// BTC 9000
++partial alphanumeric_keys
++xkb_symbols "btc9000" {
++    include "inet(acpi_common)"
++    key <I10>	{	[ XF86AudioStop		]	};
++    key <I12>	{	[ XF86AudioMute		]	};
++    key <I19>	{	[ XF86AudioPlay, XF86AudioPause ] };
++    key <I1E>	{	[ XF86AudioRaiseVolume	]	};
++    key <I20>	{	[ XF86Favorites		]	};
++    key <I21>	{	[ XF86AudioMedia	]	};
++    key <I22>	{	[ XF86AudioPrev		]	};
++    key <I24>	{	[ XF86AudioNext		]	};
++    key <I25>	{	[ XF86AudioLowerVolume	]	};
++    key <I26>	{	[ XF86Reload		]	};
++    key <I2E>	{	[ XF86Mail		]	};
++    key <I30>	{	[ XF86HomePage		]	};
++    key <I32>	{	[ XF86Search		]	};
++};
++
++// BTC 9000A
++partial alphanumeric_keys
++xkb_symbols "btc9000a" {
++    include "inet(acpi_common)"
++    key <I10>	{	[ XF86AudioStop		]	};
++    key <I12>	{	[ XF86AudioMute		]	};
++    key <I19>	{	[ XF86AudioPlay, XF86AudioPause ] };
++    key <I1E>	{	[ XF86AudioRaiseVolume	]	};
++    key <I20>	{	[ XF86Favorites		]	};
++    key <I21>	{	[ XF86Eject		]	};
++    key <I22>	{	[ XF86AudioPrev		]	};
++    key <I24>	{	[ XF86AudioNext		]	};
++    key <I25>	{	[ XF86AudioLowerVolume	]	};
++    key <I26>	{	[ XF86HomePage		]	};
++    key <I2E>	{	[ Help			]	};
++    key <I30>	{	[ XF86WWW		]	};
++    key <I32>	{	[ XF86Search		]	};
++};
++
++// BTC 9001AH
++xkb_symbols "btc9001ah" {
++    include "inet(acpi_common)"
++    key <I02>   {       [ XF86HomePage          ]       };
++    key <I17>   {       [ XF86AudioStop         ]       };
++    key <I1E>   {       [ XF86AudioRaiseVolume  ]       };
++    key <I1F>   {       [ XF86AudioPlay, XF86AudioPause ] };
++    key <I22>   {       [ XF86AudioNext         ]       };
++    key <I24>   {       [ XF86AudioPrev         ]       };
++    key <I25>   {       [ XF86AudioLowerVolume  ]       };
++    key <I26>   {       [ XF86AudioMute         ]       };
++    key <I6C>   {       [ XF86Mail              ]       };
++    key <RWIN>  {       [ XF86Eject             ]       };
++};
++
++// BTC 5090
++partial alphanumeric_keys
++xkb_symbols "btc5090" {
++    include "inet(media_nav_acpi_common)"
++    key <I26>   {       [ XF86Start             ]       };
++    key <I33>   {       [ XF86Eject             ]       };
++};
++
++// BTC 9019U
++partial alphanumeric_keys
++xkb_symbols "btc9019u" {
++    include "inet(media_nav_acpi_common)"
++    key <FK17> {	[ XF86Search		]	};
++    key <I02>  {	[ XF86HomePage		]	};
++};
++
++
++// Cherry
++
++// Cherry Blue Line CyBo@rd
++partial alphanumeric_keys
++xkb_symbols "cherryblue" {
++    include "inet(nav_common)"
++    key <FK16>	{	[ XF86Reload		]	};
++    key <I02>	{	[ XF86HomePage		]	};
++    key <I17>	{	[ XF86AudioStop		]	};
++    key <I1E>	{	[ XF86AudioRaiseVolume	]	};
++    key <I1F>	{	[ XF86AudioPlay, XF86AudioPause ] };
++    key <I22>	{	[ XF86AudioNext		]	};
++    key <I24>	{	[ XF86AudioPrev		]	};
++    key <I25>	{	[ XF86AudioLowerVolume	]	};
++    key <I26>	{	[ XF86AudioMute		]	};
++    key <I63>	{	[ XF86Standby		]	};
++    key <PRSC>	{	[ XF86Terminal		]	};
++    key <IR7C>	{	[ XF86Go		]	};
++};
++
++// Cherry CyMotion Master XPress
++partial alphanumeric_keys
++xkb_symbols "cherryblueb" {
++    include "inet(media_nav_common)"
++    key <FK16>  {       [ XF86Reload            ]       };
++    key <I02>   {       [ XF86HomePage          ]       };
++    key <I07>   {       [ XF86Forward           ]       };
++    key <I08>   {       [ XF86Back              ]       };
++    key <I0A>   {       [ XF86Copy              ]       };
++    key <I0B>	{	[ XF86ScrollUp		]	};
++    key <I12>   {       [ XF86ScrollDown        ]       };
++    key <I17>   {       [ XF86Cut               ]       };
++    key <I18>   {       [ XF86Paste             ]       };
++    key <I1E>   {       [ XF86AudioRaiseVolume  ]       };
++    key <I25>   {       [ XF86AudioLowerVolume  ]       };
++    key <I26>   {       [ XF86AudioMute         ]       };
++    key <I2C>   {       [ XF86Book              ]       };
++    key <I32>   {       [ XF86Finance           ]       };
++    key <I63>   {       [ XF86Standby                   ] };
++    key <I67>   {       [ XF86AudioRewind       ]       };
++    key <I70>   {       [ XF86Eject             ]       };
++    key <I71>   {       [ XF86Book              ]       };
++    key <I72>   {       [ XF86Book              ]       };
++    key <PRSC>  {       [ XF86Terminal          ]       };
++    key <IR7C>  {       [ XF86Go                ]       };
++};
++
++// Cherry Blue Line CyBo@rd (alt.)
++partial alphanumeric_keys
++xkb_symbols "cherrybluea" {
++    include "inet(media_nav_acpi_common)"
++    key <I6D>	{	[ XF86Go		]	};
++};
++
++// Cherry CyBo@rd USB-Hub
++partial alphanumeric_keys
++xkb_symbols "cherrycyboard" {
++    include "inet(media_nav_acpi_common)"
++    key <FK17>    {   [ XF86Search        ]   };
++    key <I02> {   [ XF86HomePage      ]   };
++    key <K67> {   [ XF86Terminal      ]   };
++    key <IR7C>    {   [ XF86AudioMedia    ]   };
++};
++
++// Cherry CyMotion Expert
++partial alphanumeric_keys
++xkb_symbols "cherrycmexpert" {
++    include "inet(cherryblueb)"
++    include "inet(acpi_common)"
++    key <FK15>	{	[ XF86Mail		]	};
++};
++
++
++// Chicony
++
++// Chicony Internet
++partial alphanumeric_keys
++xkb_symbols "chicony" {
++    include "inet(acpi_common)"
++    key <I12>	{	[ XF86AudioMute		]	};
++    key <I17>	{	[ XF86Mail		]	};
++    key <I19>	{	[ XF86AudioLowerVolume	]	};
++    key <I1E>	{	[ XF86Forward		]	};
++    key <I20>	{	[ XF86AudioNext		]	};
++    key <I21>	{	[ XF86AudioPlay, XF86AudioPause ] };
++    key <I22>	{	[ XF86AudioPrev		]	};
++    key <I23>	{	[ XF86AudioRaiseVolume	]	};
++    key <I24>	{	[ XF86AudioStop		]	};
++    key <I25>	{	[ XF86Back		]	};
++    key <I26>	{	[ XF86LaunchB		]	};
++    key <I2E>	{	[ XF86LaunchC		]	};
++    key <I30>	{	[ XF86LaunchA		]	};
++    key <I32>	{	[ XF86WWW		]	};
++    key <I5F>	{	[ XF86ContrastAdjust	]	};
++    key <I63>	{	[ XF86BrightnessAdjust	]	};
++};
++
++// Chicony KU-0108
++partial alphanumeric_keys
++xkb_symbols "chicony0108" {
++    include "inet(cherrycyboard)"
++};
++
++// Chicony KU-0420 AKA Targus Slim Internet Media USB Keyboard
++partial alphanumeric_keys
++xkb_symbols "chicony0420" {
++    include "inet(media_nav_acpi_common)"
++    key <I01>   {       [ XF86AudioMedia        ]       };
++    key <K67>   {       [ XF86MyComputer        ]       };
++};
++
++// Chicony KB-9885
++partial alphanumeric_keys
++xkb_symbols "chicony9885" {
++    include "inet(acpi_common)"
++    key <I12>	{	[ XF86AudioMute		]	};
++    key <I17>	{	[ XF86Mail		]	};
++    key <I19>	{	[ XF86AudioLowerVolume	]	};
++    key <I1E>	{	[ XF86Forward		]	};
++    key <I20>	{	[ XF86AudioNext		]	};
++    key <I21>	{	[ XF86AudioPlay, XF86AudioPause ] };
++    key <I22>	{	[ XF86AudioPrev		]	};
++    key <I23>	{	[ XF86AudioRaiseVolume	]	};
++    key <I24>	{	[ XF86AudioStop		]	};
++    key <I25>	{	[ XF86Back		]	};
++    key <I26>	{	[ XF86LaunchB		]	};
++    key <I2E>	{	[ XF86LaunchC		]	};
++    key <I30>	{	[ XF86LaunchA		]	};
++    key <I32>	{	[ XF86WWW		]	};
++};
++
++
++// Compaq
++
++// Compaq Easy Access
++partial alphanumeric_keys
++xkb_symbols "compaqeak8" {
++    key <I13>	{	[ XF86Community		]	};
++    key <I14>	{	[ XF86Market		]	};
++    key <I15>	{	[ XF86Meeting		]	};
++    key <I1A>	{	[ XF86Search		]	};
++    key <I1B>	{	[ XF86News		]	};
++    key <I1E>	{	[ XF86Mail		]	};
++    key <I1F>	{	[ XF86HomePage		]	};
++    key <I23>	{	[ XF86WWW		]	};
++};
++
++// Compaq Internet (7 keys)
++partial alphanumeric_keys
++xkb_symbols "compaqik7" {
++    key <I12>	{	[ XF86LightBulb		]	};
++    key <I1E>	{	[ XF86Mail		]	};
++    key <I21>	{	[ XF86Search		]	};
++    key <I23>	{	[ Help			]	};
++    key <I25>	{	[ XF86VendorHome	]	};
++    key <I26>	{	[ XF86HomePage		]	};
++    key <I32>	{	[ XF86Shop		]	};
++};
++
++// Compaq Internet (13 keys)
++partial alphanumeric_keys
++xkb_symbols "compaqik13" {
++    include "inet(media_acpi_common)"
++    key <I1E>	{	[ XF86Mail		]	};
++    key <I1F>	{	[ XF86Go		]	};
++    key <I21>	{	[ XF86Search		]	};
++    key <I23>	{	[ XF86WWW		]	};
++    key <I32>	{	[ XF86Shop		]	};
++};
++
++// Compaq Internet (18 keys)
++partial alphanumeric_keys
++xkb_symbols "compaqik18" {
++    include "inet(media_acpi_common)"
++    key <I12>	{	[ XF86LightBulb		]	};
++    key <I18>	{	[ XF86Eject		]	};
++    key <I1E>	{	[ XF86Mail		]	};
++    key <I1F>	{	[ XF86Go		]	};
++    key <I21>	{	[ XF86Search		]	};
++    key <I23>	{	[ XF86WWW		]	};
++    key <I25>	{	[ XF86VendorHome	]	};
++    key <I26>	{	[ XF86Community		]	};
++    key <I32>	{	[ XF86Shop		]	};
++    key <I68>	{	[ Print			]	};
++};
++
++// laptop/notebook Compaq (eg. Armada, Evo) laptop Keyboard
++partial alphanumeric_keys
++xkb_symbols "armada" {
++    include "inet(media_acpi_common)"
++    key <I1A>	{	[ XF86Search		]	};
++    key <I1E>	{	[ XF86Mail		]	};
++    key <I1F>	{	[ XF86HomePage		]	};
++    key <I23>	{	[ XF86WWW		]	};
++    key <I59>   {       [ XF86Launch2           ]       }; // Battery Monitor
++    key <I6F>	{	[ XF86AudioMedia	]	};
++    key <I75>   {       [ XF86Launch0           ]       }; // Info Center
++};
++
++// Compaq Presario laptop
++partial alphanumeric_keys
++xkb_symbols "presario" {
++    include "inet(media_acpi_common)"
++    key <I14>	{	[ XF86Q			]	};
++    key <I18>	{	[ XF86Launch2		]	};
++    key <I1E>	{	[ XF86Mail		]	};
++    key <I1F>	{	[ XF86Launch1		]	};
++    key <I23>	{	[ XF86WWW		]	};
++    key <I32>	{	[ XF86Shop		]	};
++    key <I75>	{	[ XF86AudioMedia	]	};
++};
++
++// Compaq iPaq
++partial alphanumeric_keys
++xkb_symbols "ipaq" {
++    key <FK16>	{	[ XF86Shop		]	};
++    key <I02>	{	[ XF86Standby		]	};
++    key <I65>	{	[ XF86Search		]	};
++    key <I66>	{	[ XF86Travel		]	};
++    key <I69>	{	[ XF86BackForward	]	};
++    key <I6A>	{	[ XF86Q			]	};
++    key <I6C>	{	[ XF86Mail		]	};
++};
++
++
++// Dell
++
++partial alphanumeric_keys
++xkb_symbols "dell" {
++    include "inet(acpi_common)"
++    key <I12>	{	[ XF86Mail		]	};
++    key <I1E>	{	[ XF86Search		]	};
++    key <I26>	{	[ XF86HomePage		]	};
++};
++
++// Dell Precision M65 laptop
++partial alphanumeric_keys
++xkb_symbols "dellm65" {
++    include "inet(media_common)"
++    key <I04>   {       [ XF86PowerOff          ]       };
++    key <LWIN>  {       [ Super_L               ]       };
++};
++
++// laptop/notebook Dell Inspiron 8xxx
++partial alphanumeric_keys
++xkb_symbols "inspiron" {
++    include "inet(media_common)"
++    key <I02>   {       [ XF86AudioStop         ]       };
++    key <I04>   {       [ XF86AudioNext         ]       };
++    key <I21>   {       [ XF86Eject             ]       };
++    key <I56>   {       [ XF86Display           ]       };
++    key <IR7D>  {       [ XF86AudioPrev         ]       };
++    key <IR7C>  {       [ XF86AudioPlay, XF86AudioPause ] };
++};
++
++// DELL USB Multimedia (former 8135, generalized, superset of 8125)
++partial alphanumeric_keys
++xkb_symbols "dellusbmm" {
++    // Describes the extra keys on a SK-8135 Multimedia keyboard
++    // From Olivier Lahaye <olivier dot lahaye at motorola dot com>
++    include "inet(media_nav_acpi_common)"
++    key <I02>	{	[ XF86HomePage		]	};
++    key <K67>	{	[ XF86MyComputer	]	};
++    key <IR7C>	{	[ XF86AudioMedia	]	};
++};
++
++
++// Diamond
++
++// Diamond 9801/9802
++partial alphanumeric_keys
++xkb_symbols "diamond" {
++    include "inet(media_nav_acpi_common)"
++    key <I6D>	{	[ XF86Go		]	};
++};
++
++
++// Ennyah
++
++// Ennyah DKB-1008
++partial alphanumeric_keys
++xkb_symbols "ennyah_dkb1008" {
++    include "inet(media_nav_acpi_common)"
++    key <IR7C>  {	[ XF86AudioMedia	]	};
++};
++
++
++// Genius
++
++// Genius Comfy KB-16M/Multimedia KWD-910
++partial alphanumeric_keys
++xkb_symbols "genius" {
++    include "inet(media_acpi_common)"
++    key <I12>   {	[ XF86AudioRaiseVolume	]	};
++    key <I17>   {	[ XF86Calculator	]	};
++    key <I19>   {	[ XF86AudioLowerVolume	]	};
++    key <I1E>   {	[ XF86Forward		]	};
++    key <I21>   {	[ XF86AudioNext		]	};
++    key <I23>	{	[ XF86AudioPrev		]	};
++    key <I25>   {	[ XF86Back		]	};
++    key <I26>   {	[ XF86ScreenSaver	]	};
++    key <I2E>   {	[ XF86Mail		]	};
++    key <I30>   {	[ XF86Eject		]	};
++    key <I32>   {	[ XF86WWW		]	};
++};
++
++// Genius Comfy 21e
++partial alphanumeric_keys
++xkb_symbols "geniuscomfy2" {
++    // Describes the extra keys on a Genius Comfy KB-21e-Scroll
++    // From Radics Laszlo <garaboncias@mailbox.hu>
++    include "inet(media_nav_acpi_common)"
++    key <I23>   {       [ Return                ]       };
++};
++
++
++// Gyration
++
++partial alphanumeric_keys
++xkb_symbols "gyration" {
++    include "inet(nav_common)"
++    key <FK16>	{	[ XF86Reload		]	};
++    key <I02>	{	[ XF86HomePage		]	};
++    key <I17>	{	[ XF86AudioStop		]	};
++    key <I1E>	{	[ XF86AudioRaiseVolume	]	};
++    key <I1F>	{	[ XF86AudioPlay, XF86AudioPause ] };
++    key <I22>	{	[ XF86AudioNext		]	};
++    key <I24>	{	[ XF86AudioPrev		]	};
++    key <I25>	{	[ XF86AudioLowerVolume	]	};
++    key <I26>	{	[ XF86AudioMute		]	};
++};
++
++
++// Hewlett-Packard
++
++// Hewlett-Packard Internet
++partial alphanumeric_keys
++xkb_symbols "hpi6" {
++    include "inet(media_nav_acpi_common)"
++    key <I02>   {       [ XF86HomePage          ]       };
++    key <I12>	{	[ XF86Search		]	};
++    key <I14>	{	[ XF86VendorHome	]	};
++    key <I15>	{	[ XF86Community		]	};
++    key <I16>	{	[ XF86AudioMedia	]	};
++    key <I18>	{	[ XF86Eject		]	};
++    key <I1E>	{	[ XF86Shop		]	};
++    key <I1F>	{	[ XF86Launch1		]	};
++    key <I26>	{	[ Help			]	};
++    key <I27>	{	[ XF86Finance		]	};
++    key <I39>	{	[ Print			]	};
++    key <I75>   {       [ Help                  ]       };
++};
++
++// Hewlett-Packard SK-2501, SK-2505 Multimedia
++partial alphanumeric_keys
++xkb_symbols "hp250x" {
++    key <I12>	{	[ XF86Tools		]	};
++    key <I17>	{	[ XF86Search		]	};
++    key <I18>	{	[ XF86Eject		]	};
++    key <I1E>	{	[ XF86Mail		]	};
++    key <I20>	{	[ XF86AudioMute		]	};
++    key <I21>	{	[ XF86Launch5		]	};
++    key <I22>	{	[ XF86Launch3		]	};
++    key <I23>	{	[ XF86Launch2		]	};
++    key <I24>	{	[ XF86Launch4		]	};
++    key <I25>	{	[ XF86Standby		]	};
++    key <I26>	{	[ Help			]	};
++    key <I2E>	{	[ XF86AudioLowerVolume	]	};
++    key <I30>	{	[ XF86AudioRaiseVolume	]	};
++    key <I32>	{	[ XF86WWW		]	};
++};
++
++// Hewlett-Packard Omnibook XE3 GC, GD, GE and Pavilion N5xxx
++partial alphanumeric_keys
++xkb_symbols "hpxe3gc" {
++    // Describes the OneTouch buttons on HP Omnibook XE3 GC and
++    // HP Pavilion N52XX models.
++    // See http://sourceforge.net/projects/omke for details on enabling
++    // these keys
++    include "inet(media_common)"
++    key <I71>	{	[ Help			]	};
++    key <I72>	{	[ XF86Launch1		]	};
++    key <I73>	{	[ XF86WWW		]	};
++    key <I74>	{	[ XF86Mail		]	};
++};
++
++// Hewlett-Packard Omnibook XE3 GF
++partial alphanumeric_keys
++xkb_symbols "hpxe3gf" {
++    // Describes the OneTouch buttons on HP Omnibook XE3 GF models.
++    // See http://sourceforge.net/projects/omke for details on enabling
++    // these keys
++    include "inet(media_nav_common)"
++    key <I73>	{	[ Help			]	};
++    key <I74>	{	[ XF86Launch1		]	};
++};
++
++// Hewlett-Packard Omnibook XT1000
++partial alphanumeric_keys
++xkb_symbols "hpxt1000" {
++    // Describes the OneTouch buttons on HP Omnibook XT1000 models.
++    // See http://sourceforge.net/projects/omke for details on enabling
++    // these keys
++    include "inet(media_nav_common)"
++    key <I71>	{	[ XF86Launch3		]	};
++    key <I72>	{	[ Help			]	};
++    key <I73>	{	[ XF86Launch2		]	};
++    key <I74>	{	[ XF86Launch1		]	};
++};
++
++// Hewlett-Packard Pavilion ZT1100
++partial alphanumeric_keys
++xkb_symbols "hpzt11xx" {
++    // Describes the OneTouch buttons on HP Pavilion ZT11xx models.
++    // See http://sourceforge.net/projects/omke for details on enabling
++    // these keys
++    include "inet(media_nav_common)"
++    key <I71>	{	[ XF86Launch3		]	};
++    key <I72>	{	[ Help			]	};
++    key <I73>	{	[ XF86Launch2		]	};
++    key <I74>	{	[ XF86Launch1		]	};
++};
++
++// Hewlett-Packard Pavilion dv5
++partial alphanumeric_keys
++xkb_symbols "hpdv5" {
++    // Describes the OneTouch buttons on HP Pavilion dv5 models.
++    // See http://sourceforge.net/projects/omke for details on enabling
++    // these keys
++    include "inet(media_common)"
++    key <I12>  {       [ XF86ScreenSaver       ]       };
++    key <I32>  {       [ XF86WWW               ]       };
++    key <I75>  {       [ Help                  ]       };
++    key <K6D>  {       [ XF86Launch1           ]       };
++};
++
++// Hewlett-Packard Omnibook XE4xxx and ZE4xxx
++partial alphanumeric_keys
++xkb_symbols "hpxe4xxx" {
++    // Describes the OneTouch buttons on HP Omnibook XE4xxx and ZE4xxx
++    // models.
++    // See http://sourceforge.net/projects/omke for details on enabling
++    // these keys
++    include "inet(media_nav_common)"
++    key <I70>	{	[ Help			]	};
++    key <I71>	{	[ XF86Launch2		]	};
++    key <I73>	{	[ XF86Launch1		]	};
++};
++
++// Hewlett-Packard Omnibook 500 FA
++partial alphanumeric_keys
++xkb_symbols "hp500fa" {
++    // Describes the OneTouch buttons on HP Omnibook 500 FA models.
++    // See http://sourceforge.net/projects/omke for details on enabling
++    // these keys
++    key <I73>	{	[ Help			]	};
++    key <I74>	{	[ XF86Launch1		]	};
++};
++
++// Hewlett-Packard Omnibook 500
++partial alphanumeric_keys
++xkb_symbols "hp5xx" {
++    // Describes the OneTouch buttons on HP Omnibook 5xx models.
++    // See http://sourceforge.net/projects/omke for details on enabling
++    // these keys
++    include "inet(media_common)"
++    key <I73>	{	[ Help			]	};
++    key <I74>	{	[ XF86Launch1		]	};
++};
++
++
++// Honeywell
++
++// Honeywell Euroboard
++partial alphanumeric_keys
++xkb_symbols "honeywell_euroboard" {
++    // January 2002
++    // Scott Penrose <scottp@dd.com.au>
++    // http://linux.dd.com.au/quest/linux/keyboard/honeywell/
++    key <I10>	{	[ XF86Game		]	};
++    key <I12>	{	[ XF86AudioPrev		]	};
++    key <I17>	{	[ XF86Eject		]	};
++    key <I18>	{	[ XF86Launch2		]	};
++    key <I19>	{	[ XF86AudioPlay, XF86AudioPause ] };
++    key <I1E>	{	[ XF86Launch1		]	};
++    key <I20>	{	[ XF86AudioMute		]	};
++    key <I22>	{	[ XF86AudioNext		]	};
++    key <I23>	{	[ XF86AudioStop		]	};
++    key <I24>	{	[ XF86Mail		]	};
++    key <I25>	{	[ XF86ScreenSaver	]	};
++    key <I26>	{	[ XF86Calculator	]	};
++    key <I2E>	{	[ XF86AudioLowerVolume	]	};
++    key <I30>	{	[ XF86AudioRaiseVolume	]	};
++    key <I32>	{	[ XF86WWW		]	};
++};
++
++
++// IBM
++
++// IBM Rapid Access
++partial alphanumeric_keys
++xkb_symbols "rapidaccess" {
++    key <I12>	{	[ XF86AudioMute		]	};
++    key <I17>	{	[ XF86Launch2		]	};
++    key <I1E>	{	[ XF86AudioLowerVolume	]	};
++    key <I20>	{	[ XF86AudioRaiseVolume	]	};
++    key <I21>	{	[ XF86AudioNext		]	};
++    key <I22>	{	[ XF86AudioPause	]	};
++    key <I22>	{	[ XF86AudioPlay, XF86AudioPause ] };
++    key <I23>	{	[ XF86AudioPrev		]	};
++    key <I24>	{	[ XF86AudioStop		]	};
++    key <I25>	{	[ XF86Standby		]	};
++    key <I26>	{	[ Help			]	};
++    key <I2E>	{	[ XF86Launch4		]	};
++    key <I30>	{	[ XF86Launch3		]	};
++    key <I32>	{	[ XF86Launch1		]	};
++};
++
++// IBM Rapid Access II
++partial alphanumeric_keys
++xkb_symbols "rapidaccess2" {
++    include "inet(acpi_common)"
++    key <I12>	{	[ XF86AudioNext		]	};
++    key <I17>	{	[ XF86Favorites		]	};
++    key <I1E>	{	[ XF86AudioMute		]	};
++    key <I20>	{	[ XF86AudioStop		]	};
++    key <I21>	{	[ XF86AudioLowerVolume	]	};
++    key <I22>	{	[ XF86AudioPlay, XF86AudioPause ] };
++    key <I23>	{	[ XF86AudioRaiseVolume	]	};
++    key <I24>	{	[ XF86AudioPrev		]	};
++    key <I25>	{	[ XF86HomePage		]	};
++    key <I26>	{	[ XF86Shop		]	};
++    key <I2E>	{	[ XF86Search		]	};
++    key <I30>	{	[ XF86MyComputer	]	};
++    key <I32>	{	[ XF86VendorHome	]	};
++};
++
++// IBM ThinkPad 60 series
++partial alphanumeric_keys
++xkb_symbols "thinkpad60" {
++    include "inet(media_nav_common)"
++    key <I1F> { [ XF86VendorHome ] };
++};
++
++
++// Logitech
++
++// Logitech common definitions
++hidden partial alphanumeric_keys
++xkb_symbols "logitech_base" {
++    include "inet(media_nav_acpi_common)"
++    key <I02> { [ XF86HomePage ] };
++    key <I15> { [ XF86Community ] };
++    key <I16> { [ XF86ScrollClick ] };
++    key <I21> {	[ XF86VendorHome ] };
++    key <I3B> { [ XF86New ] };
++    key <I3C> { [ XF86Reply ] };
++    key <I43> { [ XF86MyComputer ] };
++    key <I44> { [ XF86Documents ] };
++    key <I57> { [ XF86Pictures ] };
++    key <I58> { [ XF86Music ] };
++};
++
++// Logitech second set of common keys
++hidden partial alphanumeric_keys
++xkb_symbols "logitech_set3" {
++    key <I17>	{	[ XF86AudioStop		]	};
++    key <I1E>	{	[ XF86AudioRaiseVolume	]	};
++    key <I1F>	{	[ XF86AudioPlay, XF86AudioPause ] };
++    key <I22>	{	[ XF86AudioNext		]	};
++    key <I24>	{	[ XF86AudioPrev		]	};
++    key <I25>	{	[ XF86AudioLowerVolume	]	};
++    key <I26>	{	[ XF86AudioMute		]	};
++    key <I44>   {       [ XF86New               ]       };      // F1
++    key <I45>   {       [ XF86Reply             ]       };      // F2
++    key <I4A>   {       [ XF86Send              ]       };      // F4
++    key <I54>   {       [ Print                 ]       };      // F7
++    key <I55>   {       [ XF86Save              ]       };      // F8
++    key <I56>   {       [ XF86Documents         ]       };      // F10
++    key <I69>   {       [ XF86Go                ]       };
++    key <IR7C>  {       [ XF86AudioMedia        ]       };
++};
++
++// Logitech Access
++partial alphanumeric_keys
++xkb_symbols "logiaccess" {
++    include "inet(logitech_base)"
++    key <FK13>	{	[ XF86MailForward	]	};
++    key <FK14>	{	[ XF86Send		]	};
++    key <I11>	{	[ XF86Messenger		]	};
++    key <I12>	{	[ XF86WebCam		]	};
++};
++
++// Logitech Cordless Desktop (alt.)
++partial alphanumeric_keys
++xkb_symbols "logicda" {
++    include "inet(logitech_base)"
++    include "inet(logitech_set3)"
++};
++
++// Logitech Internet Navigator
++partial alphanumeric_keys
++xkb_symbols "logicink" {
++    include "inet(logitech_base)"
++    key <I11>	{	[ XF86Shop		]	};
++    key <I12>	{	[ XF86VendorHome	]	};
++    key <I13>	{	[ XF86Finance		]	};
++    key <I14>	{	[ XF86Start		]	};
++};
++
++// Logitech Cordless Desktop EX110
++partial alphanumeric_keys
++xkb_symbols "logiex110" {
++    include "inet(logitech_base)"
++    key <I2F>   {       [ XF86Close             ]       };      // Close
++// Extended function keys
++// In the Console before starting X
++// Using setkeycodes e03b 212 e03c 213 e03d 214 e03e 215 e03f 216 e040 217
++//       setkeycodes e041 218 e042 219 e043 220 e044 221 e057 222 e058 223 6d 206
++// *=keys that are there but need different symbol names.
++    key <I3B>   {       [ Help                  ]       };      // F1
++    key <FK13>  {       [ XF86Word              ]       };      // F2
++    key <FK14>  {       [ XF86Excel             ]       };      // F3
++    key <FK15>  {       [ XF86Pictures          ]       };      // F4
++    key <FK16>  {       [ Undo                  ]       };      // F5
++    key <I65>   {       [ Redo                  ]       };      // F6 *
++    key <I42>   {       [ Print                 ]       };      // F7
++    key <I43>   {       [ XF86Save              ]       };      // F8
++    key <I44>   {       [ XF86Launch1           ]       };      // F9 *
++    key <I45>   {       [ XF86Launch2           ]       };      // F10
++    key <I14>   {       [ XF86Launch3           ]       };      // F11
++    key <I4A>   {       [ XF86Launch4           ]       };      // F12
++};
++
++// Logitech iTouch Internet Navigator SE
++partial alphanumeric_keys
++xkb_symbols "logiinkse" {
++    include "inet(logitech_base)"
++    key <FK13>	{	[ XF86MailForward	]	};	// F3
++    key <FK14>	{	[ XF86Send		]	};	// F4
++    key <FK15>	{	[ Undo			]	};	// F5
++    key <FK16>	{	[ Redo			]	};	// F6
++    key <FK17>	{	[ Print			]	};	// F7
++    key <I11>	{	[ XF86Messenger		]	};
++    key <I12>	{	[ XF86WebCam		]	};
++    key <I13>	{	[ XF86VendorHome	]	};
++    key <I14>	{	[ XF86Shop		]	};
++    key <I42>	{	[ XF86Save		]	};	// F8
++};
++
++// Logitech iTouch Internet Navigator SE USB
++partial alphanumeric_keys
++xkb_symbols "logiinkseusb" {
++    include "inet(logitech_base)"
++    include "inet(logitech_set3)"
++};
++
++// Logitech iTouch Cordless Y-RB6
++partial alphanumeric_keys
++xkb_symbols "logiitc" {
++    include "inet(logitech_base)"
++    key <I2F> {	[ XF86AudioRaiseVolume ] };
++
++    // Just to override RaiseVolume from logitech_base,
++    // since no keysym can have two keycodes, see
++    // https://bugs.freedesktop.org/show_bug.cgi?id=7095
++    key <I30> {	[ XF86Launch1 ] };
++};
++
++// Logitech Internet
++partial alphanumeric_keys
++xkb_symbols "logiik" {
++    include "inet(logitech_base)"
++    key <I12>	{	[ Find			]	};
++    key <I17>	{	[ Print			]	};
++    key <I18>	{	[ XF86Favorites		]	};
++    key <I19>	{	[ XF86Reload		]	};
++    key <I1E>	{	[ XF86Search		]	};
++    key <I20>	{	[ XF86HotLinks		]	};
++    key <I22>	{	[ XF86Forward		]	};
++    key <I23>	{	[ XF86HomePage		]	};
++    key <I24>	{	[ XF86Stop		]	};
++    key <I25>	{	[ XF86OpenURL		]	};
++    key <I26>	{	[ XF86AddFavorite	]	};
++    key <I32>	{	[ XF86History		]	};
++    key <I7A>	{	[ XF86WWW		]	};
++};
++
++// Logitech iTouch
++partial alphanumeric_keys
++xkb_symbols "itouch" {
++    include "inet(logitech_base)"
++    key <I1F>	{	[ XF86AudioMute		]	};
++    key <I2B>	{	[ XF86AudioLowerVolume	]	};
++    key <I2D>	{	[ XF86AudioRaiseVolume	]	};
++};
++
++// Logitech UltraX Cordless Media Desktop
++partial alphanumeric_keys
++xkb_symbols "logiultraxc" {
++    key <FK16>  {       [ XF86AudioMute ]       };
++    key <FK17>  {       [ XF86AudioLowerVolume  ]       };
++    key <I2B>   {       [ XF86AudioNext ]       };
++    key <I2D>   {       [ XF86AudioPrev ]       };
++    key <I2C>   {       [ XF86AudioPlay, XF86AudioPause ]       };
++    key <KPDC>  {       [ XF86AudioRaiseVolume  ]       };
++};
++
++partial alphanumeric_keys
++xkb_symbols "logidinovo" {
++    include "inet(media_nav_common)"
++    key <I02>	{	[ XF86HomePage		]	};
++    key <I12>	{	[ XF86Standby		]	};
++    key <I17>	{	[ XF86Search		]	};
++    key <I21>	{	[ XF86AudioRaiseVolume	]	};
++    key <K66>	{	[ XF86AudioLowerVolume	]	};
++    key <KPDC>	{	[ XF86AudioMute		]	};
++    key <IR7C>	{	[ XF86AudioMedia	]	};
++};
++
++partial alphanumeric_keys
++xkb_symbols "logidinovoedge" {
++    include "inet(media_acpi_common)"
++    key <I02>	{	[ XF86HomePage		]	};
++    key <I6C>	{	[ XF86Mail		]	};
++    key <FK17>  {       [ XF86Search            ]       };
++    key <IR7C>	{	[ XF86AudioMedia	]	};
++};
++
++partial alphanumeric_keys
++xkb_symbols "logitech_g15" {
++    include "inet(media_nav_acpi_common)"
++    key <AE13> {         [   XF86Messenger ] };
++    key <HKTG> {         [     XF86Launch7 ] };
++    key  <I02> {         [     XF86Launch9 ] };
++    key  <I04> {         [       XF86Phone ] };
++    key  <I08> {         [     XF86LaunchD ] };
++    key  <I09> {         [     XF86Support ] };
++    key  <I0F> {         [     XF86LaunchF ] };
++    key  <I16> {         [      XF86LogOff ] };
++    key  <I18> {         [     XF86Launch5 ] };
++    key  <I21> {         [      XF86Travel ] };
++    key  <I23> {         [       XF86Spell ] };
++    key  <I31> {         [     XF86Launch4 ] };
++    key  <I3C> {         [       XF86Music ] };
++    key  <I42> {         [     XF86Forward ] };
++    key  <I43> {         [        XF86Send ] };
++    key  <I57> {         [        XF86Save ] };
++    key  <I64> {         [    XF86Pictures ] };
++    key  <I67> {         [     XF86LaunchA ] };
++    key  <I76> {         [      XF86iTouch ] };
++    key  <I77> {         [     XF86Launch3 ] };
++    key  <I79> {         [    XF86ToDoList ] };
++    key  <I7B> {         [  XF86Calculator ] };
++    key  <K5A> {         [  XF86VendorHome ] };
++    key  <K5D> {         [        XF86Away ] };
++    key  <K5E> {         [      XF86WebCam ] };
++    key  <K5F> {         [     XF86Launch0 ] };
++    key  <K63> {         [     XF86Launch6 ] };
++    key  <K6D> {         [    XF86Calendar ] };
++    key  <K71> {         [     XF86LaunchB ] };
++    key  <K72> {         [     XF86LaunchC ] };
++    key  <K74> {         [         XF86WWW ] };
++    key  <K75> {         [     XF86LaunchE ] };
++    key <II5D> {         [     XF86Launch1 ] };
++    key <IR7D> {         [     XF86Launch2 ] };
++    key <IR7C> {         [     XF86Launch8 ] };
++};
++
++
++// Memorex
++
++// Memorex MX1998
++partial alphanumeric_keys
++xkb_symbols "mx1998" {
++    include "inet(media_acpi_common)"
++    key <DOWN>	{	[ XF86ScrollDown	]	};
++    key <I12>	{	[ XF86AudioRewind	]	};
++    key <I17>	{	[ XF86Close		]	};
++    key <I18>	{	[ XF86Xfer		]	};
++    key <I1E>	{	[ XF86AudioRecord	]	};
++    key <I21>	{	[ XF86Documents		]	};
++    key <I23>	{	[ XF86Game		]	};
++    key <I25>	{	[ XF86Calculator	]	};
++    key <I26>	{	[ Menu			]	};
++    key <I32>	{	[ XF86WWW		]	};
++    key <I57>	{	[ XF86WakeUp		]	};
++    key <I68>	{	[ XF86DOS		]	};
++    key <I7A>	{	[ XF86ScreenSaver	]	};
++    key <UP>	{	[ XF86ScrollUp		]	};
++};
++
++// Memorex MX2500 EZ-Access
++partial alphanumeric_keys
++xkb_symbols "mx2500" {
++    include "inet(media_nav_acpi_common)"
++    key <I12>	{	[ XF86Clear		]	};
++    key <I13>	{	[ XF86Phone		]	};
++    key <I14>	{	[ XF86DOS		]	};
++    key <I17>	{	[ XF86Close		]	};
++    key <I18>	{	[ XF86Xfer		]	};
++    key <I1E>	{	[ XF86Eject		]	};
++    key <I1F>	{	[ XF86Documents		]	};
++    key <I26>	{	[ XF86News		]	};
++    key <I6B>	{	[ XF86WakeUp		]	};
++    key <I6D>	{	[ XF86RotateWindows	]	};
++};
++
++// Memorex MX2750
++partial alphanumeric_keys
++xkb_symbols "mx2750" {
++    include "inet(media_nav_acpi_common)"
++    key <I32>	{	[ XF86Launch0		]	};
++};
++
++
++// Microsoft
++
++// Microsoft Natural Ergonomic 4000
++partial alphanumeric_keys
++xkb_symbols "microsoft4000" {
++    include "inet(media_nav_common)"
++    key <I192>  {       [ XF86Launch1           ]       };
++    key <I193>  {       [ XF86Launch2           ]       };
++    key <I194>  {       [ XF86Launch3           ]       };
++    key <I195>  {       [ XF86Launch4           ]       };
++    key <I196>  {       [ XF86Launch5           ]       };
++//  Missing because of lack of support from kbd driver: Zoom in and
++//  slider.
++};
++
++// Microsoft Natural Wireless Ergonomic 7000
++partial alphanumeric_keys
++xkb_symbols "microsoft7000" {
++    include "inet(media_nav_common)"
++    key <I07>	{	[ Undo			]	};
++    key <I09>	{	[ XF86New		]	};
++    key <I0A>	{	[ Redo			]	};
++    key <I0E>	{	[ XF86MailForward	]	};
++    key <I2F>	{	[ XF86Close		]	};
++    key <I39>	{	[ Print			]	};
++    key <I55>	{	[ XF86Save		]	};
++    key <I5A>	{	[ XF86Send		]	};
++    key <I62>	{	[ Help			]	};
++    key <I64>	{	[ XF86Reply		]	};
++    key <I76>	{	[ parenleft		]	};
++    key <I7B>	{	[ parenright		]	};
++    key <K59>	{	[ KP_Equal		]	};
++    key <K64>	{	[ XF86Open		]	};
++//  Missing because of lack of support from kbd driver: Spell, Launch,
++//  and Zoom in and out buttons.
++};
++
++// Microsoft Internet
++partial alphanumeric_keys
++xkb_symbols "microsoftinet" {
++    include "inet(nav_acpi_common)"
++    key <I68>	{	[ XF86AudioStop		]	};
++};
++
++// Microsoft Natural Pro USB
++partial alphanumeric_keys
++xkb_symbols "microsoftprousb" {
++    include "inet(nav_common)"
++    key <FK16>   {   [ XF86Reload      ]   };
++    key <I01>   {   [ XF86AudioMedia   ]   };
++    key <I02>   {   [ XF86HomePage      ]   };
++    key <I17>   {   [ XF86AudioStop      ]   };
++    key <I1E>   {   [ XF86AudioRaiseVolume   ]   };
++    key <I1F>   {   [ XF86AudioPlay, XF86AudioPause ] };
++    key <I22>   {   [ XF86AudioNext      ]   };
++    key <I24>   {   [ XF86AudioPrev      ]   };
++    key <I25>   {   [ XF86AudioLowerVolume   ]   };
++    key <I26>   {   [ XF86AudioMute      ]   };
++    key <I63>   {   [ XF86Standby      ]   };
++//   Internet Section -- Left Side
++//   Multimedia Section -- Right Side
++//   My Computer Section -- Far Right
++//   My computer maps to printscreen, so leaving commented out for now
++//   key <PRSC>   {   [ XF86MyComputer   ]   };
++};
++
++// Microsoft Natural Pro OEM
++partial alphanumeric_keys
++xkb_symbols "microsoftprooem" {
++    include "inet(media_nav_common)"
++    key <FK17>	{	[ XF86Search		]	};
++    key <I02>	{	[ XF86HomePage		]	};
++    key <I63>	{	[ XF86Standby		]	};
++    key <K67>	{	[ XF86MyComputer	]	};
++//   Internet Section -- Left Side
++//   Multimedia Section -- Right Side
++//   My Computer Section -- Far Right
++};
++
++// Microsoft Internet Pro (Swedish)
++partial alphanumeric_keys
++xkb_symbols "microsoftprose" {
++    include "inet(nav_common)"
++    key <FK16>	{	[ XF86Reload		]	};
++    key <I02>	{	[ XF86HomePage		]	};
++    key <I17>	{	[ XF86AudioStop		]	};
++    key <I1E>	{	[ XF86AudioRaiseVolume	]	};
++    key <I1F>	{	[ XF86AudioPlay, XF86AudioPause ] };
++    key <I22>	{	[ XF86AudioNext		]	};
++    key <I24>	{	[ XF86AudioPrev		]	};
++    key <I25>	{	[ XF86AudioLowerVolume	]	};
++    key <I26>	{	[ XF86AudioMute		]	};
++    key <I63>	{	[ XF86Standby		]	};
++    key <I68>	{	[ XF86AudioStop		]	};
++    key <PRSC>	{	[ XF86MyComputer	]	};
++    key <IR7C>	{	[ XF86AudioMedia	]	};
++};
++
++// Microsoft Office Keyboard
++partial alphanumeric_keys
++xkb_symbols "microsoftoffice" {
++    include "inet(nav_acpi_common)"
++    key <BRK>	{	[ XF86Calendar		]	};
++    key <END>	{	[ Undo			]	};
++    key <I02>	{	[ XF86HomePage		]	};
++    key <I1E>	{	[ XF86AudioLowerVolume	]	};
++    key <I25>	{	[ XF86AudioRaiseVolume	]	};
++    key <I26>	{	[ XF86AudioMute		]	};
++    key <I3C>	{	[ XF86Cut		]	};
++    key <I4A>	{	[ XF86LogOff		]	};
++    key <I54>	{	[ XF86ApplicationLeft	]	};
++    key <I55>	{	[ XF86TaskPane		]	};
++    key <I56>	{	[ XF86Spell		]	};
++    key <I57>	{	[ XF86WWW		]	};
++    key <I58>	{	[ XF86New		]	};
++    key <I59>	{	[ XF86Open		]	};
++    key <I5A>	{	[ XF86Close		]	};
++    key <I62>	{	[ Help			]	};
++    key <I64>	{	[ XF86Save		]	};
++    key <I67>	{	[ Print			]	};
++    key <I6D>	{	[ XF86OfficeHome	]	};
++    key <I70>	{	[ Redo			]	};
++    key <I71>	{	[ XF86Reply		]	};
++    key <I72>	{	[ XF86MailForward	]	};
++    key <I73>	{	[ XF86Send		]	};
++    key <I78>	{	[ XF86Copy		]	};
++    key <MOAR>	{	[ XF86ApplicationRight	]	};
++    key <RCTL>	{	[ XF86Paste		]	};
++};
++
++// Microsoft Wireless Multimedia 1.0A
++partial alphanumeric_keys
++xkb_symbols "microsoftmult" {
++    include "inet(media_nav_acpi_common)"
++    key <AE13>  {       [ XF86Messenger         ]       };
++    key <FK14>	{	[ XF86New		]	};
++    key <FK15>	{	[ XF86Open		]	};
++    key <FK16>	{	[ XF86Close		]	};
++    key <FK17>	{	[ XF86Reply		]	};
++    key <I07>	{	[ Redo			]	};
++    key <I08>	{	[ Undo			]	};
++    key <I16>   {       [ XF86LogOff            ]       };
++    key <I23>	{	[ XF86Spell		]	};
++    key <I3B>	{	[ Help			]	};
++    key <I3C>   {       [ XF86Music     ]       };
++    key <I42>	{	[ XF86Forward		]	};
++    key <I43>	{	[ XF86Send		]	};
++    key <I57>	{	[ XF86Save		]	};
++    key <I58>	{	[ Print			]	};
++    key <I64>   {       [ XF86Pictures  ]       };
++    key <I80>   {       [ XF86Documents ]       };
++};
++
++// Microsoft Surface
++partial alphanumeric_keys
++xkb_symbols "microsoftsurface" {
++    include "inet(evdev)"
++    key <I88>   {       [ XF86Search            ]         };
++    key <I163>  {       [ XF86AudioPrev         ]         };
++    key <I164>  {       [ XF86AudioPlay, XF86AudioPause ] };
++    key <I165>  {       [ XF86AudioNext         ]         };
++};
++
++
++// Oretec
++
++// Oretec MCK-800 MM/Internet keyboard
++partial alphanumeric_keys
++xkb_symbols "oretec" {
++    include "inet(acpi_common)"
++    key <I10>	{	[ XF86ScrollUp		]	};
++    key <I12>	{	[ XF86AudioPlay, XF86AudioPause ] };
++    key <I17>	{	[ XF86AudioPrev		]	};
++    key <I18>	{	[ XF86ScrollDown	]	};
++    key <I19>	{	[ XF86ZoomOut		]	};
++    key <I1E>	{	[ XF86AudioMute		]	};
++    key <I21>	{	[ XF86WWW		]	};
++    key <I22>	{	[ Menu			]	};
++    key <I23>	{	[ XF86AudioStop		]	};
++    key <I24>	{	[ XF86Calculator	]	};
++    key <I25>	{	[ XF86Xfer		]	};
++    key <I26>	{	[ XF86Mail		]	};
++    key <I2E>	{	[ XF86AudioNext		]	};
++    key <I30>	{	[ XF86AudioRaiseVolume	]	};
++    key <I32>	{	[ XF86ZoomIn		]	};
++    key <I68>	{	[ XF86AudioLowerVolume	]	};
++};
++
++
++// Propeller
++
++// Propeller Voyager KTEZ-1000
++partial alphanumeric_keys
++xkb_symbols "propeller" {
++    include "inet(media_common)"
++    key <I12>	{	[ XF86AudioRewind	]	};
++    key <I17>	{	[ XF86Close		]	};
++    key <I18>	{	[ XF86Xfer		]	};
++    key <I1E>	{	[ XF86AudioRecord	]	};
++    key <I21>	{	[ XF86Documents		]	};
++    key <I23>	{	[ XF86Game		]	};
++    key <I25>	{	[ XF86Calculator	]	};
++    key <I26>	{	[ Menu			]	};
++    key <I32>	{	[ XF86WWW		]	};
++    key <I68>	{	[ XF86DOS		]	};
++    key <I7A>	{	[ XF86Standby		]	};
++};
++
++
++// QTronix
++
++// QTronix Scorpius 98N+
++partial alphanumeric_keys
++xkb_symbols "qtronix" {
++    key <I10>	{	[ XF86ScrollDown	]	};
++    key <I12>	{	[ XF86Forward		]	};
++    key <I13>	{	[ XF86WakeUp		]	};
++    key <I17>	{	[ XF86Search		]	};
++    key <I18>	{	[ XF86Standby		]	};
++    key <I19>	{	[ XF86ScrollUp		]	};
++    key <I1E>	{	[ XF86Back		]	};
++    key <I1F>	{	[ XF86Reload		]	};
++    key <I20>	{	[ XF86AudioRaiseVolume	]	};
++    key <I21>	{	[ XF86AudioPrev		]	};
++    key <I22>	{	[ XF86AudioPlay, XF86AudioPause ] };
++    key <I23>	{	[ XF86AudioNext		]	};
++    key <I24>	{	[ XF86AudioStop		]	};
++    key <I25>	{	[ XF86HomePage		]	};
++    key <I26>	{	[ XF86AudioMute		]	};
++    key <I2E>	{	[ XF86AudioLowerVolume	]	};
++    key <I30>	{	[ XF86AudioRecord	]	};
++    key <I31>	{	[ XF86PowerOff		]	};
++    key <I32>	{	[ XF86Stop		]	};
++    key <I68>	{	[ XF86Calculator	]	};
++};
++
++
++// Samsung
++
++// Samsung SDM 4500P
++partial alphanumeric_keys
++xkb_symbols "samsung4500" {
++    include "inet(media_nav_acpi_common)"
++    key <AE13>	{	[ XF86Launch4		]	};
++    key <I02>	{	[ XF86Launch1		]	};
++    key <I04>	{	[ XF86Launch3		]	};
++    key <I06>	{	[ XF86Launch5		]	};
++    key <I09>	{	[ XF86Close		]	};
++    key <I0A>	{	[ XF86Book		]	};
++    key <I18>	{	[ XF86Eject		]	};
++    key <I26>	{	[ Help			]	};
++    key <I59>	{	[ XF86Explorer		]	};
++    key <IR7D>	{	[ XF86Launch2		]	};
++};
++
++// Samsung SDM 4510P
++partial alphanumeric_keys
++xkb_symbols "samsung4510" {
++    include "inet(media_acpi_common)"
++    key <I02>	{	[ XF86Launch1		]	};
++    key <I04>	{	[ XF86Launch3		]	};
++    key <I18>	{	[ XF86Eject		]	};
++    key <IR7D>	{	[ XF86Launch2		]	};
++};
++
++
++// SK
++
++// NEC SK-1300
++partial alphanumeric_keys
++xkb_symbols "sk1300" {
++    include "inet(media_common)"
++    key <I12>	{	[ XF86Eject		]	};
++    key <I1E>	{	[ XF86Forward		]	};
++    key <I20>	{	[ XF86WWW		]	};
++    key <I25>	{	[ XF86Standby		]	};
++    key <I26>	{	[ XF86Back		]	};
++    key <I32>	{	[ XF86Stop		]	};
++};
++
++// NEC SK-2500
++partial alphanumeric_keys
++xkb_symbols "sk2500" {
++    include "inet(media_nav_common)"
++    key <I12>	{	[ XF86AudioRewind	]	};
++    key <I17>	{	[ XF86Close		]	};
++    key <I18>	{	[ XF86Eject		]	};
++    key <I18>	{	[ XF86Eject		]	};
++    key <I19>	{	[ XF86Forward		]	};
++    key <I1E>	{	[ XF86AudioRecord	]	};
++    key <I23>	{	[ XF86Xfer		]	};
++    key <I25>	{	[ XF86PowerOff		]	};
++    key <I26>	{	[ Menu			]	};
++    key <I7A>	{	[ XF86ScreenSaver	]	};
++};
++
++// NEC SK-6200
++partial alphanumeric_keys
++xkb_symbols "sk6200" {
++    include "inet(acpi_common)"
++    key <I12>	{	[ XF86Favorites		]	};
++    key <I14>	{	[ XF86AudioLowerVolume	]	};
++    key <I16>	{	[ XF86AudioRaiseVolume	]	};
++    key <I17>	{	[ XF86Back		]	};
++    key <I19>	{	[ XF86Forward		]	};
++    key <I1E>	{	[ XF86WWW		]	};
++    key <I20>	{	[ XF86AudioMute		]	};
++    key <I21>	{	[ XF86AudioNext		]	};
++    key <I22>	{	[ XF86AudioPlay, XF86AudioPause ] };
++    key <I23>	{	[ XF86AudioPrev		]	};
++    key <I24>	{	[ XF86AudioStop		]	};
++    key <I32>	{	[ XF86Mail		]	};
++};
++
++// NEC SK-7100
++partial alphanumeric_keys
++xkb_symbols "sk7100" {
++    include "inet(media_common)"
++    key <I12>	{	[ XF86AudioPause	]	};
++    key <I17>	{	[ XF86Close		]	};
++    key <I18>	{	[ XF86Video		]	};
++    key <I1E>	{	[ XF86Eject		]	};
++    key <I25>	{	[ XF86CD		]	};
++    key <I26>	{	[ XF86Display		]	};
++    key <I32>	{	[ XF86WWW		]	};
++};
++
++
++// Sven
++
++// SVEN Ergonomic 2500
++partial alphanumeric_keys
++xkb_symbols "sven" {
++    include "inet(acpi_common)"
++    key <I10>	{	[ XF86AudioPlay, XF86AudioPause ] };
++    key <I12>	{	[ XF86Forward		]	};
++    key <I17>	{	[ XF86AudioRaiseVolume	]	};
++    key <I18>	{	[ XF86ZoomOut		]	};
++    key <I19>	{	[ XF86AudioPrev		]	};
++    key <I1A>	{	[ XF86AudioStop		]	};
++    key <I1E>	{	[ XF86HomePage		]	};
++    key <I20>	{	[ XF86Mail		]	};
++    key <I21>	{	[ XF86ZoomIn		]	};
++    key <I22>	{	[ XF86MyComputer	]	};
++    key <I23>	{	[ XF86Stop		]	};
++    key <I24>	{	[ XF86ScreenSaver	]	};
++    key <I25>	{	[ XF86AudioLowerVolume	]	};
++    key <I26>	{	[ XF86AudioMute		]	};
++    key <I28>	{	[ XF86Calculator	]	};
++    key <I29>	{	[ XF86Reload		]	};
++    key <I2E>	{	[ XF86Search		]	};
++    key <I30>	{	[ XF86Favorites		]	};
++    key <I31>	{	[ XF86ScrollUp		]	};
++    key <I32>	{	[ XF86ScrollDown	]	};
++    key <I62>	{	[ XF86AudioNext		]	};
++    key <I68>	{	[ XF86Back		]	};
++};
++
++// SVEN Slim 303
++partial alphanumeric_keys
++xkb_symbols "sven303" {
++    key <I11>	{	[ XF86PowerOff		]	};
++    key <I12>	{	[ XF86Sleep		]	};
++    key <I16>	{	[ XF86WakeUp		]	};
++};
++
++
++// Symplon
++
++// Symplon PaceBook tablet
++partial alphanumeric_keys
++xkb_symbols "symplon" {
++    include "inet(nav_acpi_common)"
++    key <HOME>	{	[ XF86RotationPB	]	};
++    key <I13>	{	[ XF86SplitScreen	]	};
++    key <I14>	{	[ XF86Support		]	};
++    key <I17>	{	[ XF86New		]	};
++    key <I21>	{	[ XF86User2KB		]	};
++    key <I25>	{	[ XF86RotationKB	]	};
++    key <I26>	{	[ XF86MenuKB		]	};
++    key <I6B>	{	[ XF86User1KB		]	};
++    key <PAUS>	{	[ XF86UserPB		]	};
++    key <UP>	{	[ XF86MenuPB		]	};
++};
++
++
++// Toshiba
++
++// Toshiba Satellite S3000
++partial alphanumeric_keys
++xkb_symbols "toshiba_s3000" {
++    include "inet(media_common)"
++    // Describes the Special buttons on Toshiba Satellite 3000 models.
++    // See http://sourceforge.net/projects/omke for details on enabling
++    // these keys
++    key <I06>	{	[ XF86Launch1		]	};
++    key <I13>	{	[ XF86Launch2		]	};
++    key <I71>	{	[ XF86WWW		]	};
++    key <I73>	{	[ XF86Mail		]	};
++    key <I75>	{	[ XF86AudioRaiseVolume	]	};
++    key <I76>	{	[ XF86AudioLowerVolume	]	};
++};
++
++
++// Trust
++
++// Trust Wireless Classic
++partial alphanumeric_keys
++xkb_symbols "trust" {
++    include "inet(media_nav_acpi_common)"
++    key <I11>	{	[ XF86ScreenSaver	]	};
++    key <I1E>	{	[ XF86Eject		]	};
++};
++
++// Trust Direct Access
++partial alphanumeric_keys
++xkb_symbols "trustda" {
++    include "inet(media_common)"
++    key <I12>	{	[ XF86AudioRewind	]	};
++    key <I17>	{	[ XF86Close		]	};
++    key <I18>	{	[ XF86Eject		]	};
++    key <I1E>	{	[ XF86AudioRecord	]	};
++    key <I23>	{	[ XF86Xfer		]	};
++    key <I25>	{	[ XF86Standby		]	};
++    key <I26>	{	[ Help			]	};
++    key <I32>	{	[ XF86WWW		]	};
++    key <I7A>	{	[ XF86Away		]	};
++};
++
++
++// YaHoo!
++
++// Yahoo! Internet
++partial alphanumeric_keys
++xkb_symbols "yahoo" {
++    include "inet(acpi_common)"
++    key <I11>	{	[ XF86AudioPrev		]	};
++    key <I12>	{	[ XF86AudioPlay, XF86AudioPause ] };
++    key <I1E>	{	[ XF86AudioStop		]	};
++    key <I1F>	{	[ XF86AudioNext		]	};
++    key <I20>	{	[ XF86AudioRecord	]	};
++    key <I21>	{	[ XF86AudioLowerVolume	]	};
++    key <I22>	{	[ XF86AudioRaiseVolume	]	};
++    key <I23>	{	[ XF86AudioMute		]	};
++    key <I24>	{	[ XF86Close		]	};
++    key <I25>	{	[ XF86Calculator	]	};
++    key <I26>	{	[ Help			]	};
++    key <I27>	{	[ XF86Mail		]	};
++    key <I28>	{	[ XF86WWW		]	};
++};
++
++
++// Apple keyboards (macbooks, powerbooks, powermac G5, etc)
++partial alphanumeric_keys
++xkb_symbols "apple" {
++// Really brightness up/down
++    key <II65>  {       [ XF86BrightnessAdjust  ]       };
++    key <I54>   {       [ XF86BrightnessAdjust  ]       };
++    key <I20>	{	[ XF86AudioMute		]	};
++    key <I2E>	{	[ XF86AudioLowerVolume	]	};
++    key <I30>	{	[ XF86AudioRaiseVolume	]	};
++    key <I56>   {       [ XF86RotateWindows	]	};
++// Really keyboard backlight off/up/down
++    key <I57>   {       [ XF86Launch0		]	};
++    key <I58>	{	[ XF86Launch1    	]	};
++    key <I59>	{	[ XF86Launch2   	]	};
++    key <I5E>	{	[ XF86PowerOff          ]       };
++    key <K5D>	{	[ F13 ]    };
++    key <K5E>	{	[ F14 ]    };
++    key <K5F>	{	[ F15 ]    };
++    key <K6C>	{	[ XF86Eject ]    };
++    key <II5D>	{	[ F16 ]    };
++    key <KPEQ>  {       [ KP_Equal ] };
++};
++
++partial alphanumeric_keys
++xkb_symbols "cymotionlinux" {
++    include "inet(media_nav_acpi_common)"
++    key <I07>	{	[	Undo			]	};
++    key <I0A>	{	[	Redo			]	};
++    key <I0F>	{	[	XF86ScrollDown		]	};
++    key <I17>	{	[	XF86Launch2		]	};
++    key <I1F>	{	[	XF86Launch1		]	};
++    key <I28>	{	[	XF86MenuKB		]	};
++    key <I2B>	{	[	XF86Launch3		]	};
++    key <I3C>	{	[	XF86Cut			]	};
++    key <I78>	{	[	XF86Copy		]	};
++    key <K65>	{	[	XF86Paste		]	};
++    key <K75>	{	[	XF86ScrollUp		]	};
++    key <IR7C>	{	[	XF86AudioMedia		]	};
++};
++
++partial alphanumeric_keys
++xkb_symbols "silvercrest" {
++    include "inet(media_nav_acpi_common)"
++    key <I02>	{	[ XF86HomePage		]	};
++    key <I21>	{	[ XF86Launch2		]	};
++    key <K67>	{	[ XF86Launch1		]	};
++};
++
++
++// eMachines
++
++partial alphanumeric_keys
++xkb_symbols "emachines" {
++    include "inet(media_nav_acpi_common)"
++    key <I32>  {  [ XF86iTouch                    ]  };
++    key <KP0>  {  [ KP_0                          ]  };
++    key <KP1>  {  [ KP_1                          ]  };
++    key <KP2>  {  [ KP_2                          ]  };
++    key <KP3>  {  [ KP_3                          ]  };
++    key <KP4>  {  [ KP_4                          ]  };
++    key <KP5>  {  [ KP_5                          ]  };
++    key <KP6>  {  [ KP_6                          ]  };
++    key <KP7>  {  [ KP_7                          ]  };
++    key <KP8>  {  [ KP_8                          ]  };
++    key <KP9>  {  [ KP_9                          ]  };
++    key <KPAD> {  [ KP_Add                        ]  };
++    key <KPDL> {  [ KP_Decimal                    ]  };
++    key <KPDV> {  [ KP_Divide                     ]  };
++    key <KPMU> {  [ KP_Multiply                   ]  };
++    key <KPSU> {  [ KP_Subtract                   ]  };
++};
++
++
++// BenQ
++
++// BenQ X* (X730, X500, X800)
++//
++// To make the FN_LOCK and CONFIG key work on the BenQ X500 , use:
++// setkeycodes e074 130 # KEY_PROPS  from /usr/include/linux/input.h
++// setkeycodes e075 171 # KEY_CONFIG from /usr/include/linux/input.h
++partial alphanumeric_keys
++xkb_symbols "benqx" {
++    include "inet(media_nav_acpi_common)"
++    key <I02> { [ XF86ModeLock ] };
++    key <I21> { [ XF86WWW      ]  };
++    key <I2B> { [ XF86Go ] };
++    key <I31> { [ XF86Calendar ] };
++};
++
++
++// Unitek
++
++partial alphanumeric_keys
++xkb_symbols "unitekkb1925" {
++    include "inet(media_nav_common)"
++    key <I0C> { [ XF86AudioMute ] };
++    key <I11> { [ XF86PowerOff ] };
++    key <I12> { [ XF86Sleep ] };
++    key <I16> { [ XF86WakeUp ] };
++    key <I18> { [ XF86Search ] };
++    key <I1A> { [ XF86Reload ] };
++};
++
++
++// Creative
++
++// Creative Desktop Wireless 7000
++partial alphanumeric_keys
++xkb_symbols "creativedw7000" {
++    include "inet(media_nav_acpi_common)"
++    key <I66>   {       [ XF86Pictures ]       };
++};
++
++
++// Compal
++
++// Compal FL90
++partial alphanumeric_keys
++xkb_symbols "compalfl90" {
++    include "inet(media_nav_acpi_common)"
++    key <I54>   {       [ XF86MonBrightnessUp   ]       };
++    key <II65>  {       [ XF86MonBrightnessDown ]       };
++};
++
++partial alphanumeric_keys
++xkb_symbols "pc105" {
++    include "inet(media_nav_acpi_common)"
++};
++
++partial alphanumeric_keys
++xkb_symbols "chromebook" {
++	include "level3(ralt_switch)"
++        key <FK01> {    [ XF86Back ] };
++        key <FK02> {    [ XF86Forward ] };
++        key <FK03> {    [ XF86Reload ] };
++        key <FK04> {    [ F11 ] };
++//        key <FK05> {    [ F5, F5, F5, F5 ] }; // Overview key
++        key <FK06> {    [ XF86MonBrightnessDown ] };
++        key <FK07> {    [ XF86MonBrightnessUp ] };
++        key <FK08> {    [ XF86AudioMute ] };
++        key <FK09> {    [ XF86AudioLowerVolume ] };
++        key <FK10> {    [ XF86AudioRaiseVolume ] };
++        key <BKSP> {    [ BackSpace, BackSpace, Delete ] };
++        key <UP>   {    [ Up, Up, Prior, Up ] };
++        key <DOWN> {    [ Down, Down, Next, Down ] };
++        key <LEFT> {    [ Left, Left, Home, Left ] };
++        key <RGHT> {    [ Right, Right, End, Right ] };
++        key <LWIN> {    [ Super_L, Super_L, Caps_Lock, Super_L ] };
++};
++
++partial alphanumeric_keys
++xkb_symbols "teck227" {
++    include "inet(media_nav_common)"
++    key <HIRA> { [ Hiragana ] };
++};
++
++partial alphanumeric_keys
++xkb_symbols "teck229" {
++    include "inet(teck227)"
++};
++
++
++// Pinephone
++
++// Pinephone Keyboard
++partial alphanumeric_keys
++xkb_symbols "ppkb" {
++
++    key <AE01> {[  1,  exclam,       bar         ]};
++    key <AE02> {[  2,  at,           backslash   ]};
++    key <AE03> {[  3,  numbersign,   sterling    ]};
++    key <AE04> {[  4,  dollar,       EuroSign    ]};
++    key <AE05> {[  5,  percent,      asciitilde  ]};
++    key <AE06> {[  6,  asciicircum,  grave       ]};
++    key <AE07> {[  7,  ampersand,    minus       ]};
++    key <AE08> {[  8,  asterisk,     equal       ]};
++    key <AE09> {[  9,  parenleft,    underscore  ]};
++    key <AE10> {[  0,  parenright,   plus        ]};
++};
+--- xkeyboard-config-2.42.orig/.gitlab-ci/yaml-to-junit-xml.py
++++ xkeyboard-config-2.42/.gitlab-ci/yaml-to-junit-xml.py
+@@ -0,0 +1,82 @@
++#!/usr/bin/env python3
++#
++# Converts the YAML format from the layout tester into JUnit XML
++#
++# This file is formatted with Python Black
++
++import argparse
++import yaml
++import sys
++import pathlib
++from xml.dom import minidom
++
++parser = argparse.ArgumentParser(description="Converts YAML to JUnit XML")
++parser.add_argument(
++    "inputfile",
++    type=pathlib.Path,
++    help="The YAML output file from the keyboard layout tester",
++)
++parser.add_argument(
++    "--additional-successful-tests",
++    type=int,
++    default=0,
++    help="Number of successful tests from another source",
++)
++args = parser.parse_args()
++if not args.inputfile.exists():
++    print(f"No such file: {args.inputfile}")
++    sys.exit(0)
++
++with args.inputfile.open() as fd:
++    yml = yaml.safe_load(fd)
++
++    # Ensure there is a yaml document
++    if yml is None:
++        yml = yaml.safe_load("[]")
++
++    doc = minidom.Document()
++    suite = doc.createElement("testsuite")
++    suite.setAttribute("name", "XKB layout compilation tests")
++    doc.appendChild(suite)
++
++    # JUnit differs between test case failures
++    # and errors (something else blew up)
++    # We use failures for unrecognized keysyms and errors
++    # for everything else (i.e. keymap compilation errors)
++    ntests, nfailures, nerrors = args.additional_successful_tests, 0, 0
++
++    for testcase in yml:
++        ntests += 1
++        node = doc.createElement("testcase")
++        node.setAttribute("classname", f"{testcase['rmlvo'][0]} rules layout test")
++        # We don't care about rules and model here, LVO is enough
++        r, m, l, v, o = testcase["rmlvo"]
++        if v:
++            name = f"{l}({v})"
++        else:
++            name = l
++        if o:
++            name += f", {o}"
++        node.setAttribute("name", f"keymap compilation: {name}")
++        suite.appendChild(node)
++
++        if testcase["status"] != 0:
++            f = None
++            if testcase["status"] == 99:  # missing keysym
++                nfailures += 1
++                f = doc.createElement("failure")
++            else:  # everything else is an error
++                nerrors += 1
++                f = doc.createElement("error")
++            f.setAttribute("message", testcase["error"])
++            cdata = doc.createCDATASection(
++                f"Error message: {testcase['error']} in command {testcase['cmd']}"
++            )
++            f.appendChild(cdata)
++            node.appendChild(f)
++
++    suite.setAttribute("tests", str(ntests))
++    suite.setAttribute("errors", str(nerrors))
++    suite.setAttribute("failures", str(nfailures))
++
++    print(doc.toprettyxml(indent="  "))
+--- xkeyboard-config-2.42.orig/debian/NEWS
++++ xkeyboard-config-2.42/debian/NEWS
+@@ -0,0 +1,20 @@
++xkeyboard-config (2.41-2) unstable; urgency=medium
++
++  * Several old remappings got removed between 2.38..2.41, so beware for
++    instance if you relied on "dvorak" variant with us layout. (#1063725)
++
++  * The extended variant for Greek was removed, as it was actually less
++    extended than the "basic" variant. (#1063702)
++
++ -- Timo Aaltonen <tjaalton@debian.org>  Tue, 13 Feb 2024 09:57:30 +0200
++
++xkeyboard-config (1.7-1) unstable; urgency=low
++
++  * The current defaults do not enable the traditional
++    Ctrl-Alt-Backspace key combination to kill the X server. If you
++    would like to re-enable this feature, you may do so in your
++    desktop's Keyboard Preferences application. You may also enable it
++    for the current session using the command 
++    "setxkbmap -option terminate:ctrl_alt_bksp".
++
++ -- David Nusinow <dnusinow@debian.org>  Tue, 25 Aug 2009 12:52:38 -0400
+--- xkeyboard-config-2.42.orig/debian/README.Debian
++++ xkeyboard-config-2.42/debian/README.Debian
+@@ -0,0 +1,70 @@
++Notes about the Debian xkb-data package
++=======================================
++
++Available models, layouts, variants, and options
++------------------------------------------------
++
++One can have a look at the following file:
++  /usr/share/X11/xkb/rules/base.lst
++
++Support of Apple keyboards
++--------------------------
++
++Apple keyboards have been mostly unusable with XKB for years,
++and many unofficial files spread around the Internet to fix
++this mess.  Fortunately this issue has been fixed now, thanks
++to testers on the debian-powerpc mailing list, and changes
++have been merged upstream.
++
++The following models are available:
++ * macintosh_old
++   For old kernels with ADB keycodes
++ * ibook powerbook macbook78 macbook79
++   Laptop, 3rd and 4th levels are obtained by the small Enter key.
++ * macintosh
++   Default Macintosh
++These models look for symbols in /usr/share/X11/xkb/symbols/macintosh_vndr,
++which means that the following layouts can be selected:
++   ch de dk es fi fr gb is it latam nl no pt se us
++
++PC models can be selected, to have access to more layouts.  Some options
++may then be added to have the same behavior as with Macintosh keyboards.
++Here is a (non exhaustive) list of relevant options:
++ * lv3:lwin_switch   Press left Apple-key to choose 3rd level.
++ * lv3:enter_switch  Press Enter key on keypad to choose 3rd level.
++ * numpad:mac        Numpad keys work as with Macintosh keyboards.
++ * apple:badmap      Swap keycodes of two keys when Mac keyboards are
++                     misdetected by kernel.
++
++Variants have been added to PC layouts to emulate Macintosh layouts.
++For instance,
++
++    Option     "XkbRules"    "xorg"
++    Option     "XkbModel"    "ibook"
++    Option     "XkbLayout"   "fr"
++
++in /etc/X11/xorg.conf can be replaced by
++
++    Option     "XkbRules"    "xorg"
++    Option     "XkbModel"    "pc105"
++    Option     "XkbLayout"   "fr"
++    Option     "XkbVariant"  "mac"
++    Option     "XkbOptions"  "lv3:enter_switch,apple:badmap,numpad:mac"
++
++Denis Barbier <barbier@debian.org>  Thu,  5 Oct 2006 22:51:12 +0200
++
++Cleaning /etc/X11/xkb
++---------------------
++
++Since 0.8-3, all the files in /etc/X11/xkb/ were moved to
++/usr/share/X11/xkb/symbols. If you want to clean /etc/X11/xkb/, you need
++to run dpkg -P xlibs.
++
++Your 'Fn' key is not working
++----------------------------
++
++On some laptops (Gateway MX6453 for instance), when X starts with
++numlock on, the 'Fn' key is toggled the wrong way. Just turn numlock off
++to get the 'Fn' key work again.
++
++Mohammed Adnène Trojette <adn+deb@diwi.org>  Thu, 01 May 2008 02:36:13 +0200
+--- xkeyboard-config-2.42.orig/debian/README.source
++++ xkeyboard-config-2.42/debian/README.source
+@@ -0,0 +1,49 @@
++------------------------------------------------------
++Quick Guide To Patching This Package For The Impatient
++------------------------------------------------------
++
++1. Make sure you have quilt installed
++2. Unpack the package as usual with "dpkg-source -x"
++3. Run the "patch" target in debian/rules
++4. Create a new patch with "quilt new" (see quilt(1))
++5. Edit all the files you want to include in the patch with "quilt edit"
++   (see quilt(1)).
++6. Write the patch with "quilt refresh" (see quilt(1))
++7. Run the "clean" target in debian/rules
++
++Alternatively, instead of using quilt directly, you can drop the patch in to
++debian/patches and add the name of the patch to debian/patches/series.
++
++------------------------------------
++Guide To The X Strike Force Packages
++------------------------------------
++
++The X Strike Force team maintains X packages in git repositories on
++git.debian.org in the pkg-xorg subdirectory. Most upstream packages
++are actually maintained in git repositories as well, so they often
++just need to be pulled into git.debian.org in a "upstream-*" branch.
++Otherwise, the upstream sources are manually installed in the Debian
++git repository.
++
++The .orig.tar.gz upstream source file could be generated using this
++"upstream-*" branch in the Debian git repository but it is actually
++copied from upstream tarballs directly.
++
++Due to X.org being highly modular, packaging all X.org applications
++as their own independent packages would have created too many Debian
++packages. For this reason, some X.org applications have been grouped
++into larger packages: xutils, xutils-dev, x11-apps, x11-session-utils,
++x11-utils, x11-xfs-utils, x11-xkb-utils, x11-xserver-utils.
++Most packages, including the X.org server itself and all libraries
++and drivers are, however maintained independently.
++
++The Debian packaging is added by creating the "debian-*" git branch
++which contains the aforementioned "upstream-*" branch plus the debian/
++repository files.
++When a patch has to be applied to the Debian package, two solutions
++are involved:
++* If the patch is available in one of the upstream branches, it
++  may be git'cherry-picked into the Debian repository. In this
++  case, it appears directly in the .diff.gz.
++* Otherwise, the patch is added to debian/patches/ which is managed
++  with quilt as documented in /usr/share/doc/quilt/README.source.
+--- xkeyboard-config-2.42.orig/debian/changelog
++++ xkeyboard-config-2.42/debian/changelog
+@@ -0,0 +1,942 @@
++xkeyboard-config (2.42-1) unstable; urgency=medium
++
++  * New upstream release. (Closes: #1073540)
++
++ -- Timo Aaltonen <tjaalton@debian.org>  Wed, 19 Jun 2024 09:44:48 +0300
++
++xkeyboard-config (2.41-2) unstable; urgency=medium
++
++  * Update NEWS. (Closes: #1063725, #1063702)
++
++ -- Timo Aaltonen <tjaalton@debian.org>  Tue, 13 Feb 2024 10:04:05 +0200
++
++xkeyboard-config (2.41-1) unstable; urgency=medium
++
++  * New upstream release.
++  * docs.diff: Dropped, upstream.
++  * control: Add gawk to build-depends.
++
++ -- Timo Aaltonen <tjaalton@debian.org>  Wed, 07 Feb 2024 18:05:59 +0200
++
++xkeyboard-config (2.38-2) unstable; urgency=medium
++
++  * Non-maintainer upload
++  * Upload to unstable
++
++  [ Diederik de Haas ]
++  * patches: Rebase docs.diff onto 829b483a (MR 6, closes: 1027875)
++
++ -- Gunnar Hjalmarsson <gunnarhj@debian.org>  Mon, 19 Jun 2023 14:32:57 +0200
++
++xkeyboard-config (2.38-1) experimental; urgency=medium
++
++  [ Debian Janitor ]
++  * Remove constraints unnecessary since buster (oldstable):
++    + Build-Depends-Indep: Drop versioned constraint on xutils-dev.
++    + xkb-data: Drop versioned constraint on libx11-6 in Breaks.
++
++  [ Timo Aaltonen ]
++  * New upstream release.
++
++ -- Timo Aaltonen <tjaalton@debian.org>  Mon, 27 Feb 2023 10:43:23 +0200
++
++xkeyboard-config (2.35.1-1) unstable; urgency=medium
++
++  * New upstream release.
++  * watch: Use macros for the upstream file/version/extension.
++
++ -- Timo Aaltonen <tjaalton@debian.org>  Tue, 05 Apr 2022 14:22:25 +0300
++
++xkeyboard-config (2.33-1) unstable; urgency=medium
++
++  * New upstream release. (Closes: #980978)
++  * revert-goodmap-badmap-for-apple.diff: Finally dropped, we've had
++    kernel > 2.6.19 for a while now.
++  * control, rules: Build with meson.
++  * rules: Drop an unnecessary workaround for quilt.
++  * control: Update Vcs links for the new repo name (xkeyboard-config).
++  * Set upstream metadata fields for Name and Repository. Drop old repo
++    from watch.
++
++ -- Timo Aaltonen <tjaalton@debian.org>  Wed, 18 Aug 2021 12:26:23 +0300
++
++xkeyboard-config (2.29-2) unstable; urgency=medium
++
++  [ Simon McVittie ]
++  * Add Breaks on x11-xkb-utils (<< 7.7+5).
++    This ensures that xkbcomp won't fail for keycodes above 255, which this
++    package now uses (Closes: #952731)
++
++  [ Timo Aaltonen ]
++  * rules: Override dh_clean.
++
++ -- Timo Aaltonen <tjaalton@debian.org>  Sat, 29 Feb 2020 13:32:57 +0200
++
++xkeyboard-config (2.29-1) unstable; urgency=medium
++
++  * New upstream release.
++  * control: Use debhelper-compat, bump to 12.
++  * patches: Drop reverts which have a fix upstream now, refresh revert-
++    goodmap-badmap-for-apple.diff.
++  * rules, control: Replace intltool with gettext.
++  * control: Bump policy to 4.5.0.
++
++ -- Timo Aaltonen <tjaalton@debian.org>  Thu, 27 Feb 2020 18:38:13 +0200
++
++xkeyboard-config (2.26-2) unstable; urgency=medium
++
++  * Revert following commits:
++    - ed67b29e (Map evdev keycode KEY_BRIGHTNESS_CYCLE to
++      XF86MonBrightnessCycle)
++    - d0e5e63c (Map evdev keycode KEY_KEYBOARD to XF86Keyboard)
++    - e6103610 (Map evdev keycode KEY_FAVORITES to XF86Favorites)
++    (Closes: #921867, #921940, #922020).
++
++ -- Andreas Boll <aboll@debian.org>  Mon, 11 Feb 2019 20:25:45 +0100
++
++xkeyboard-config (2.26-1) unstable; urgency=medium
++
++  * New upstream release.
++    - Map evdev keycodes KEY_RFKILL and KEY_WWAN to XF86RFKill and
++      XF86WWAN (Closes: #917157).
++    - allowMultipleSelection is wrong in korean data (Closes: #902234).
++  * Drop fix-typo.diff, upstreamed.
++  * Cherry-pick af6c0f29 (Fixed broken pt layout) from upstream.
++  * Let uscan check upstream tarball signatures.
++  * Update Vcs-* URLs to point to salsa.debian.org.
++  * Bump debhelper compat to 10.
++  * Raise Priority to optional.
++  * Set source format to 1.0.
++  * Bump standards version to 4.3.0.
++
++ -- Andreas Boll <aboll@debian.org>  Fri, 08 Feb 2019 22:27:41 +0100
++
++xkeyboard-config (2.23.1-1) unstable; urgency=medium
++
++  * New upstream release. (Closes: #884822)
++  * revert-indic-blacklist.diff: Dropped, upstream.
++  * fix-typo.diff: Fix a typo in pl layout.
++
++ -- Timo Aaltonen <tjaalton@debian.org>  Thu, 01 Feb 2018 17:30:40 +0200
++
++xkeyboard-config (2.19-1.1) unstable; urgency=medium
++
++  * Non-maintainer upload.
++  * Revert blacklisting of Indic layouts (Closes: #865316)
++
++ -- Pirate Praveen <praveen@debian.org>  Tue, 18 Jul 2017 13:08:55 +0530
++
++xkeyboard-config (2.19-1) unstable; urgency=medium
++
++  * New upstream release.
++  * Bump Standards-Version to 3.9.8.
++
++ -- Andreas Boll <andreas.boll.dev@gmail.com>  Thu, 12 Jan 2017 11:40:48 +0100
++
++xkeyboard-config (2.18-1) unstable; urgency=medium
++
++  * Team upload.
++
++  [ Timo Aaltonen ]
++  * New upstream release.
++
++  [ Julien Cristau ]
++  * Update upstream URLs in packaging to use https.
++
++ -- Julien Cristau <jcristau@debian.org>  Sat, 24 Sep 2016 15:07:03 +0200
++
++xkeyboard-config (2.17-1) unstable; urgency=medium
++
++  * New upstream release
++  * Use https instead of git for Vcs-Git.
++
++ -- Julien Cristau <jcristau@debian.org>  Sun, 21 Feb 2016 15:56:50 +0000
++
++xkeyboard-config (2.16-1) unstable; urgency=medium
++
++  * Team upload.
++  * New upstream release.
++  * Bump debhelper compat to 9, Standards-Version to 3.9.6, and update Vcs-*
++    control fields.
++  * Drop dh_builddeb override, xz is the default since dpkg 1.17.0.
++
++ -- Julien Cristau <jcristau@debian.org>  Wed, 28 Oct 2015 15:39:42 +0000
++
++xkeyboard-config (2.14-1) unstable; urgency=medium
++
++  * New upstream release (closes: #776817).
++    - fujitsu_vndr: add a name to xkb_symbols sections (closes: #749006)
++    - Add option to swap right alt & right control (closes: #752680)
++  * Remove Cyril from Uploaders.
++  * Drop fr-oss-rctrl.diff, upstream did a mostly equivalent change.
++
++ -- Julien Cristau <jcristau@debian.org>  Sun, 26 Apr 2015 16:30:30 +0200
++
++xkeyboard-config (2.12-1) unstable; urgency=medium
++
++  * New upstream release
++    + revert Russian layout change from 2.11 (closes: #748521)
++    + revert it/fr/nl numeric keypad separator change (closes: #748734, #749112)
++  * Fix right control key on fr(oss) layout to behave like control again
++    (closes: #733757)
++
++ -- Julien Cristau <jcristau@debian.org>  Fri, 06 Jun 2014 17:44:52 +0200
++
++xkeyboard-config (2.11-1) unstable; urgency=medium
++
++  [ Lior Kaplan ]
++  * New upstream release
++    + altwin(ctrl_alt_win): Map "win" to Ctrl keys (closes: #678553)
++    + use the modern language name Bangla instead of Bengali (closes: #731274)
++    + implemented the new Israeli Standard SI1452 for the il basic layout
++      (closes: #530820)
++
++  [ Sven Joachim ]
++  * Mark xkb-data as "Multi-Arch: foreign" (Closes: #677884).
++
++  [ Julien Cristau ]
++  * Fix grab:debug reference in the xml file.
++
++ -- Julien Cristau <jcristau@debian.org>  Tue, 13 May 2014 00:09:58 +0200
++
++xkeyboard-config (2.10.1-1) unstable; urgency=low
++
++  [ Dmitry Shachnev ]
++  * New upstream release (closes: #718730).
++  * Refresh revert-goodmap-badmap-for-apple.diff.
++  * Drop preserve-shift.diff, applied upstream.
++  * Update debian/watch for new tarballs location (closes: #727812).
++  * Disable autopoint, it causes build failure and we use intltoolize
++    instead.
++  * Bump Standards-Version to 3.9.5, no changes needed.
++
++ -- Julien Cristau <jcristau@debian.org>  Sun, 22 Dec 2013 16:37:56 +0100
++
++xkeyboard-config (2.5.1-3) unstable; urgency=low
++
++  * Cherry-picks from upstream:
++    - A couple of missing chars in gr(polytonic), added on levels 3, 4
++      (closes: #696126)
++    - Reverting broken fix for is keyboard
++    - symbols: ossmath is CTRL+ALT, not FOUR_LEVEL (closes: #657440)
++    - symbols/gr: fix comment (closes: #696125)
++
++ -- Julien Cristau <jcristau@debian.org>  Tue, 25 Dec 2012 12:37:00 +0100
++
++xkeyboard-config (2.5.1-2.1) unstable; urgency=low
++
++  * Non-maintainer upload.
++  * Preserve Shift modifier so GTK3 apps can properly differentiate between
++    F10 and Shift+F10 (Closes: #656685).
++
++ -- Michael Biebl <biebl@debian.org>  Fri, 21 Sep 2012 18:12:52 +0200
++
++xkeyboard-config (2.5.1-2) unstable; urgency=low
++
++  [ Ansgar Burchardt ]
++  * Use xz compression for binary packages (Closes: #683891).
++
++ -- Cyril Brulebois <kibi@debian.org>  Sun, 05 Aug 2012 11:54:19 +0200
++
++xkeyboard-config (2.5.1-1) unstable; urgency=low
++
++  * New upstream release:
++    - Update translations, the previous release was rushed a bit for
++      the security fix.
++
++ -- Cyril Brulebois <kibi@debian.org>  Thu, 02 Feb 2012 12:32:30 +0100
++
++xkeyboard-config (2.5-1) unstable; urgency=low
++
++  * New upstream release, including:
++    - Hide ClearGrab/CloseGrabs actions behind an option.
++  * To get those actions back, use the grab:break_actions option. At
++    the moment, the corresponding actionve has been disabled on the
++    server side as a hot fix for CVE-2012-0064 (Closes: #656500).
++  * Since there's a workaround on the server side already, do not use
++    a high urgency, so that this new upstream release and its various
++    changes can be tested for a while in unstable.
++  * Update URL in watch file.
++  * Add xsltproc, xutils-dev build-deps.
++  * Keep /usr/share/man out of the udeb, due to a newly-added manpage.
++
++ -- Cyril Brulebois <kibi@debian.org>  Fri, 20 Jan 2012 18:21:03 +0100
++
++xkeyboard-config (2.3-2) unstable; urgency=low
++
++  * Upload to unstable, for GNOME3 (Closes: #652871).
++  * Adapt dh_autoreconf override since its behaviour changed.
++
++ -- Cyril Brulebois <kibi@debian.org>  Wed, 21 Dec 2011 10:52:00 +0100
++
++xkeyboard-config (2.3-1) experimental; urgency=low
++
++  * New upstream release:
++    - Since 2.1 is still supposed to be the best for GNOME2, and since
++      GNOME3 is still being prepared in experimental, target that suite
++      rather than unstable.
++  * Add intltool build-dep.
++
++ -- Cyril Brulebois <kibi@debian.org>  Sat, 04 Jun 2011 00:35:16 +0200
++
++xkeyboard-config (2.2.1-1) experimental; urgency=low
++
++  * New upstream release:
++    - Big rewrite for GNOME3.
++  * By default, run-time dependencies are checked at build-time:
++    - Pass --disable-runtime-deps to disable that check since there's no
++      point in doing so for Debian packages.
++    - Break earlier versions of libx11-6.
++  * Get rid of old maintainer scripts to upgrade from 1.6 since squeeze
++    has 1.8.
++  * Refresh patches.
++  * Switch to dh:
++    - Bump debhelper build-dep/compat to 8.
++    - Use dh-autoreconf.
++    - Rewrite debian/rules accordingly.
++    - Build out-of-tree.
++  * Remove debian/xsfbs/, no longer needed.
++  * Remove debian/patches/quiltrc, not really needed.
++
++ -- Cyril Brulebois <kibi@debian.org>  Wed, 06 Apr 2011 02:41:25 +0200
++
++xkeyboard-config (2.1-2) unstable; urgency=low
++
++  * Remove Mohammed Adnène Trojette from Uploaders. Thanks for your work!
++  * Wrap build dependencies.
++  * Drop Breaks on libx11-6 (<< 2:1.1), that was before lenny.
++  * Bump Standards-Version to 3.9.1 (no changes needed).
++  * Upload to unstable.
++
++ -- Cyril Brulebois <kibi@debian.org>  Wed, 06 Apr 2011 01:01:12 +0200
++
++xkeyboard-config (2.1-1) experimental; urgency=low
++
++  * New upstream release:
++    + Beware of the possible regressions, we're going 3 releases forward
++      at once.
++  * Rebuild ChangeLog using “git log” on the upstream branch. The NEWS
++    file is a bit too lightweight. As a reminder, it's installed as:
++      /usr/share/doc/xkb-data/changelog.gz
++  * Point to /usr/share/X11/xkb/rules/base.lst in README.Debian, thanks to
++    Riku Saikkonen for the suggestion (Closes: #487951).
++  * Great debian/rules cleanup:
++    + Remove deb target, dpkg-buildpackage's -i does the right thing, and
++      “-rfakeroot” has been the default for a while.
++    + Remove dir target, no longer used.
++    + Stop removing rules/compat/base.l[2-4]*.part, they are no longer
++      generated automatically.
++    + More generically, stop removing files which weren't cleaned, that's
++      been fixed.
++    + Call touch in clean to restore the empty file which gets deleted by
++      quilt when unpatching rules/base.o_k.part; this avoid its showing up
++      as “deleted” in “git status”.
++    + Try and keep the udeb's size low: Replace multiple spaces with a
++      single space character. For this version, installed size goes down
++      from 3.5MB to 3.0MB.
++    + Additionally, remove comments starting with “//”. Down to 2.6MB, yay.
++    + Also don't ship the newly-added pkg-config file in the udeb.
++    + Stop removing $(xkb_base)/compiled, it's no longer created.
++    + Stop passing --disable-xkbcomp-symlink to configure, it's gone.
++  * Merge xsfbs/debian-unstable, which helps avoiding rebuilds.
++  * Update download URL in watch file.
++
++ -- Cyril Brulebois <kibi@debian.org>  Fri, 28 Jan 2011 00:11:58 +0100
++
++xkeyboard-config (1.8-2) unstable; urgency=low
++
++  * Add revert-goodmap-badmap-for-apple.diff patch to make apple:goodmap and
++    apple:badmap options available again. Some users are still affected by
++    this issue, so restore those options for now (Closes: #604671). Thanks,
++    Corsac, for reporting and checking the fix!
++
++ -- Cyril Brulebois <kibi@debian.org>  Tue, 23 Nov 2010 21:48:24 +0100
++
++xkeyboard-config (1.8-1) unstable; urgency=low
++
++  [ Julien Cristau ]
++  * Remove myself from Uploaders
++  * New upstream release
++    + Fix Win key as third level chooser (closes: #531771)
++
++  [ Cyril Brulebois ]
++  * Add udeb needed for the graphical installer: xkb-data-udeb.
++  * Add myself to Uploaders.
++  * Bump Standards-Version from 3.8.3 to 3.8.4 (no changes needed).
++  * Add Depends: ${misc:Depends} to xkb-data.
++
++ -- Cyril Brulebois <kibi@debian.org>  Mon, 15 Mar 2010 14:24:43 +0100
++
++xkeyboard-config (1.7-2) unstable; urgency=low
++
++  * Apparently some people have /etc/X11/xkb as a symlink, which makes rmdir
++    fail.  Try to handle that case as well (closes: #558761).  Thanks, Arjan
++    Opmeer!
++
++ -- Julien Cristau <jcristau@debian.org>  Sat, 16 Jan 2010 20:39:49 +0000
++
++xkeyboard-config (1.7-1) unstable; urgency=low
++
++  [ David Nusinow ]
++  * Add a note about re-enabling ctrl-alt-backspace killing to NEWS.Debian
++    (closes: #531629)
++  * Update xsfbs.
++  * Update to debhelper version 7
++    + Fix up dh_clean -k to use dh_prep instead
++  * Update standards version to 3.8.3.0. No changes necessary.
++
++  [ Julien Cristau ]
++  * Don't install base.xml in /etc/X11/xkb.  Modifying this creates more
++    problems than it solves (closes: #497341).
++  * New upstream release.
++    + fix broken reference to symbols/sun_vndr/us(sun[45]) (closes: #469335)
++    + add a dead_tilde to the Spanish layout (closes: #546288)
++    + fix error in German translation (closes: #532642)
++  * Clean up using maintainer-clean instead of distclean.
++
++ -- Julien Cristau <jcristau@debian.org>  Sun, 29 Nov 2009 11:47:09 +0100
++
++xkeyboard-config (1.6-1) unstable; urgency=low
++
++  * Add Breaks on old libx11-6.  It seems some people are keeping very, very
++    old libx11-6 versions, which didn't know about some keysyms we're now
++    using, thus making their keyboard unusable (closes: #530585, #514975).
++  * New upstream release
++    + adds Crimean Tatar layouts (closes: #513557)
++    + French translation updated (closes: #529479)
++    + fixes handling of compat layouts (closes: #514409)
++  * Patches sclk_toggle.diff and unhide_lv3_enter_switch.diff are upstream.
++  * Add README.source, bump Standards-Version to 3.8.1.
++
++ -- Julien Cristau <jcristau@debian.org>  Sat, 30 May 2009 16:39:19 +0200
++
++xkeyboard-config (1.5-2) unstable; urgency=low
++
++  * Cherry-picked from upstream git:
++    + added ca(eng), b.fd.o#19707
++    + fixed meta for fi(smi), b.fd.o#19841
++    Requested by Samuel Thibault.
++
++ -- Julien Cristau <jcristau@debian.org>  Sun, 01 Feb 2009 16:46:55 +0100
++
++xkeyboard-config (1.5-1) unstable; urgency=low
++
++  * New upstream release.
++    + bepo layout updated (closes: #469826)
++    + some symbols added to Gurmukhi keymap (closes: #443647)
++    + new 'deadtilde' variant for es and latam layouts (closes: #444035)
++    + problem with cymotion model and XF86WWW keysym fixed (closes: #462816)
++    + 'sun' rules files removed (closes: #469306)
++    + the us layout doesn't override CAPS anymore (closes: #504022)
++    + model 'logimel', Logitech Media Keyboard Elite, added (closes: #384801)
++  * Patch sclk_toggle.diff updated.
++  * Patch unhide_lv3_enter_switch.diff refreshed.
++  * Patch send-upstream/001_keypad_comma.diff dropped; the kpdl:comma option
++    exists since 1.1, and keypad:comma was broken since then.
++  * Patches add_void_definition_pl-324647.diff and mac_poweroff.diff dropped,
++    applied upstream.
++  * Add myself to Uploaders.
++  * Update debian/copyright from upstream COPYING.
++
++ -- Julien Cristau <jcristau@debian.org>  Wed, 28 Jan 2009 06:40:24 +0100
++
++xkeyboard-config (1.4-1) unstable; urgency=low
++
++  * New upstream release.
++  * Clean up generated files on clean, and recreate them at build time, in an
++    attempt to make the build system cleaner.  Also reorganize debian/rules in
++    the process, using the standard xsfbs ruleset.
++  * Update patch send-upstream/001_keypad_comma.diff.
++  * Delete patch fixed-compat-rules-for-Romania-b.fd.o-16872.patch, applied
++    upstream.
++
++ -- Julien Cristau <jcristau@debian.org>  Wed, 12 Nov 2008 19:45:45 +0100
++
++xkeyboard-config (1.3-2) unstable; urgency=high
++
++  * Fix compat rules for Romanian layout (closes: #485702).
++  * Remove some generated files from the source package to clean up the build.
++
++ -- Julien Cristau <jcristau@debian.org>  Thu, 14 Aug 2008 19:51:55 +0200
++
++xkeyboard-config (1.3-1) unstable; urgency=low
++
++  * New upstream release:
++     + add a CA variant for Secwepemctsin language. (Closes: #476702)
++     + change Romanian keymap to use the correct comma
++       characters. (Closes: #481176)
++     + "symbols/ru: default variant is winkeys (till Daniel
++       fixes xkbcomp)" (Closes: #480124)
++
++ -- Mohammed Adnène Trojette <adn+deb@diwi.org>  Wed, 28 May 2008 13:38:30 +0200
++
++xkeyboard-config (1.2~cvs.20080501.1-1) unstable; urgency=low
++
++  * New upstream CVS snapshot from May 1st 2008:
++     + revert Latin American layout. (Closes: #477197)
++     + reactivate right control key in fr(oss). (Closes: #460550)
++     + fix olpc variants in the Afghan layout. (Closes: #461521)
++  * Clean up add_void_definition_pl-324647.diff and apply it before
++    resync_rules_base.diff to avoid unclean patch applying and
++    unapplying. (Closes: #460838)
++  * Document issues with the "Fn" key on some laptops in
++    README.Debian. (Closes: #461489)
++
++ -- Mohammed Adnène Trojette <adn+deb@diwi.org>  Thu, 01 May 2008 01:29:51 +0200
++
++xkeyboard-config (1.1~cvs.20080104.1-1) unstable; urgency=low
++
++  * New upstream CVS snapshot from January 4th 2008:
++     + fixed Latin American layout. (Closes: #444035)
++     + fixed Cherry CyMotion Master Linux layout. (Closes: #343929)
++     + fixed HP Compaq nx9020 layout. (Closes: #395883)
++     + split Serbia and Montenegro. (Closes: #451622)
++     + added fr(nodeadkeys) to mac. (Closes: #456942)
++     + fixed mapping for shift+backslash in "il" keyboard. (Closes: #457927)
++     + added English quotation marks to intl keymaps. (Closes: #453675)
++  * debian/control:
++     + bumped Standards-Version to 3.7.3.
++     + used Vcs-Git and Vcs-Browser fields.
++     + use a Homepage field.
++  * Refreshed resync_rules_base.diff. (Closes: #442942)
++  * Documented the creation of a custom layout in README.Debian and
++    made /usr/share/X11/xkb/rules/base.xml a symlink to
++    /etc/X11/xkb/base.xml.
++    (Closes: #410628, #410903, #438940)
++  * Documented how to remove conffiles left in /etc/X11/xkb/ in
++    README.Debian. (Closes: #366180)
++  * New patch: add_void_definition_pl-324647.diff
++     + don't use rules/latin's definitions for alt+{w,q,f}.
++       (Closes: #324647)
++
++ -- Mohammed Adnène Trojette <adn+deb@diwi.org>  Sun, 13 Jan 2008 15:33:54 +0100
++
++xkeyboard-config (1.0~cvs.20070916-1) unstable; urgency=low
++
++  * New upstream CVS snapshot from September 16th 2007:
++     + fix evdev layout. (Closes: #442479)
++
++ -- Mohammed Adnène Trojette <adn+deb@diwi.org>  Sun, 16 Sep 2007 18:51:30 +0200
++
++xkeyboard-config (1.0~cvs.20070914-1) unstable; urgency=low
++
++  * New upstream CVS snapshot from September 14th 2007:
++     + advertise all Romanian layouts. Thanks Eddy Petrișor for the
++       patch. (Closes: #436993)
++     + fix ctrl:swapcaps. (Closes: #410060)
++     + add missing virtual keys from evdev keycodes. Thanks Yann
++       Vernier for the patch. (Closes: #432613)
++     + support Asus 6000 series laptop keyboard. Thanks Arnout Boelens
++     for the patch. (Closes: #383953)
++  * Update debian/*.dir files.
++
++ -- Mohammed Adnène Trojette <adn+deb@diwi.org>  Fri, 14 Sep 2007 19:12:27 +0200
++
++xkeyboard-config (1.0~cvs.20070721-1) unstable; urgency=low
++
++  [ Julien Cristau ]
++  * Fix watch file to look for tarballs at http://xlibs.fd.o/xkbdesc/
++
++  [ Mohammed Adnène Trojette ]
++  * New upstream CVS snapshot from July 21st 2007:
++     + include xkb files for the Happy Hacking keyboard. (Closes: #167370)
++     + fix us layout. (Closes: #421532)
++     + fix se layout. (Closes: #425304)
++     + fix de+nodeadkey layout. (Closes: #432297)
++  * Patches refreshed:
++     + fix FTBFS. (Closes: #424112)
++  * Patches obsoleted:
++     + greek.diff.
++
++ -- Mohammed Adnène Trojette <adn+deb@diwi.org>  Sat, 21 Jul 2007 20:51:07 +0200
++
++xkeyboard-config (0.9+cvs.20070428-1) experimental; urgency=low
++
++  * Add myself to Uploaders. (Closes: #401777)
++  * CVS Snapshot from April 24 2007:
++     + fix Uzbek layout. (Closes: #412528)
++     + fix typo in compat/misc. (Closes: #412352)
++     + adjust Dutch layout. (Closes: #286581)
++     + fix keymap on iBook G4 Japanese keyboard. (Closes: #374070)
++     + fix <K6C> key in symbols/inet. (Closes: #409982)
++     + update Finnish layout. (Closes: #405207)
++     + add Logitech Cordless Desktop Optical support. (Closes: #391192)
++     + fix a jp106 backslash/yen issue. (Closes: #280579)
++  * Patches refreshed:
++     + resync_rules_base.diff.
++  * Patches obsoleted or merged upstream:
++     + revert_bz8572.diff
++     + po.diff
++     + bz1576.diff
++     + bz8668.diff
++     + compatibility.diff
++     + japan.diff
++  * Patches to send upstream:
++     + 001_keypad_comma.diff: add keypad:comma option. (Closes: #409117)
++  * Bump debhelper compatibility to 5.
++  * Remove reference to xlibs. (Closes: #413620)
++
++ -- Mohammed Adnène Trojette <adn+deb@diwi.org>  Sat, 28 Apr 2007 20:35:01 +0200
++
++xkeyboard-config (0.9-4) unstable; urgency=low
++
++  [ Denis Barbier ]
++  + debian/patches/po.diff: Escape <> characters in Slovenian
++    PO file, base.xml was not a valid XML file.  Closes: #394060
++
++  [ Loic Minier ]
++  * Upload.
++
++ -- Denis Barbier <barbier@debian.org>  Fri, 20 Oct 2006 22:24:57 +0200
++
++xkeyboard-config (0.9-3) unstable; urgency=high
++
++  [ Denis Barbier ]
++  * debian/patches/resync_rules_base.diff: Regenerate to fix FTBFS.
++    Closes: #393166  Thanks Andreas Jochens.
++    Urgency set to high because of the FTBFS.
++
++  + debian/patches/po.diff: Update Slovenian PO file.
++
++  + debian/patches/bz8668.diff: New patch to fix Ctrl-Alt-Backspace
++    with Macintosh us layout.
++
++  * debian/patches/revert_bz8572.diff: Sync to CVS.
++
++  [ Drew Parsons ]
++  * Thank you to Denis for the hard work keeping the keyboards typing.
++
++ -- Drew Parsons <dparsons@debian.org>  Wed, 18 Oct 2006 10:55:11 +1000
++
++xkeyboard-config (0.9-2) unstable; urgency=low
++
++  + debian/patches/po.diff: Update Hungarian PO file.
++
++  + debian/patches/revert_bz8572.diff: New patch to revert changes
++    introduced in BZ8572, they cause trouble with Ctrl-Alt-F*
++    combinations.  Closes: #392911.
++
++ -- Denis Barbier <barbier@debian.org>  Sat, 14 Oct 2006 19:55:14 +0200
++
++xkeyboard-config (0.9-1) unstable; urgency=low
++
++  * New upstream release.
++    Almost all upstream fixes were already backported, this package
++    is very similar to 0.8-18.
++
++  * Drop patches merged upstream:
++    + debian/patches/latin_quotes.diff
++    + debian/patches/fix_xkbcomp_crash.diff
++
++  * This version adds leftsinglequotemark and rightsinglequotemark to
++    symbols/us(alt-intl).  Closes: #391995 Thanks Jan Willem Stumpel.
++
++ -- Denis Barbier <barbier@debian.org>  Wed, 11 Oct 2006 22:50:37 +0200
++
++xkeyboard-config (0.8-18) unstable; urgency=low
++
++  * Sync to CVS 2006-10-05.
++    Drop patches merged upstream:
++    + debian/patches/mac-gb-euro.diff
++    + debian/patches/symbols-typos.diff
++    + debian/patches/finnish-macron.diff
++    + debian/patches/rewrite-mac.diff
++
++  * debian/patches/japan.diff: New patch so that the latin variant of
++    jp layout is selected with multiple layouts.
++
++ -- Denis Barbier <barbier@debian.org>  Thu,  5 Oct 2006 22:12:56 +0200
++
++xkeyboard-config (0.8-17) unstable; urgency=low
++
++  * debian/patches/finnish-macron.diff: In symbols.fi, replace macron
++    by dead_macron.  Closes: #387320  Thanks Martin-Éric Racine.
++
++  * debian/patches/symbols-typos.diff: Fix typos in keysym names.
++    Closes: #390876  Thanks Sam Hocevar.
++
++  * debian/patches/rewrite-mac.diff: Add includes to mac layouts in
++    symbols/* to reduce key definitions.
++
++ -- Denis Barbier <barbier@debian.org>  Tue,  3 Oct 2006 22:18:31 +0200
++
++xkeyboard-config (0.8-16) unstable; urgency=low
++
++  * Sync to CVS 2006-10-02.
++    + Macintosh layouts are also available for PC models.
++    + New nbsp:* options to add nobreakspace keysym on space key.
++      Closes: #361777  Thanks Samuel Thibault.
++
++  * Thix patch has been merged upstream and is removed:
++    + debian/patches/thinkpad.diff
++
++  * debian/patches/unhide_lv3_enter_switch.diff: New patch to
++    expose lv3:enter_switch, it can be useful when using pc105
++    model on a Mac laptop.
++
++ -- Denis Barbier <barbier@debian.org>  Tue,  3 Oct 2006 00:35:01 +0200
++
++xkeyboard-config (0.8-15) unstable; urgency=low
++
++  * debian/patches/greek.diff: New patch to replace dead_horn and
++    dead_ogonek by U0313/U0314, which are the correct breathing
++    signs for polytonic Greek.  This change can be performed now
++    that an updated el_GR.UTF-8/Compose file hit testing.
++    Closes: #386385  Thanks Jan Willem Stumpel.
++
++  * debian/patches/compatibility.diff: Add compatibility rules to
++    make sure that changes in symbols/pc do not cause trouble.
++    Closes: #389589  Thanks Robert Bihlmeyer.
++
++ -- Denis Barbier <barbier@debian.org>  Wed, 27 Sep 2006 23:19:39 +0200
++
++xkeyboard-config (0.8-14) unstable; urgency=low
++
++  * Sync to CVS 2006-09-25.
++  * These patches have been merged upstream and are removed:
++    + debian/patches/macbook_layouts.diff
++    + debian/patches/fr.po.diff
++
++  * debian/patches/bz1576.diff: Minor fixes in Macintosh layouts.
++
++  * debian/patches/thinkpad.diff: Fix geometry/thinkpad.
++    Closes: #389358  Thanks Wouter Cloetens
++
++ -- Denis Barbier <barbier@debian.org>  Mon, 25 Sep 2006 21:38:39 +0200
++
++xkeyboard-config (0.8-13) unstable; urgency=low
++
++  * Sync to CVS 2006-09-18.
++    Support for Macintosh keyboards has been fully reworked, deeply
++    tested by debian-powerpc readers and merged upstream.  Macintosh
++    layouts can now be as customized as PC ones with options.
++    Closes: #121297, #111905, #166478, #234113, #319423, #256442
++
++  * These patches are removed because they are obsolete:
++    + debian/patches/cvs_revert.diff
++    + debian/patches/inet.diff
++    + debian/patches/mac_fnkeys.diff
++    + debian/patches/macintosh.diff
++    + debian/patches/macintosh-gb.diff
++    + debian/patches/mac_swap_kp.diff
++    + debian/patches/mac_nodeadkeys.diff
++
++  * debian/README.Debian: Replace its obsolete content by informations 
++    to powerpc users.
++
++  * debian/patches/fix_xkbcomp_crash.diff: New patch to fix an
++    xkbcomp crash introduced in CVS and not fixed yet.
++    Closes: #387917 Thanks Helge Kreutzmann and Wolfgang Pfeiffer.
++
++  * debian/patches/mac_poweroff.diff: Add the power key to Apple
++    laptops.  Thanks Jörg Sommer.
++
++  * debian/patches/macbook_layouts.diff: For MacBook models, load
++    symbols from symbols/macintosh_vndr/* instead of symbols/*.
++
++  * debian/patches/mac-gb-euro.diff: New patch to add the Euro sign
++    on key 2 for the Macintosh gb layout.
++
++  * debian/patches/fr.po.diff: Fix po/fr.po, the version currently
++    in CVS is broken.
++
++ -- Denis Barbier <barbier@debian.org>  Sat, 23 Sep 2006 00:18:38 +0200
++
++xkeyboard-config (0.8-12) unstable; urgency=low
++
++  * Sync to CVS 2006-09-05.
++    + Closes: #362850: support alt-caps to toggle groups
++    Drop patches merged upstream:
++    + debian/patches/fix_symbols_hr.diff
++    + debian/patches/fix_symbols_key_type.diff
++    + debian/patches/ralt_switch_multikey.diff
++    + debian/patches/rearrange_options.diff
++    + debian/patches/microsoft.diff
++
++ -- Denis Barbier <barbier@debian.org>  Tue,  5 Sep 2006 19:48:57 +0200
++
++xkeyboard-config (0.8-11) unstable; urgency=low
++
++  * debian/patches/rearrange_options.diff: New patch to modify options
++    order in rules/base so that altwin:meta_win can be overriden by
++    other options.  Closes: #385355  Thanks Ben Mueller
++
++  * debian/patches/fix_symbols_key_type.diff: Several layouts did
++    define global key types, so keys for other groups were broken.
++    Closes: #373692, #385970  Thanks Robert Marlow and Jan Willem Stumpel
++
++ -- Denis Barbier <barbier@debian.org>  Mon,  4 Sep 2006 21:50:00 +0200
++
++xkeyboard-config (0.8-10) unstable; urgency=low
++
++  * Really fix Mac nodeadkeys variants, rules/base was not properly
++    rebuilt.
++
++ -- Denis Barbier <barbier@debian.org>  Thu, 31 Aug 2006 00:30:25 +0200
++
++xkeyboard-config (0.8-9) unstable; urgency=low
++
++  * debian/patches/resync_rules_base.diff: New patch to help keeping
++    rules/base.* and rules/compat/base.* files up-to-date.
++
++  * debian/patches/mac_swap_kp.diff: New patch to swap KP_Delete and
++    KP_Separator on Mac keyboards.  Closes: #328125  Thanks Ben Mueller
++
++  * debian/patches/latin_quotes.diff: New patch; grave and apostrophe
++    on the 4th level can be provided via simpler keystrokes.  They were
++    historically provided as alternative quotes, but these ones are
++    better alternatives.  Closes: #308196 Thanks Mark Sheppard
++
++  * debian/patches/mac_nodeadkeys.diff:  New patch to fix nodeadkeys variants,
++    they were badly broken.
++
++ -- Denis Barbier <barbier@debian.org>  Wed, 30 Aug 2006 22:17:59 +0200
++
++xkeyboard-config (0.8-8) unstable; urgency=low
++
++  * Sync to CVS 2006-08-28.
++    + symbols/inet, keycodes/evdev: updated evdev
++    + symbols/pl: added pl(csb)
++    + symbols/bt: fixed Bhutan
++    + symbols/us: added dvorak-classic  Closes: #257626, #264647
++    + symbols/inet: added acer_c300
++    + symbols/lk: updated Sinhala
++    + symbols/de: added Mac variants
++    + symbols/ch: fixed KPDL in ch(de_mac)
++
++  * debian/patches/update-bt.diff: Patch dropped, merged upstream.
++
++  * debian/patches/fix_symbols_hr.diff: New patch to fix Croatian layout,
++    some differences with previous XFree86 keymap had been introduced
++    in xkeyboard-config.  Closes: #379292  Thanks Josip Rodin
++
++  * debian/patches/mac_fnkeys.diff: New patch to fix console switching
++    with Macintosh us layout.  Closes: #370564  Thanks Ben Mueller
++
++  * debian/patches/ralt_switch_multikey.diff: New patch to enable again
++    lv3:ralt_switch_multikey which had been dropped from xkeyboard-config.
++    Closes: #364435  Thanks Klaus Ethgen
++
++  * debian/patches/microsoft.diff: New patch to enable again the
++    'microsoft' model, it had been disabled by error in previous uploads.
++    Closes: #379917 Thanks Phil Armstrong
++
++  * debian/patches/inet.diff: New patch to add apple, apple_laptop,
++    hpxt1000 and latitude to $inetkbds.  Closes: #381882
++    Thanks Steinar H. Gunderson
++
++ -- Denis Barbier <barbier@debian.org>  Sat, 26 Aug 2006 14:54:51 +0200
++
++xkeyboard-config (0.8-7) unstable; urgency=low
++
++  * debian/patches/macintosh-gb.diff: New patch to fix <LSGT> and <TLDE> keys.
++    Closes: #379148 Thanks Roger Leigh
++
++  * debian/patches/macintosh.diff: New patch to include 'latin' layout.
++    Closes: #366615, #363525
++
++  * debian/patches/update-bt.diff: New patch to update the Bhutanese layout.
++    Closes: #378309 Thanks Christian Perrier
++
++  * debian/rules: Make sure that rules/base{,.lst,.xml} files are rebuilt.
++
++ -- Denis Barbier <barbier@debian.org>  Mon, 14 Aug 2006 16:10:41 +0200
++
++xkeyboard-config (0.8-6) unstable; urgency=low
++
++  * debian/control: Move debhelper from Build-Depends-Indep to Build-Depends.
++
++  * debian/control: Bump Standards-Version to 3.7.2, no changes needed.
++
++  * debian/control: Use quilt to manage changes.
++
++  * Sync with CVS 2006-07-02.
++    The following bugs have been fixed upstream:
++    + XF86AudioRaiseVolume is defined twice for Logitech keyboards.
++      Closes: #363925
++    + hr(us) layout apparently broken.  Closes: #373833
++    + symbols/inet and rules/base.* do not match.  Closes: #368885
++    + no korean alphabet (hangul) mapping support.  Closes: #342615
++
++  * Drop fr.po.diff, included upstream.
++
++ -- Denis Barbier <barbier@debian.org>  Sun,  2 Jul 2006 22:11:44 +0200
++
++xkeyboard-config (0.8-5) unstable; urgency=low
++
++  * Add a symlink rules/xfree86 -> rules/base.  Thanks Daniel Stone.
++
++ -- Denis Barbier <barbier@debian.org>  Fri, 14 Apr 2006 22:30:25 +0200
++
++xkeyboard-config (0.8-4) unstable; urgency=low
++
++  * Upload to unstable
++
++ -- David Nusinow <dnusinow@debian.org>  Thu,  6 Apr 2006 19:56:38 -0400
++
++xkeyboard-config (0.8-3) experimental; urgency=low
++
++  * Add a note into NEWS.Debian telling to read README.Debian.
++  * Improve README.Debian again.
++  * Replace /etc/X11/xkb by /usr/share/X11/xkb in docs/README.config too.
++
++ -- Denis Barbier <barbier@debian.org>  Tue, 28 Mar 2006 20:52:21 +0200
++
++xkeyboard-config (0.8-2) experimental; urgency=low
++
++  * Explain in README.Debian how to use xkb-data 0.8 with xorg < 7.0.
++    Thanks Andreas Kroschel  (Closes: #357207)
++  * Update po/fr.po
++
++ -- Denis Barbier <barbier@debian.org>  Thu, 16 Mar 2006 23:27:19 +0100
++
++xkeyboard-config (0.8-1) experimental; urgency=low
++
++  * New upstream release.
++  * This release includes the Khmmer layout.  Closes: #355613
++  * Add Build-Depends-Indep: libxml-parser-perl, which is needed to build rules.xml.
++  * Modify debian/rules so that xkbcomp is not required to build this package.
++    Closes: #355742
++  * Move XKB files into /usr/share/X11/xkb and purge unmodified configuration file
++    when upgrading from previous xkb-data releases.
++  * Remove xkbcomp symlink, it is no more needed.  Closes: #356529
++  * Set Maintainer to Debian X Strike Force, and myself to Uploaders.
++
++ -- Denis Barbier <barbier@debian.org>  Mon, 13 Mar 2006 21:21:25 +0100
++
++xkeyboard-config (0.6-2) experimental; urgency=low
++
++  * symbols/compose: add CapsLock as a compose key.  Closes: #343287
++    Thanks Andreas Kroschel.
++  * symbols/group: add ScrollLock as a group switcher key.
++    Thanks Andreas Kroschel.
++
++ -- Denis Barbier <barbier@debian.org>  Fri, 16 Dec 2005 17:54:43 +0100
++
++xkeyboard-config (0.6-1) experimental; urgency=low
++
++  * New upstream release.
++  * debian/control: Bump Standards-Version to 3.6.2, no changes needed
++    in packaging.
++  * debian/README.Debian: Add a note explaining how to use xkeyboard-config.
++  * Since binary package is xkb-data, files are installed under
++    /etc/X11/xkb-data and not /etc/X11/xkeyboard-config.
++
++ -- Denis Barbier <barbier@debian.org>  Thu,  6 Oct 2005 23:19:59 +0200
++
++xkeyboard-config (0.5-2) experimental; urgency=low
++
++  * Some packages have a versioned dependency on xlibs, so Replaces
++    does not work here.  For the moment, XKB files are moved to
++    /etc/X11/xkeyboard-config
++
++ -- Denis Barbier <barbier@debian.org>  Thu, 17 Mar 2005 22:25:02 +0100
++
++xkeyboard-config (0.5-1) experimental; urgency=low
++
++  * Initial upload.  Closes: #274299
++  * Uploaded to experimental until we decide what to do with the
++    xlibs <-> xkb-data transition.
++
++ -- Denis Barbier <barbier@debian.org>  Wed,  2 Mar 2005 22:28:23 +0100
++
+--- xkeyboard-config-2.42.orig/debian/control
++++ xkeyboard-config-2.42/debian/control
+@@ -0,0 +1,42 @@
++Source: xkeyboard-config
++Section: x11
++Priority: optional
++Maintainer: Debian X Strike Force <debian-x@lists.debian.org>
++Build-Depends:
++ debhelper-compat (= 12),
++ meson,
++ quilt,
++Build-Depends-Indep:
++ gawk,
++ gettext-base,
++ libxml-parser-perl,
++ x11-xkb-utils,
++ libglib2.0-dev,
++ xsltproc,
++ xutils-dev,
++Standards-Version: 4.5.0
++Vcs-Git: https://salsa.debian.org/xorg-team/data/xkeyboard-config.git
++Vcs-Browser: https://salsa.debian.org/xorg-team/data/xkeyboard-config
++Homepage: https://www.freedesktop.org/Software/XKeyboardConfig
++
++Package: xkb-data
++Depends: ${misc:Depends}
++Breaks: x11-xkb-utils (<< 7.7+5),
++Architecture: all
++Multi-Arch: foreign
++Description: X Keyboard Extension (XKB) configuration data
++ This package contains configuration data used by the X Keyboard
++ Extension (XKB), which allows selection of keyboard layouts when
++ using a graphical interface.
++ .
++ Every X11 vendor provides its own XKB data files, so keyboard layout
++ designers have to send their layouts to several places.  The
++ xkeyboard-config project has been launched at FreeDesktop in order
++ to provide a central repository that could be used by all vendors.
++
++Package: xkb-data-udeb
++XC-Package-Type: udeb
++Section: debian-installer
++Architecture: all
++Description: X Keyboard Extension (XKB) configuration data
++ This is a udeb, or a microdeb, for the debian-installer.
+--- xkeyboard-config-2.42.orig/debian/copyright
++++ xkeyboard-config-2.42/debian/copyright
+@@ -0,0 +1,206 @@
++This package was debianized by Denis Barbier <barbier@debian.org> on
++Tue, 10 Oct 2006 01:16:55 +0200
++
++It was downloaded from
++  https://xorg.freedesktop.orgreleases/individual/data/xkeyboard-config
++
++Upstream Maintainer: 
++  Sergey V. Udaltsov <svu@gnome.org>
++
++This package is distributed under the following licenses:
++Copyright 1996 by Joseph Moss
++Copyright (C) 2002-2007 Free Software Foundation, Inc.
++Copyright (C) Dmitry Golubev <lastguru@mail.ru>, 2003-2004
++Copyright (C) 2004, Gregory Mokhin <mokhin@bog.msu.ru>
++Copyright (C) 2006 Erdal Ronahî
++
++Permission to use, copy, modify, distribute, and sell this software and its
++documentation for any purpose is hereby granted without fee, provided that
++the above copyright notice appear in all copies and that both that
++copyright notice and this permission notice appear in supporting
++documentation, and that the name of the copyright holder(s) not be used in
++advertising or publicity pertaining to distribution of the software without
++specific, written prior permission.  The copyright holder(s) makes no
++representations about the suitability of this software for any purpose.  It
++is provided "as is" without express or implied warranty.
++
++THE COPYRIGHT HOLDER(S) DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
++INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO
++EVENT SHALL THE COPYRIGHT HOLDER(S) BE LIABLE FOR ANY SPECIAL, INDIRECT OR
++CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
++DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
++TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
++PERFORMANCE OF THIS SOFTWARE.
++
++
++Copyright (c) 1996  Digital Equipment Corporation
++
++Permission is hereby granted, free of charge, to any person obtaining
++a copy of this software and associated documentation files (the
++"Software"), to deal in the Software without restriction, including
++without limitation the rights to use, copy, modify, merge, publish,
++distribute, sublicense, and sell copies of the Software, and to
++permit persons to whom the Software is furnished to do so, subject to
++the following conditions:
++
++The above copyright notice and this permission notice shall be included
++in all copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
++OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
++MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
++IN NO EVENT SHALL DIGITAL EQUIPMENT CORPORATION BE LIABLE FOR ANY CLAIM,
++DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
++OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
++THE USE OR OTHER DEALINGS IN THE SOFTWARE.
++
++Except as contained in this notice, the name of the Digital Equipment 
++Corporation shall not be used in advertising or otherwise to promote
++the sale, use or other dealings in this Software without prior written
++authorization from Digital Equipment Corporation.
++
++
++Copyright 1996, 1998  The Open Group
++
++Permission to use, copy, modify, distribute, and sell this software and its
++documentation for any purpose is hereby granted without fee, provided that
++the above copyright notice appear in all copies and that both that
++copyright notice and this permission notice appear in supporting
++documentation.
++
++The above copyright notice and this permission notice shall be
++included in all copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
++EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
++MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
++IN NO EVENT SHALL THE OPEN GROUP BE LIABLE FOR ANY CLAIM, DAMAGES OR
++OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
++ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
++OTHER DEALINGS IN THE SOFTWARE.
++
++Except as contained in this notice, the name of The Open Group shall
++not be used in advertising or otherwise to promote the sale, use or
++other dealings in this Software without prior written authorization
++from The Open Group.
++
++
++Copyright 2004-2005 Sun Microsystems, Inc.  All rights reserved.
++
++Permission is hereby granted, free of charge, to any person obtaining a
++copy of this software and associated documentation files (the
++"Software"), to deal in the Software without restriction, including
++without limitation the rights to use, copy, modify, merge, publish,
++distribute, and/or sell copies of the Software, and to permit persons
++to whom the Software is furnished to do so, provided that the above
++copyright notice(s) and this permission notice appear in all copies of
++the Software and that both the above copyright notice(s) and this
++permission notice appear in supporting documentation.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
++OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
++MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT
++OF THIRD PARTY RIGHTS. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
++HOLDERS INCLUDED IN THIS NOTICE BE LIABLE FOR ANY CLAIM, OR ANY SPECIAL
++INDIRECT OR CONSEQUENTIAL DAMAGES, OR ANY DAMAGES WHATSOEVER RESULTING
++FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
++NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION
++WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
++
++Except as contained in this notice, the name of a copyright holder
++shall not be used in advertising or otherwise to promote the sale, use
++or other dealings in this Software without prior written authorization
++of the copyright holder.
++
++
++Copyright (c) 1996 by Silicon Graphics Computer Systems, Inc.
++
++Permission to use, copy, modify, and distribute this
++software and its documentation for any purpose and without
++fee is hereby granted, provided that the above copyright
++notice appear in all copies and that both that copyright
++notice and this permission notice appear in supporting
++documentation, and that the name of Silicon Graphics not be 
++used in advertising or publicity pertaining to distribution 
++of the software without specific prior written permission.
++Silicon Graphics makes no representation about the suitability 
++of this software for any purpose. It is provided "as is"
++without any express or implied warranty.
++
++SILICON GRAPHICS DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS 
++SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY 
++AND FITNESS FOR A PARTICULAR PURPOSE. IN NO EVENT SHALL SILICON
++GRAPHICS BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL 
++DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, 
++DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE 
++OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION  WITH
++THE USE OR PERFORMANCE OF THIS SOFTWARE.
++
++
++Copyright (c) 1996  X Consortium
++
++Permission is hereby granted, free of charge, to any person obtaining
++a copy of this software and associated documentation files (the
++"Software"), to deal in the Software without restriction, including
++without limitation the rights to use, copy, modify, merge, publish,
++distribute, sublicense, and/or sell copies of the Software, and to
++permit persons to whom the Software is furnished to do so, subject to
++the following conditions:
++
++The above copyright notice and this permission notice shall be
++included in all copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
++EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
++MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
++IN NO EVENT SHALL THE X CONSORTIUM BE LIABLE FOR ANY CLAIM, DAMAGES OR
++OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
++ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
++OTHER DEALINGS IN THE SOFTWARE.
++
++Except as contained in this notice, the name of the X Consortium shall
++not be used in advertising or otherwise to promote the sale, use or
++other dealings in this Software without prior written authorization
++from the X Consortium.
++
++
++Copyright (C) 2004, 2006 Ævar Arnfjörð Bjarmason <avarab@gmail.com>
++
++Permission to use, copy, modify, distribute, and sell this software and its
++documentation for any purpose is hereby granted without fee, provided that
++the above copyright notice appear in all copies and that both that
++copyright notice and this permission notice appear in supporting
++documentation.
++
++The above copyright notice and this permission notice shall be
++included in all copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
++EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
++MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
++IN NO EVENT SHALL THE OPEN GROUP BE LIABLE FOR ANY CLAIM, DAMAGES OR
++OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
++ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
++OTHER DEALINGS IN THE SOFTWARE.
++
++Except as contained in this notice, the name of a copyright holder shall
++not be used in advertising or otherwise to promote the sale, use or
++other dealings in this Software without prior written authorization of
++the copyright holder.
++
++
++Copyright (C) 1999, 2000 by Anton Zinoviev <anton@lml.bas.bg>
++
++This software may be used, modified, copied, distributed, and sold,
++in both source and binary form provided that the above copyright
++and these terms are retained. Under no circumstances is the author
++responsible for the proper functioning of this software, nor does
++the author assume any responsibility for damages incurred with its
++use.
++
++Permission is granted to anyone to use, distribute and modify
++this file in any way, provided that the above copyright notice
++is left intact and the author of the modification summarizes
++the changes in this header.
++
++This file is distributed without any expressed or implied warranty.
+--- xkeyboard-config-2.42.orig/debian/patches/series
++++ xkeyboard-config-2.42/debian/patches/series
+@@ -0,0 +1 @@
++#placeholder
+--- xkeyboard-config-2.42.orig/debian/rules
++++ xkeyboard-config-2.42/debian/rules
+@@ -0,0 +1,34 @@
++#!/usr/bin/make -f
++
++xkb_base := /usr/share/X11/xkb
++
++override_dh_auto_configure:
++	dh_auto_configure -- \
++	  -Dxkb-base=$(xkb_base) \
++	  -Dxorg-rules-symlinks=true
++
++override_dh_auto_install:
++	# Regular deb:
++	(cd build; DESTDIR=$(CURDIR)/debian/xkb-data meson install)
++
++	# Treat the udeb as an exact copy, but remove messages/pkg-config/man-pages:
++	mkdir $(CURDIR)/debian/xkb-data-udeb
++	cp -r $(CURDIR)/debian/xkb-data/* $(CURDIR)/debian/xkb-data-udeb
++	rm -rf $(CURDIR)/debian/xkb-data-udeb/usr/share/locale
++	rm -rf $(CURDIR)/debian/xkb-data-udeb/usr/share/man
++	rm -rf $(CURDIR)/debian/xkb-data-udeb/usr/share/pkgconfig
++
++	# Now try and save some space, by getting rid of comments (in
++	# non-XML files, let's be cautious), then of multiple spaces:
++	find $(CURDIR)/debian/xkb-data-udeb/ ! -name '*.xml' -type f -print0 \
++	  | xargs -0 perl -i -pe 's,//.*$$,,'
++	find $(CURDIR)/debian/xkb-data-udeb/usr/share/X11 -type f -print0 \
++	  | xargs -0 perl -i -pe 's/[ \t]+/ /g'
++
++override_dh_clean:
++	dh_clean
++	rm -f po/*.gmo po/*.pot rules/evdev*.xml
++	rm -rf m4
++
++%:
++	dh $@ --buildsystem=meson --with quilt --builddirectory=build/
+--- xkeyboard-config-2.42.orig/debian/source/format
++++ xkeyboard-config-2.42/debian/source/format
+@@ -0,0 +1 @@
++1.0
+--- xkeyboard-config-2.42.orig/debian/upstream/repository
++++ xkeyboard-config-2.42/debian/upstream/repository
+@@ -0,0 +1,3 @@
++Name: xkeyboard-config
++Repository: https://gitlab.freedesktop.org/xkeyboard-config/xkeyboard-config.git
++Repository-Browse: https://gitlab.freedesktop.org/xkeyboard-config/xkeyboard-config
+--- xkeyboard-config-2.42.orig/debian/upstream/signing-key.asc
++++ xkeyboard-config-2.42/debian/upstream/signing-key.asc
+@@ -0,0 +1,18 @@
++-----BEGIN PGP PUBLIC KEY BLOCK-----
++
++mQENBEg0emwBCAC20CffvhbZ3Msx6WUNtWdhc+Qs8slsSUijQwwGuI34ieNsY2TS
++CN21xf7zyyBq+rMgvL5dXqq0Prspd8Bk4OwcuvN1WHpBRvW5AY7yDMhOtupvBIoC
++yhNcy1uZGqAztHoQzXPE/0Zm+RmkRUKvmcfRsxaZSAkC0y68OaJmBaHHfw5ErywF
++tKsWjMmap2NOVS5M1nf2gy61Gcq9jeK350OTmbbFtrAhVitvMv/9x6kqhkZ9Tzd3
++FSCJVnJBcqfosKYuqTsaEsoijIJPgThe+7tz6isa56Fu2zGrLotekWzx4AUZj1CH
++r0J3Wl6xAftsVsJie04jftLwruMNTbuFqMVpABEBAAG0K1NlcmdleSBVZGFsdHNv
++diA8c2VyZ2V5LnVkYWx0c292QGdtYWlsLmNvbT6JATYEEwECACAFAkg0emwCGwMG
++CwkIBwMCBBUCCAMEFgIDAQIeAQIXgAAKCRAGYdmPyTOhRQacB/9NVmYJ75krL1HV
++n/A64hWCOSdnd3dKL4sv4FY9ukWI3B3e1WWAGAmQsrc8W+VCDq6WgYT6hRShncpz
++LtRIDMDl7tgr+6yTXh8llkaYaIqehBOmtcmuaHHwn881uEEJLbOUouGwuXGLJACK
++9yU7wSJME2xHtSYAiU8cbh5Iwac3aXYQ1wvVm8RyZS8MAJYI9fYdZXXegKfOPx8n
++a5lMEFxKZjS2VPZt10KTaLwjpremAGiu2vLCGZPdhedXpZXyORq3gAkGGpkIHsKW
++wiCTGHnk2aqmDV0j+1kw8YV3rkta335SHCl44mDGSm/kI+mnqXbNmRlgRBPYQ3zW
++e9PvsR7F
++=IXKf
++-----END PGP PUBLIC KEY BLOCK-----
+--- xkeyboard-config-2.42.orig/debian/watch
++++ xkeyboard-config-2.42/debian/watch
+@@ -0,0 +1,4 @@
++version=3
++opts=pgpsigurlmangle=s/$/.sig/ \
++https://xorg.freedesktop.org/releases/individual/data/xkeyboard-config/ \
++	@PACKAGE@@ANY_VERSION@@ARCHIVE_EXT@
+--- xkeyboard-config-2.42.orig/debian/xkb-data.dirs
++++ xkeyboard-config-2.42/debian/xkb-data.dirs
+@@ -0,0 +1 @@
++etc/X11/xkb

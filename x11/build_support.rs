@@ -252,6 +252,20 @@ pub(crate) fn build_meson_xkbcommon(
     setup.arg("-Denable-xkbregistry=false");
     setup.arg("-Denable-bash-completion=false");
     setup.arg("-Denable-docs=false");
+    // IMPORTANT:
+    // libxkbcommon needs runtime data files from xkeyboard-config (usually
+    // installed under /usr/share/X11/xkb). If we don't explicitly configure
+    // its lookup roots, meson will derive them from `--prefix`, which in our
+    // vendored build is Cargo's OUT_DIR (a build-time, machine-local path).
+    //
+    // That causes deployed binaries to try to load XKB data from a non-
+    // existent build directory (e.g. /pool.../target/.../out/.../prefix),
+    // which then makes winit fail with XKBNotFound.
+    if target.contains("linux") {
+        setup.arg("-Dxkb-config-root=/usr/share/X11/xkb");
+        setup.arg("-Dxkb-config-extra-path=/etc/xkb");
+        setup.arg("-Dx-locale-root=/usr/share/X11/locale");
+    }
     // NOTE: libxkbcommon does not expose a project option to disable tests.
     // Instead, we constrain pkg-config so optional deps (like ICU) are not
     // discovered from the host during cross builds.

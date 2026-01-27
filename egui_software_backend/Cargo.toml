@@ -69,7 +69,9 @@ winit = ["dep:winit", "softbuffer", "egui-winit", "bytemuck"]
 # cargo deny check
 
 [lints.rust]
-unsafe_code = "deny"
+# Upstream has this on deny, but it doesn't actually allow the necessary errors so we disable it here.
+#unsafe_code = "deny"
+unsafe_code = "warn"
 
 elided_lifetimes_in_paths = "warn"
 future_incompatible = { level = "warn", priority = -1 }
