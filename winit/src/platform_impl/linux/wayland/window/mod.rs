@@ -5,9 +5,8 @@ use std::ptr::NonNull;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
-use sctk::reexports::client::protocol::wl_display::WlDisplay;
 use sctk::reexports::client::protocol::wl_surface::WlSurface;
-use sctk::reexports::client::{Proxy, QueueHandle};
+use sctk::reexports::client::{Connection, Proxy, QueueHandle};
 
 use sctk::compositor::{CompositorState, Region, SurfaceData};
 use sctk::reexports::protocols::xdg::activation::v1::client::xdg_activation_v1::XdgActivationV1;
@@ -52,9 +51,9 @@ pub struct Window {
     /// Compositor to handle WlRegion stuff.
     compositor: Arc<CompositorState>,
 
-    /// The wayland display used solely for raw window handle.
+    /// The wayland connection used solely for raw display handle.
     #[allow(dead_code)]
-    display: WlDisplay,
+    connection: Connection,
 
     /// Xdg activation to request user attention.
     xdg_activation: Option<XdgActivationV1>,
@@ -92,7 +91,7 @@ impl Window {
         let compositor = state.compositor_state.clone();
         let xdg_activation =
             state.xdg_activation.as_ref().map(|activation_state| activation_state.global().clone());
-        let display = event_loop_window_target.connection.display();
+        let connection = event_loop_window_target.connection.clone();
 
         let size: Size = attributes.inner_size.unwrap_or(LogicalSize::new(800., 600.).into());
 
@@ -212,7 +211,7 @@ impl Window {
 
         Ok(Self {
             window,
-            display,
+            connection,
             monitors,
             window_id,
             compositor,
@@ -227,7 +226,7 @@ impl Window {
     }
 
     pub(crate) fn xdg_toplevel(&self) -> Option<NonNull<c_void>> {
-        NonNull::new(self.window.xdg_toplevel().id().as_ptr().cast())
+        Some(NonNull::from(self.window.xdg_toplevel()).cast())
     }
 }
 
@@ -641,8 +640,8 @@ impl Window {
     #[inline]
     pub fn raw_window_handle_rwh_04(&self) -> rwh_04::RawWindowHandle {
         let mut window_handle = rwh_04::WaylandHandle::empty();
-        window_handle.surface = self.window.wl_surface().id().as_ptr() as *mut _;
-        window_handle.display = self.display.id().as_ptr() as *mut _;
+        window_handle.surface = std::ptr::NonNull::from(self.window.wl_surface()).cast().as_ptr();
+        window_handle.display = std::ptr::NonNull::from(&self.connection).cast().as_ptr();
         rwh_04::RawWindowHandle::Wayland(window_handle)
     }
 
@@ -650,7 +649,7 @@ impl Window {
     #[inline]
     pub fn raw_window_handle_rwh_05(&self) -> rwh_05::RawWindowHandle {
         let mut window_handle = rwh_05::WaylandWindowHandle::empty();
-        window_handle.surface = self.window.wl_surface().id().as_ptr() as *mut _;
+        window_handle.surface = std::ptr::NonNull::from(self.window.wl_surface()).cast().as_ptr();
         rwh_05::RawWindowHandle::Wayland(window_handle)
     }
 
@@ -658,18 +657,14 @@ impl Window {
     #[inline]
     pub fn raw_display_handle_rwh_05(&self) -> rwh_05::RawDisplayHandle {
         let mut display_handle = rwh_05::WaylandDisplayHandle::empty();
-        display_handle.display = self.display.id().as_ptr() as *mut _;
+        display_handle.display = std::ptr::NonNull::from(&self.connection).cast().as_ptr();
         rwh_05::RawDisplayHandle::Wayland(display_handle)
     }
 
     #[cfg(feature = "rwh_06")]
     #[inline]
     pub fn raw_window_handle_rwh_06(&self) -> Result<rwh_06::RawWindowHandle, rwh_06::HandleError> {
-        Ok(rwh_06::WaylandWindowHandle::new({
-            let ptr = self.window.wl_surface().id().as_ptr();
-            std::ptr::NonNull::new(ptr as *mut _).expect("wl_surface will never be null")
-        })
-        .into())
+        Ok(rwh_06::WaylandWindowHandle::new(std::ptr::NonNull::from(self.window.wl_surface()).cast()).into())
     }
 
     #[cfg(feature = "rwh_06")]
@@ -677,11 +672,7 @@ impl Window {
     pub fn raw_display_handle_rwh_06(
         &self,
     ) -> Result<rwh_06::RawDisplayHandle, rwh_06::HandleError> {
-        Ok(rwh_06::WaylandDisplayHandle::new({
-            let ptr = self.display.id().as_ptr();
-            std::ptr::NonNull::new(ptr as *mut _).expect("wl_proxy should never be null")
-        })
-        .into())
+        Ok(rwh_06::WaylandDisplayHandle::new(std::ptr::NonNull::from(&self.connection).cast()).into())
     }
 
     #[inline]

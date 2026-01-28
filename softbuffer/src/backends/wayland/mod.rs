@@ -9,7 +9,6 @@ use std::{
     sync::{Arc, Mutex},
 };
 use wayland_client::{
-    backend::{Backend, ObjectId},
     globals::{registry_queue_init, GlobalListContents},
     protocol::{wl_registry, wl_shm, wl_surface},
     Connection, Dispatch, EventQueue, Proxy, QueueHandle,
@@ -35,9 +34,6 @@ pub struct WaylandDisplayImpl<D: ?Sized> {
 }
 
 impl<D: HasDisplayHandle + ?Sized> WaylandDisplayImpl<D> {
-    fn conn(&self) -> &Connection {
-        self.conn.as_ref().unwrap()
-    }
 }
 
 impl<D: HasDisplayHandle + ?Sized> ContextInterface<D> for Arc<WaylandDisplayImpl<D>> {
@@ -50,8 +46,10 @@ impl<D: HasDisplayHandle + ?Sized> ContextInterface<D> for Arc<WaylandDisplayImp
             return Err(InitError::Unsupported(display));
         };
 
-        let backend = unsafe { Backend::from_foreign_display(w.display.as_ptr().cast()) };
-        let conn = Connection::from_backend(backend);
+        // When using the Rust `wayland-backend`, there is no `wl_display*` to import via
+        // `Backend::from_foreign_display()`. Instead, our vendored `winit` passes a pointer to its
+        // `wayland_client::Connection` in the `WaylandDisplayHandle`.
+        let conn = unsafe { w.display.cast::<Connection>().as_ref() }.clone();
         let (globals, event_queue) =
             registry_queue_init(&conn).swbuf_err("Failed to make round trip to server")?;
         let qh = event_queue.handle();
@@ -164,15 +162,9 @@ impl<D: HasDisplayHandle + ?Sized, W: HasWindowHandle> SurfaceInterface<D, W>
             return Err(InitError::Unsupported(window));
         };
 
-        let surface_id = unsafe {
-            ObjectId::from_ptr(
-                wl_surface::WlSurface::interface(),
-                w.surface.as_ptr().cast(),
-            )
-        }
-        .swbuf_err("Failed to create proxy for surface ID.")?;
-        let surface = wl_surface::WlSurface::from_id(display.conn(), surface_id)
-            .swbuf_err("Failed to create proxy for surface ID.")?;
+        // Like the display handle above, our vendored `winit` provides a pointer to its
+        // `wl_surface::WlSurface` proxy (not a `wl_surface*`).
+        let surface = unsafe { w.surface.cast::<wl_surface::WlSurface>().as_ref() }.clone();
         Ok(Self {
             display: display.clone(),
             surface: Some(surface),

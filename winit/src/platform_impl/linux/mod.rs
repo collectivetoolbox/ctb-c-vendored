@@ -984,10 +984,8 @@ impl OwnedDisplayHandle {
 
             #[cfg(wayland_platform)]
             Self::Wayland(conn) => {
-                use sctk::reexports::client::Proxy;
-
                 let mut wayland_handle = rwh_05::WaylandDisplayHandle::empty();
-                wayland_handle.display = conn.display().id().as_ptr() as *mut _;
+                wayland_handle.display = std::ptr::NonNull::from(conn).cast().as_ptr();
                 wayland_handle.into()
             },
         }
@@ -1010,10 +1008,8 @@ impl OwnedDisplayHandle {
 
             #[cfg(wayland_platform)]
             Self::Wayland(conn) => {
-                use sctk::reexports::client::Proxy;
-
                 Ok(rwh_06::WaylandDisplayHandle::new(
-                    NonNull::new(conn.display().id().as_ptr().cast()).unwrap(),
+                    NonNull::from(conn).cast(),
                 )
                 .into())
             },
