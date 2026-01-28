@@ -9,6 +9,7 @@ documentation = "https://smithay.github.io/smithay-clipboard"
 license = "MIT"
 keywords = ["clipboard", "wayland"]
 rust-version = "1.85.0"
+workspace = "../.."
 
 [dependencies]
 libc = "0.2.149"
