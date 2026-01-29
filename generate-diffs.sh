@@ -20,13 +20,12 @@ for pkg in "${packages[@]}"; do
     cp -r ../"$pkg" ./"$pkg"
     find . -exec chmod u+w {} \;
     if [[ "$pkg" == "x11" ]] ; then
-        rm -r ./original-x11/build.rs
+        rm ./original-x11/build.rs
         rm -r ./x11/c_src
-        rm -r ./x11/build.rs
-        rm -r ./x11/build-support.rs
+        rm ./x11/build.rs
+        rm ./x11/build_support.rs
     elif [[ "$pkg" == "egui_software_backend" ]] ; then
         rm -r ./original-egui_software_backend/examples
-        rm -r ./egui_software_backend/examples
     fi
     diff -uraN original-"$pkg" ./"$pkg"  >> ../vendor.diff || true
 done
