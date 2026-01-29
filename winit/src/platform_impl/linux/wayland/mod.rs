@@ -6,6 +6,7 @@ use std::sync::Arc;
 use sctk::reexports::client::globals::{BindError, GlobalError};
 use sctk::reexports::client::protocol::wl_surface::WlSurface;
 use sctk::reexports::client::{self, ConnectError, DispatchError};
+use sctk::reexports::client::Proxy;
 
 pub(super) use crate::cursor::OnlyCursorImage as CustomCursor;
 use crate::dpi::{LogicalSize, PhysicalSize};
@@ -74,8 +75,12 @@ impl DeviceId {
 /// Get the WindowId out of the surface.
 #[inline]
 fn make_wid(surface: &WlSurface) -> WindowId {
-    let addr = std::ptr::from_ref(surface).addr();
-    WindowId(u64::try_from(addr).unwrap_or(u64::MAX))
+    // Use the Wayland object id, which is stable across `Proxy` clones.
+    //
+    // Using the Rust wrapper's address breaks because clones of a `WlSurface`
+    // are distinct wrapper values; that can cause compositor events (like
+    // `configure`) to be associated with the wrong `WindowId`.
+    WindowId(u64::from(surface.id().protocol_id()))
 }
 
 /// The default routine does floor, but we need round on Wayland.

@@ -1626,22 +1626,57 @@ impl EventProcessor {
     ) where
         F: FnMut(&RootAEL, Event<T>),
     {
+        // XInput2 reports modifier/group state as signed integers.
+        //
+        // On some systems (notably 32-bit / i586 builds) we've observed invalid negative values
+        // reaching here. Casting those values to `u32` produces huge numbers, which can trigger
+        // crashes inside libxkbcommon when we call `xkb_state_update_mask`.
+        //
+        // Be defensive: if any values are invalid, fall back to querying XKB state from X11.
+        let window_id = match self.active_window.map(super::mkwid) {
+            Some(window_id) => window_id,
+            None => return,
+        };
+
+        let Some(mods_depressed) = u32::try_from(mods.base).ok() else {
+            self.update_mods_from_query(window_id, callback);
+            return;
+        };
+
+        let Some(mods_latched) = u32::try_from(mods.latched).ok() else {
+            self.update_mods_from_query(window_id, callback);
+            return;
+        };
+
+        let Some(mods_locked) = u32::try_from(mods.locked).ok() else {
+            self.update_mods_from_query(window_id, callback);
+            return;
+        };
+
+        let Some(depressed_group) = u32::try_from(group.base).ok().filter(|g| *g <= 64) else {
+            self.update_mods_from_query(window_id, callback);
+            return;
+        };
+
+        let Some(latched_group) = u32::try_from(group.latched).ok().filter(|g| *g <= 64) else {
+            self.update_mods_from_query(window_id, callback);
+            return;
+        };
+
+        let Some(locked_group) = u32::try_from(group.locked).ok().filter(|g| *g <= 64) else {
+            self.update_mods_from_query(window_id, callback);
+            return;
+        };
+
         if let Some(state) = self.xkb_context.state_mut() {
             state.update_modifiers(
-                mods.base as u32,
-                mods.latched as u32,
-                mods.locked as u32,
-                group.base as u32,
-                group.latched as u32,
-                group.locked as u32,
+                mods_depressed,
+                mods_latched,
+                mods_locked,
+                depressed_group,
+                latched_group,
+                locked_group,
             );
-
-            // NOTE: we use active window since generally sub windows don't have keyboard input,
-            // and winit assumes that unfocused window doesn't have modifiers.
-            let window_id = match self.active_window.map(super::mkwid) {
-                Some(window_id) => window_id,
-                None => return,
-            };
 
             let mods = state.modifiers();
             self.send_modifiers(window_id, mods.into(), force, &mut callback);
