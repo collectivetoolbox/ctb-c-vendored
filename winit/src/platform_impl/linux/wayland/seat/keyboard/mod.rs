@@ -148,7 +148,12 @@ impl Dispatch<WlKeyboard, KeyboardData, WinitState> for WinitState {
                     RepeatInfo::Disable => return,
                 };
 
-                if !keyboard_state.xkb_context.keymap_mut().unwrap().key_repeats(key) {
+                let Some(keymap) = keyboard_state.xkb_context.keymap_mut() else {
+                    warn!("Received key press before keymap was set");
+                    return;
+                };
+
+                if !keymap.key_repeats(key) {
                     return;
                 }
 
@@ -216,12 +221,19 @@ impl Dispatch<WlKeyboard, KeyboardData, WinitState> for WinitState {
                 );
 
                 if keyboard_state.repeat_info != RepeatInfo::Disable
-                    && keyboard_state.xkb_context.keymap_mut().unwrap().key_repeats(key)
                     && Some(key) == keyboard_state.current_repeat
                 {
-                    keyboard_state.current_repeat = None;
-                    if let Some(token) = keyboard_state.repeat_token.take() {
-                        keyboard_state.loop_handle.remove(token);
+                    let repeats = keyboard_state
+                        .xkb_context
+                        .keymap_mut()
+                        .map(|keymap| keymap.key_repeats(key))
+                        .unwrap_or(false);
+
+                    if repeats {
+                        keyboard_state.current_repeat = None;
+                        if let Some(token) = keyboard_state.repeat_token.take() {
+                            keyboard_state.loop_handle.remove(token);
+                        }
                     }
                 }
             },

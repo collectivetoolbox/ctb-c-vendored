@@ -1,6 +1,5 @@
 #![allow(dead_code, non_camel_case_types)]
 
-use bitflags::bitflags;
 use std::os::raw::{c_char, c_int, c_uint};
 
 pub const XKB_MOD_NAME_SHIFT: &[u8] = b"Shift\0";
@@ -62,20 +61,22 @@ pub enum xkb_keymap_format {
     XKB_KEYMAP_FORMAT_TEXT_V1 = 1,
 }
 
-bitflags! {
-    #[repr(C)]
-    pub struct xkb_state_component: u32 {
-        const XKB_STATE_MODS_DEPRESSED = 1 << 0;
-        const XKB_STATE_MODS_LATCHED = 1 << 1;
-        const XKB_STATE_MODS_LOCKED = 1 << 2;
-        const XKB_STATE_MODS_EFFECTIVE = 1 << 3;
-        const XKB_STATE_LAYOUT_DEPRESSED = 1 << 4;
-        const XKB_STATE_LAYOUT_LATCHED = 1 << 5;
-        const XKB_STATE_LAYOUT_LOCKED = 1 << 6;
-        const XKB_STATE_LAYOUT_EFFECTIVE = 1 << 7;
-        const XKB_STATE_LEDS = 1 << 8;
-    }
-}
+// NOTE: In libxkbcommon, `xkb_state_component` is a C `enum` type.
+//
+// We intentionally represent it as an integer type here (rather than a Rust
+// `struct`/bitflags wrapper) to ensure the extern "C" ABI matches on all
+// platforms (notably i386).
+pub type xkb_state_component = c_uint;
+
+pub const XKB_STATE_MODS_DEPRESSED: xkb_state_component = 1 << 0;
+pub const XKB_STATE_MODS_LATCHED: xkb_state_component = 1 << 1;
+pub const XKB_STATE_MODS_LOCKED: xkb_state_component = 1 << 2;
+pub const XKB_STATE_MODS_EFFECTIVE: xkb_state_component = 1 << 3;
+pub const XKB_STATE_LAYOUT_DEPRESSED: xkb_state_component = 1 << 4;
+pub const XKB_STATE_LAYOUT_LATCHED: xkb_state_component = 1 << 5;
+pub const XKB_STATE_LAYOUT_LOCKED: xkb_state_component = 1 << 6;
+pub const XKB_STATE_LAYOUT_EFFECTIVE: xkb_state_component = 1 << 7;
+pub const XKB_STATE_LEDS: xkb_state_component = 1 << 8;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

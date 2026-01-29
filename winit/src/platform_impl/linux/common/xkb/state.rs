@@ -7,7 +7,7 @@ use smol_str::SmolStr;
 
 #[cfg(x11_platform)]
 use super::ffi as xkb;
-use super::ffi::{xkb_keycode_t, xkb_keysym_t, xkb_layout_index_t, xkb_state, xkb_state_component};
+use super::ffi::{xkb_keycode_t, xkb_keysym_t, xkb_layout_index_t, xkb_state};
 
 #[cfg(x11_platform)]
 use crate::platform_impl::linux::x11::ffi::xcb_connection_t;
@@ -57,7 +57,7 @@ impl XkbState {
         unsafe {
             xkb::xkb_state_serialize_mods(
                 self.state.as_ptr(),
-                xkb_state_component::XKB_STATE_MODS_DEPRESSED,
+                xkb::XKB_STATE_MODS_DEPRESSED,
             )
         }
     }
@@ -67,7 +67,7 @@ impl XkbState {
         unsafe {
             xkb::xkb_state_serialize_mods(
                 self.state.as_ptr(),
-                xkb_state_component::XKB_STATE_MODS_LATCHED,
+                xkb::XKB_STATE_MODS_LATCHED,
             )
         }
     }
@@ -77,7 +77,7 @@ impl XkbState {
         unsafe {
             xkb::xkb_state_serialize_mods(
                 self.state.as_ptr(),
-                xkb_state_component::XKB_STATE_MODS_LOCKED,
+                xkb::XKB_STATE_MODS_LOCKED,
             )
         }
     }
@@ -117,7 +117,7 @@ impl XkbState {
             )
         };
 
-        if mask.contains(xkb_state_component::XKB_STATE_MODS_EFFECTIVE) {
+        if (mask & xkb::XKB_STATE_MODS_EFFECTIVE) != 0 {
             // Effective value of mods have changed, we need to update our state.
             self.reload_modifiers();
         }
@@ -139,7 +139,7 @@ impl XkbState {
             xkb::xkb_state_mod_name_is_active(
                 self.state.as_ptr(),
                 name.as_ptr() as *const c_char,
-                xkb_state_component::XKB_STATE_MODS_EFFECTIVE,
+                xkb::XKB_STATE_MODS_EFFECTIVE,
             ) > 0
         }
     }
