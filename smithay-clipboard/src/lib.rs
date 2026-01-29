@@ -23,6 +23,17 @@ pub struct Clipboard {
 }
 
 impl Clipboard {
+    /// Creates a new clipboard by establishing its own Wayland connection.
+    ///
+    /// This avoids sharing a `Connection` with another event loop, which can lead
+    /// to excessive wakeups or hangs if multiple loops dispatch the same socket.
+    pub fn new_from_env() -> Result<Self> {
+        let connection = Connection::connect_to_env().map_err(|_| {
+            std::io::Error::other("failed to connect to Wayland from environment")
+        })?;
+        Ok(Self::new_from_connection(connection))
+    }
+
     /// Creates new clipboard which will be running on its own thread with its
     /// own event queue to handle clipboard requests.
     ///
@@ -32,7 +43,10 @@ impl Clipboard {
     /// valid for as long as `Clipboard` object is alive.
     pub unsafe fn new(display: *mut c_void) -> Self {
         let connection = unsafe { &*display.cast::<Connection>() }.clone();
+        Self::new_from_connection(connection)
+    }
 
+    fn new_from_connection(connection: Connection) -> Self {
         // Create channel to send data to clipboard thread.
         let (request_sender, rx_chan) = channel::channel();
         // Create channel to get data from the clipboard thread.
