@@ -10,6 +10,7 @@ use std::sync::mpsc::{self, Receiver};
 
 use sctk::reexports::calloop::channel::{self, Sender};
 use sctk::reexports::client::Connection;
+use sctk::reexports::client::backend::Backend;
 
 mod mime;
 mod state;
@@ -28,10 +29,11 @@ impl Clipboard {
     ///
     /// # Safety
     ///
-    /// `display` must be a valid pointer to a `wayland_client::Connection`, and it must remain
+    /// `display` must be a valid `*mut wl_display` pointer, and it must remain
     /// valid for as long as `Clipboard` object is alive.
     pub unsafe fn new(display: *mut c_void) -> Self {
-        let connection = unsafe { &*display.cast::<Connection>() }.clone();
+        let backend = unsafe { Backend::from_foreign_display(display.cast()) };
+        let connection = Connection::from_backend(backend);
 
         // Create channel to send data to clipboard thread.
         let (request_sender, rx_chan) = channel::channel();

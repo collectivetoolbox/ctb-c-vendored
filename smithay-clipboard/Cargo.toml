@@ -14,7 +14,7 @@ workspace = "../.."
 [dependencies]
 libc = "0.2.149"
 sctk = { package = "smithay-client-toolkit", version = "0.20.0", default-features = false, features = ["calloop"] }
-wayland-backend = { version = "0.3.5", default-features = false }
+wayland-backend = { version = "0.3.5", default-features = false, features = ["client_system"] }
 
 [dev-dependencies]
 sctk = { package = "smithay-client-toolkit", version = "0.20.0", default-features = false, features = ["calloop", "xkbcommon"] }
