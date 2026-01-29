@@ -283,27 +283,21 @@ impl WindowHandler for WinitState {
         };
 
         // Populate the configure to the window.
-        //
-        // On some compositors, it is possible to receive a configure event for a
-        // window that has already been destroyed from winit's perspective.
-        // Dropping the configure is safe in that case and avoids panicking.
-        let Some(window_state) = self.windows.get_mut().get_mut(&window_id) else {
-            return;
-        };
-
-        let Ok(mut window_state) = window_state.lock() else {
-            return;
-        };
-
-        self.window_compositor_updates[pos].resized |=
-            window_state.configure(configure, &self.shm, &self.subcompositor_state);
+        self.window_compositor_updates[pos].resized |= self
+            .windows
+            .get_mut()
+            .get_mut(&window_id)
+            .expect("got configure for dead window.")
+            .lock()
+            .unwrap()
+            .configure(configure, &self.shm, &self.subcompositor_state);
 
         // NOTE: configure demands wl_surface::commit, however winit doesn't commit on behalf of the
         // users, since it can break a lot of things, thus it'll ask users to redraw instead.
-        let Some(window_requests) = self.window_requests.get_mut().get(&window_id) else {
-            return;
-        };
-        window_requests
+        self.window_requests
+            .get_mut()
+            .get(&window_id)
+            .unwrap()
             .redraw_requested
             .store(true, Ordering::Relaxed);
 
