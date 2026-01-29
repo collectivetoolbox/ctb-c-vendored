@@ -920,10 +920,20 @@ impl XkbKeymap {
     pub fn from_fd(context: &XkbContext, fd: OwnedFd, size: usize) -> Option<Self> {
         let map = unsafe { MmapOptions::new().len(size).map_copy_read_only(&fd).ok()? };
 
+        // `xkb_keymap_new_from_string` expects a NUL-terminated C string. While
+        // the Wayland protocol specifies that the keymap is NUL-terminated,
+        // it's safer to enforce this here to avoid reading past the mapped
+        // region on buggy compositors or size mismatches.
+        let mut map_buf = Vec::with_capacity(map.len().saturating_add(1));
+        map_buf.extend_from_slice(&map);
+        if !map_buf.ends_with(&[0]) {
+            map_buf.push(0);
+        }
+
         let keymap = unsafe {
             let keymap = xkb::xkb_keymap_new_from_string(
                 (*context).as_ptr(),
-                map.as_ptr() as *const _,
+                map_buf.as_ptr() as *const _,
                 xkb::xkb_keymap_format::XKB_KEYMAP_FORMAT_TEXT_V1,
                 xkb_keymap_compile_flags::XKB_KEYMAP_COMPILE_NO_FLAGS,
             );
