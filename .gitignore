@@ -2,5 +2,6 @@ target
 vendor.tar
 x11/tmp
 icecat-bin.tar.gz
+diff-tmp
 
 !x11/tmp/.keep
