@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 
 packages=(
+  "egui-winit"
   "egui_software_backend"
   "raw-window-handle"
   "smithay-clipboard"
   "softbuffer"
+  "wayland-backend"
   "winit"
   "x11"
 )
