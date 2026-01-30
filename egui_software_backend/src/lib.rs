@@ -896,10 +896,10 @@ impl EguiSoftwareRender {
                     "TextureOptions magnification and minification not matching is unsupported."
                 );
             }
-            let pixels = match &delta.image {
+            let pixels: Cow<'_, [Color32]> = match &delta.image {
                 egui::ImageData::Color(image) => {
                     assert_eq!(image.width() * image.height(), image.pixels.len());
-                    Cow::Borrowed(&image.pixels)
+                    Cow::Borrowed(image.pixels.as_slice())
                 }
             };
             let size = delta.image.size();
@@ -909,14 +909,44 @@ impl EguiSoftwareRender {
                         for x in 0..size[0] {
                             let src_pos = x + y * size[0];
                             let dest_pos = (x + pos[0]) + (y + pos[1]) * texture.width;
-                            texture.data[dest_pos] = match self.output_field_order {
-                                ColorFieldOrder::Rgba => pixels[src_pos].to_array(),
-                                ColorFieldOrder::Bgra => {
-                                    swizzle_rgba_bgra(pixels[src_pos].to_array())
-                                }
-                            };
+                            if let Some(dst) = texture.data.get_mut(dest_pos) {
+                                *dst = match self.output_field_order {
+                                    ColorFieldOrder::Rgba => pixels[src_pos].to_array(),
+                                    ColorFieldOrder::Bgra => {
+                                        swizzle_rgba_bgra(pixels[src_pos].to_array())
+                                    }
+                                };
+                            }
                         }
                     }
+                } else {
+                    // Egui can legally send partial texture updates. If we
+                    // haven't seen this texture id before, create a minimally
+                    // sized texture and apply the patch.
+                    let width = (pos[0] + size[0]).max(1);
+                    let height = (pos[1] + size[1]).max(1);
+                    let transparent =
+                        Color32::from_rgba_premultiplied(0, 0, 0, 0);
+                    let mut full = vec![transparent; width * height];
+
+                    for y in 0..size[1] {
+                        for x in 0..size[0] {
+                            let src_pos = x + y * size[0];
+                            let dest_pos = (x + pos[0]) + (y + pos[1]) * width;
+                            if let Some(dst) = full.get_mut(dest_pos) {
+                                *dst = pixels[src_pos];
+                            }
+                        }
+                    }
+
+                    let new_texture = EguiTexture::new(
+                        self.output_field_order,
+                        delta.options,
+                        [width, height],
+                        &full,
+                    );
+
+                    self.textures.insert(*id, new_texture);
                 }
             } else {
                 let new_texture =
