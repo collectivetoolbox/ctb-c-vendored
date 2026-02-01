@@ -11,7 +11,7 @@ use crate::math::i64vec2::{I64Vec2, i64vec2};
 /// ss for screen space (unit is screen pixel)
 /// sp for subpixel space (unit fraction of screen pixel)
 /// Here for reference for raster without using span.
-#[allow(unused)]
+#[expect(unused)]
 pub fn raster_tri<const SUBPIX_BITS: i32>(
     ss_bounds: [I64Vec2; 2],
     ss_tri: &[Vec2; 3],
@@ -47,18 +47,18 @@ pub struct SingleStepper {
     pub step: [SingleStep; 3],
     /// Edge subpixel space barycentric weights. Divide by subpixel area for barycentric factors.
     pub sp_weight: [i64; 3],
-    /// Edge subpixel bias for watertightness. These are applied on SingleStepper::row_start(). If you're using
-    /// something else you'll need to apply them to sp_weight.
+    /// Edge subpixel bias for watertightness. These are applied on `SingleStepper::row_start()`. If you're using
+    /// something else you'll need to apply them to `sp_weight`.
     pub bias: [i8; 3],
 }
 
 impl SingleStepper {
     /// For the given subpixel resolution, calculate the screen space bounds, subpixel inverse area, and subpixel Stepper.
-    /// returns: ss_min, ss_max, sp_inv_area, stepper
+    /// returns: `ss_min`, `ss_max`, `sp_inv_area`, stepper
     pub fn from_ss_tri_backface_cull<const SUBPIX_BITS: i32>(
         ss_bounds: [I64Vec2; 2],
         ss_tri: &[Vec2; 3],
-    ) -> Option<(I64Vec2, I64Vec2, f32, SingleStepper)> {
+    ) -> Option<(I64Vec2, I64Vec2, f32, Self)> {
         let subpix_bits = SUBPIX_BITS as u32;
         let subpix: i64 = 1 << subpix_bits;
         let subpix_half: i64 = subpix >> 1;
@@ -93,7 +93,7 @@ impl SingleStepper {
 
         let sp_inv_area = 1.0 / (sp_area as f32);
 
-        let stepper = SingleStepper::new(&sp0, &sp1, &sp2, &sp_min_p, subpix);
+        let stepper = Self::new(&sp0, &sp1, &sp2, &sp_min_p, subpix);
 
         Some((ss_min, ss_max, sp_inv_area, stepper))
     }
@@ -105,7 +105,7 @@ impl SingleStepper {
         sp_min_p: &I64Vec2,
         subpix: i64,
     ) -> Self {
-        SingleStepper {
+        Self {
             step: [
                 SingleStep::new(sp1, sp2, sp_min_p, subpix),
                 SingleStep::new(sp2, sp0, sp_min_p, subpix),
@@ -154,8 +154,8 @@ impl SingleStepper {
     }
 
     /// Generate stepper for float attribute (like vertex UVs or vertex colors)
-    /// Depends on SingleStepper's initial state. Make sure to run before using SingleStepper::row_step() or
-    /// SingleStepper::col_step()
+    /// Depends on `SingleStepper`'s initial state. Make sure to run before using `SingleStepper::row_step()` or
+    /// `SingleStepper::col_step()`
     pub fn attr<T>(&self, attr: &[T; 3], sp_inv_area: f32) -> AttributeStepper<T>
     where
         T: Copy + Add<Output = T> + Sub<Output = T> + AddAssign + Mul<f32, Output = T>,

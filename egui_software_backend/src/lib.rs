@@ -109,7 +109,7 @@ pub use winit::{
 };
 
 #[inline(always)]
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub(crate) fn sse41() -> bool {
     #[cfg(all(target_arch = "x86_64", feature = "std"))]
     return std::arch::is_x86_feature_detected!("sse4.1");
@@ -118,7 +118,7 @@ pub(crate) fn sse41() -> bool {
 }
 
 #[inline(always)]
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub(crate) fn neon() -> bool {
     #[cfg(all(target_arch = "aarch64", feature = "std"))]
     // This should always be true on aarch64
@@ -161,7 +161,7 @@ impl EguiSoftwareRender {
     /// * `output_field_order` - egui textures and vertex colors will be swizzled before rendering to match the desired
     ///   output buffer order.
     pub fn new(output_field_order: ColorFieldOrder) -> Self {
-        EguiSoftwareRender {
+        Self {
             textures: Default::default(),
             cached_primitives: Default::default(),
             tiles_dim: Default::default(),
@@ -193,17 +193,17 @@ impl EguiSoftwareRender {
         self
     }
 
-    /// If true: rasterized ClippedPrimitives are cached and rendered to an intermediate tiled canvas. That canvas is
-    /// then rendered over the frame buffer. If false ClippedPrimitives are rendered directly to the frame buffer.
+    /// If true: rasterized `ClippedPrimitives` are cached and rendered to an intermediate tiled canvas. That canvas is
+    /// then rendered over the frame buffer. If false `ClippedPrimitives` are rendered directly to the frame buffer.
     /// Rendering without caching is much slower and primarily intended for testing.
     pub fn with_caching(mut self, set: bool) -> Self {
         self.cacheing_enabled = set;
         self
     }
 
-    /// Renders the given paint jobs to buffer_ref. Alternatively, when using caching
-    /// EguiSoftwareRender::render_to_canvas() and subsequently EguiSoftwareRender::blit_canvas_to_buffer() can be run
-    /// separately so that the primary rendering in render_to_canvas() can happen without a lock on the frame buffer.
+    /// Renders the given paint jobs to `buffer_ref`. Alternatively, when using caching
+    /// `EguiSoftwareRender::render_to_canvas()` and subsequently `EguiSoftwareRender::blit_canvas_to_buffer()` can be run
+    /// separately so that the primary rendering in `render_to_canvas()` can happen without a lock on the frame buffer.
     ///  
     ///
     /// # Arguments
@@ -263,7 +263,7 @@ impl EguiSoftwareRender {
             self.cached_primitives.clear();
         }
 
-        for (_hash, prim) in self.cached_primitives.iter_mut() {
+        for (_hash, prim) in &mut self.cached_primitives {
             prim.seen_this_frame = false;
         }
 
@@ -292,7 +292,7 @@ impl EguiSoftwareRender {
     }
 
     /// Draw canvas alpha over given buffer.
-    /// Only run after EguiSoftwareRender::render_to_canvas(), or use EguiSoftwareRender::render() to run both.
+    /// Only run after `EguiSoftwareRender::render_to_canvas()`, or use `EguiSoftwareRender::render()` to run both.
     /// Only writes tile regions that contain pixels that are not fully transparent.
     pub fn blit_canvas_to_buffer(&mut self, buffer: &mut BufferMutRef) {
         #[cfg(feature = "raster_stats")]
@@ -409,7 +409,7 @@ impl EguiSoftwareRender {
                     let dst_row = &mut buffer.get_mut_span(x_start, x_end, y);
                     #[cfg(target_arch = "x86_64")]
                     unsafe {
-                        crate::color_sse41::egui_blend_u8_slice(src_row, dst_row)
+                        crate::color_sse41::egui_blend_u8_slice(src_row, dst_row);
                     }
                     #[cfg(target_arch = "aarch64")]
                     crate::color_neon::egui_blend_u8_slice(src_row, dst_row);
@@ -450,7 +450,7 @@ impl EguiSoftwareRender {
         for egui::ClippedPrimitive {
             clip_rect,
             primitive,
-        } in paint_jobs.iter()
+        } in paint_jobs
         {
             let input_mesh = match primitive {
                 egui::epaint::Primitive::Mesh(input_mesh) => input_mesh,
@@ -527,7 +527,7 @@ impl EguiSoftwareRender {
     ) -> Mesh {
         let mut px_mesh = mesh.clone();
 
-        for v in px_mesh.vertices.iter_mut() {
+        for v in &mut px_mesh.vertices {
             v.pos *= pixels_per_point;
 
             match self.output_field_order {
@@ -741,7 +741,7 @@ impl EguiSoftwareRender {
             )
             .collect::<Vec<_>>();
 
-        updates.into_iter().for_each(|update| match update {
+        for update in updates.into_iter() { match update {
             CacheUpdate::CacheReuse(cache_reuse) => {
                 if let Some(cached_primitive) = self.cached_primitives.get_mut(&cache_reuse.hash) {
                     cached_primitive.seen_this_frame = cache_reuse.seen_this_frame;
@@ -756,7 +756,7 @@ impl EguiSoftwareRender {
                 self.cached_primitives.insert(hash, prim);
             }
             CacheUpdate::None => (),
-        });
+        }; }
 
         #[cfg(feature = "raster_stats")]
         {
@@ -771,7 +771,7 @@ impl EguiSoftwareRender {
         let mut sorted_prim_cache = self.cached_primitives.values().collect::<Vec<_>>();
         sorted_prim_cache.sort_unstable_by_key(|prim| prim.z_order);
 
-        #[allow(unused_mut)]
+        #[expect(unused_mut)]
         let mut canvas =
             BufferMutRef::new(&mut self.canvas.data, self.canvas.width, self.canvas.height);
 
@@ -1008,7 +1008,7 @@ fn update_canvas_tile(
                     let dst_row = &mut canvas.data[canvas_slice];
                     #[cfg(target_arch = "x86_64")]
                     unsafe {
-                        crate::color_sse41::egui_blend_u8_slice(src_row, dst_row)
+                        crate::color_sse41::egui_blend_u8_slice(src_row, dst_row);
                     }
                     #[cfg(target_arch = "aarch64")]
                     crate::color_neon::egui_blend_u8_slice(src_row, dst_row)
@@ -1070,7 +1070,7 @@ impl Canvas {
     }
 }
 
-/// A region of cached rendered image data that corresponds to a ClippedPrimitive.
+/// A region of cached rendered image data that corresponds to a `ClippedPrimitive`.
 pub struct CachedPrimitive {
     buffer: Vec<[u8; 4]>,
     min_x: usize,
@@ -1095,7 +1095,7 @@ impl CachedPrimitive {
     }
 
     fn new(min_x: usize, min_y: usize, width: usize, height: usize, z_order: usize) -> Self {
-        CachedPrimitive {
+        Self {
             buffer: vec![[0; 4]; width * height],
             min_x,
             min_y,

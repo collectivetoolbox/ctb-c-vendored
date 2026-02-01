@@ -2,7 +2,7 @@
 
 use core::{arch::x86_64::*, ptr::read_unaligned};
 
-/// blend fn is (ONE, ONE_MINUS_SRC_ALPHA)
+/// blend fn is (ONE, `ONE_MINUS_SRC_ALPHA`)
 #[target_feature(enable = "sse4.1")]
 pub fn egui_blend_u8(src: [u8; 4], dst: [u8; 4]) -> [u8; 4] {
     let alpha = src[3];
@@ -32,7 +32,7 @@ pub fn egui_blend_u8(src: [u8; 4], dst: [u8; 4]) -> [u8; 4] {
 }
 
 // https://www.lgfae.com/posts/2025-09-01-AlphaBlendWithSIMD.html
-/// blend fn is (ONE, ONE_MINUS_SRC_ALPHA)
+/// blend fn is (ONE, `ONE_MINUS_SRC_ALPHA`)
 #[target_feature(enable = "sse4.1")]
 pub fn egui_blend_u8_slice_one_src(src: [u8; 4], dst: &mut [[u8; 4]]) {
     let n = dst.len();
@@ -59,7 +59,7 @@ pub fn egui_blend_u8_slice_one_src(src: [u8; 4], dst: &mut [[u8; 4]]) {
     if a == 0 {
         // Only need to saturating_add src to dst. We can do 4 at a time in this case.
         while i + 3 < n {
-            let p = unsafe { dst.as_mut_ptr().add(i) } as *mut __m128i;
+            let p = unsafe { dst.as_mut_ptr().add(i) }.cast::<__m128i>();
             let d128 = unsafe { _mm_loadu_si128(p) };
             let out = _mm_adds_epu8(d128, src8);
             unsafe { _mm_storeu_si128(p, out) };
@@ -97,7 +97,7 @@ pub fn egui_blend_u8_slice_one_src(src: [u8; 4], dst: &mut [[u8; 4]]) {
 
 // https://www.lgfae.com/posts/2025-09-01-AlphaBlendWithSIMD.html
 /// dst[i] = blend(src[i], dst[i]) // As unorm
-/// blend fn is (ONE, ONE_MINUS_SRC_ALPHA)
+/// blend fn is (ONE, `ONE_MINUS_SRC_ALPHA`)
 #[target_feature(enable = "sse4.1")]
 pub fn egui_blend_u8_slice(src: &[[u8; 4]], dst: &mut [[u8; 4]]) {
     assert_eq!(src.len(), dst.len());
@@ -134,7 +134,7 @@ pub fn egui_blend_u8_slice(src: &[[u8; 4]], dst: &mut [[u8; 4]]) {
 
 // https://www.lgfae.com/posts/2025-09-01-AlphaBlendWithSIMD.html
 /// dst[i] = blend(src[i] * vert, dst[i]) // As unorm
-/// blend fn is (ONE, ONE_MINUS_SRC_ALPHA)
+/// blend fn is (ONE, `ONE_MINUS_SRC_ALPHA`)
 #[target_feature(enable = "sse4.1")]
 pub fn egui_blend_u8_slice_tinted(src: &[[u8; 4]], tint: [u8; 4], dst: &mut [[u8; 4]]) {
     assert_eq!(src.len(), dst.len());
@@ -182,8 +182,8 @@ pub fn egui_blend_u8_slice_tinted(src: &[[u8; 4]], tint: [u8; 4], dst: &mut [[u8
 }
 
 // https://www.lgfae.com/posts/2025-09-01-AlphaBlendWithSIMD.html
-/// dst[i] = blend(src * tint_fn(), dst[i]) // As unorm
-/// blend fn is (ONE, ONE_MINUS_SRC_ALPHA)
+/// dst[i] = blend(src * `tint_fn()`, dst[i]) // As unorm
+/// blend fn is (ONE, `ONE_MINUS_SRC_ALPHA`)
 #[target_feature(enable = "sse4.1")]
 pub fn egui_blend_u8_slice_one_src_tinted_fn(
     src: [u8; 4],

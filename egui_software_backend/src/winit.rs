@@ -9,7 +9,7 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::mem;
 use std::num::NonZeroU32;
-use std::ops::Deref;
+use std::ops::Deref as _;
 use std::rc::Rc;
 use std::string::String;
 use std::sync::Arc;
@@ -39,22 +39,22 @@ pub enum SoftwareBackendAppError {
         suppressed: Box<SoftwareBackendAppError>,
     },
 
-    /// Error when calling winit create_window
+    /// Error when calling winit `create_window`
     CreateWindowOs(Box<dyn Error>),
 }
 
 impl Display for SoftwareBackendAppError {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         match self {
-            SoftwareBackendAppError::SoftBuffer { function, .. } => {
+            Self::SoftBuffer { function, .. } => {
                 f.write_str("error calling ")?;
                 f.write_str(function)
             }
-            SoftwareBackendAppError::EventLoop(_) => f.write_str("winit event loop has errored"),
-            SoftwareBackendAppError::SuppressedEventLoop { .. } => {
+            Self::EventLoop(_) => f.write_str("winit event loop has errored"),
+            Self::SuppressedEventLoop { .. } => {
                 f.write_str("software renderer and winit event loop have both errored")
             }
-            SoftwareBackendAppError::CreateWindowOs(_) => {
+            Self::CreateWindowOs(_) => {
                 f.write_str("os error calling winit::create_window")
             }
         }
@@ -64,7 +64,7 @@ impl Display for SoftwareBackendAppError {
 impl Error for SoftwareBackendAppError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
-            SoftwareBackendAppError::SuppressedEventLoop { suppressed, .. } => {
+            Self::SuppressedEventLoop { suppressed, .. } => {
                 Some(suppressed as &dyn Error)
             }
             _ => None,
@@ -75,7 +75,7 @@ impl Error for SoftwareBackendAppError {
 impl SoftwareBackendAppError {
     fn soft_buffer(
         function: &'static str,
-    ) -> impl FnOnce(SoftBufferError) -> SoftwareBackendAppError {
+    ) -> impl FnOnce(SoftBufferError) -> Self {
         move |error| Self::SoftBuffer {
             soft_buffer_error: Box::new(error),
             function,
@@ -85,14 +85,14 @@ impl SoftwareBackendAppError {
 
 // Doing what clippy suggests would make it impossible for the compiler to optimize the layout of this enum, causing
 // state machine transitions to be more expensive!
-#[allow(clippy::large_enum_variant)]
+#[expect(clippy::large_enum_variant)]
 /// Winit App State machine, that handles all states of our application.
 enum WinitAppStateMachine<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp> {
     /// The app has died, either without or with some sort of error.
     Dead(Option<SoftwareBackendAppError>),
 
     /// The app is configured, but the window has not been created yet.
-    /// Transitions into WindowInitialized (resume).
+    /// Transitions into `WindowInitialized` (resume).
     Configured(ConfiguredAppState<EguiApp, EguiAppFactory>),
 
     /// The window has been initialized.
@@ -100,7 +100,7 @@ enum WinitAppStateMachine<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiAp
     WindowInitialized(WindowInitializedAppState<EguiApp, EguiAppFactory>),
 
     /// The app is running.
-    /// Transitions into Dead (quit/error) or WindowInitialized (suspend)
+    /// Transitions into Dead (quit/error) or `WindowInitialized` (suspend)
     Running(RunningEguiAppState<EguiApp, EguiAppFactory>),
 }
 
@@ -470,7 +470,7 @@ impl<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp>
                     SoftwareBackendAppError::soft_buffer("softbuffer::Surface::resize"),
                 )?;
 
-                let mut raw_input = self.egui_winit.take_egui_input(self.window.deref());
+                let mut raw_input = self.egui_winit.take_egui_input(&*self.window);
 
                 raw_input
                     .events
@@ -492,7 +492,7 @@ impl<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp>
                                 }
                                 ViewportCommand::Title(title) => self.window.set_title(title),
                                 ViewportCommand::Transparent(trans) => {
-                                    self.window.set_transparent(*trans)
+                                    self.window.set_transparent(*trans);
                                 }
                                 ViewportCommand::Visible(true) => {
                                     self.visible = true;
@@ -513,7 +513,7 @@ impl<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp>
                                     // can be enabled again
                                     _ = self.window.set_cursor_grab(CursorGrabMode::None);
 
-                                    self.window.set_visible(false)
+                                    self.window.set_visible(false);
                                 }
                                 ViewportCommand::OuterPosition(state) => {
                                     self.window.set_outer_position(
@@ -575,18 +575,18 @@ impl<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp>
                                 ViewportCommand::Fullscreen(false) => {
                                     self.fullscreen = false;
                                     if self.visible {
-                                        self.window.set_fullscreen(None)
+                                        self.window.set_fullscreen(None);
                                     }
                                 }
                                 ViewportCommand::Fullscreen(true) => {
                                     self.fullscreen = true;
                                     if self.visible {
                                         self.window
-                                            .set_fullscreen(Some(Fullscreen::Borderless(None)))
+                                            .set_fullscreen(Some(Fullscreen::Borderless(None)));
                                     }
                                 }
                                 ViewportCommand::Decorations(dec) => {
-                                    self.window.set_decorations(*dec)
+                                    self.window.set_decorations(*dec);
                                 }
                                 ViewportCommand::WindowLevel(WindowLevel::Normal) => {
                                     self.window
@@ -613,16 +613,16 @@ impl<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp>
                                 }
                                 ViewportCommand::Focus => self.window.focus_window(),
                                 ViewportCommand::SetTheme(SystemTheme::Dark) => {
-                                    self.window.set_theme(Some(Theme::Dark))
+                                    self.window.set_theme(Some(Theme::Dark));
                                 }
                                 ViewportCommand::SetTheme(SystemTheme::Light) => {
-                                    self.window.set_theme(Some(Theme::Light))
+                                    self.window.set_theme(Some(Theme::Light));
                                 }
                                 ViewportCommand::SetTheme(SystemTheme::SystemDefault) => {
                                     // Winit has no default...
                                     // we will just use light as that is the default
                                     // of most operating systems.
-                                    self.window.set_theme(Some(Theme::Light))
+                                    self.window.set_theme(Some(Theme::Light));
                                 }
 
                                 //Wtf, I don't think DXGI, or reading the X11 backbuffer cares about this.
@@ -692,7 +692,7 @@ impl<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp>
 
                 //Makes the clipboard work.
                 self.egui_winit
-                    .handle_platform_output(self.window.deref(), full_output.platform_output);
+                    .handle_platform_output(&*self.window, full_output.platform_output);
 
                 let clipped_primitives = self
                     .egui_context
@@ -735,14 +735,14 @@ impl<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp>
             _ => {
                 let response = self
                     .egui_winit
-                    .on_window_event(self.window.deref(), &window_event);
+                    .on_window_event(&*self.window, &window_event);
 
                 if response.repaint {
                     // Redraw when egui says it's necessary (e.g., mouse move, key press):
                     self.window.request_redraw();
                 }
             }
-        };
+        }
 
         Ok(())
     }
@@ -813,8 +813,8 @@ pub struct SoftwareBackendAppConfiguration {
     /// The underlying egui viewport builder that is used to create the window with winit.
     pub viewport_builder: ViewportBuilder,
 
-    /// If true: rasterized ClippedPrimitives are cached and rendered to an intermediate tiled canvas. That canvas is
-    /// then rendered over the frame buffer. If false ClippedPrimitives are rendered directly to the frame buffer.
+    /// If true: rasterized `ClippedPrimitives` are cached and rendered to an intermediate tiled canvas. That canvas is
+    /// then rendered over the frame buffer. If false `ClippedPrimitives` are rendered directly to the frame buffer.
     /// Rendering without caching is much slower and primarily intended for testing.
     ///
     /// Default is true!
@@ -826,8 +826,8 @@ pub struct SoftwareBackendAppConfiguration {
     /// Default is true!
     pub convert_tris_to_rects: bool,
 
-    /// If true: rasterized ClippedPrimitives are cached and rendered to an intermediate tiled canvas. That canvas is
-    /// then rendered over the frame buffer. If false ClippedPrimitives are rendered directly to the frame buffer.
+    /// If true: rasterized `ClippedPrimitives` are cached and rendered to an intermediate tiled canvas. That canvas is
+    /// then rendered over the frame buffer. If false `ClippedPrimitives` are rendered directly to the frame buffer.
     /// Rendering without caching is much slower and primarily intended for testing.
     ///
     /// Default is true!
@@ -835,7 +835,7 @@ pub struct SoftwareBackendAppConfiguration {
 }
 
 impl SoftwareBackendAppConfiguration {
-    /// Creates a new SoftwareBackendAppConfiguration using the default configuration.
+    /// Creates a new `SoftwareBackendAppConfiguration` using the default configuration.
     pub const fn new() -> Self {
         //The constructor is not const.
         let vp = ViewportBuilder {
@@ -886,43 +886,43 @@ impl SoftwareBackendAppConfiguration {
         self
     }
 
-    /// See egui::viewport::ViewportBuilder. This is a convenience function that sets the field.
+    /// See `egui::viewport::ViewportBuilder`. This is a convenience function that sets the field.
     pub fn title(mut self, title: Option<String>) -> Self {
         self.viewport_builder.title = title;
         self
     }
 
-    /// See egui::viewport::ViewportBuilder. This is a convenience function that sets the field.
+    /// See `egui::viewport::ViewportBuilder`. This is a convenience function that sets the field.
     pub fn app_id(mut self, app_id: Option<String>) -> Self {
         self.viewport_builder.app_id = app_id;
         self
     }
 
-    /// See egui::viewport::ViewportBuilder. This is a convenience function that sets the field.
+    /// See `egui::viewport::ViewportBuilder`. This is a convenience function that sets the field.
     pub const fn position(mut self, position: Option<Pos2>) -> Self {
         self.viewport_builder.position = position;
         self
     }
 
-    /// See egui::viewport::ViewportBuilder. This is a convenience function that sets the field.
+    /// See `egui::viewport::ViewportBuilder`. This is a convenience function that sets the field.
     pub const fn inner_size(mut self, inner_size: Option<Vec2>) -> Self {
         self.viewport_builder.inner_size = inner_size;
         self
     }
 
-    /// See egui::viewport::ViewportBuilder. This is a convenience function that sets the field.
+    /// See `egui::viewport::ViewportBuilder`. This is a convenience function that sets the field.
     pub const fn min_inner_size(mut self, min_inner_size: Option<Vec2>) -> Self {
         self.viewport_builder.min_inner_size = min_inner_size;
         self
     }
 
-    /// See egui::viewport::ViewportBuilder. This is a convenience function that sets the field.
+    /// See `egui::viewport::ViewportBuilder`. This is a convenience function that sets the field.
     pub const fn max_inner_size(mut self, max_inner_size: Option<Vec2>) -> Self {
         self.viewport_builder.max_inner_size = max_inner_size;
         self
     }
 
-    /// See egui::viewport::ViewportBuilder. This is a convenience function that sets the field.
+    /// See `egui::viewport::ViewportBuilder`. This is a convenience function that sets the field.
     pub const fn clamp_size_to_monitor_size(
         mut self,
         clamp_size_to_monitor_size: Option<bool>,
@@ -931,61 +931,61 @@ impl SoftwareBackendAppConfiguration {
         self
     }
 
-    /// See egui::viewport::ViewportBuilder. This is a convenience function that sets the field.
+    /// See `egui::viewport::ViewportBuilder`. This is a convenience function that sets the field.
     pub const fn fullscreen(mut self, fullscreen: Option<bool>) -> Self {
         self.viewport_builder.fullscreen = fullscreen;
         self
     }
 
-    /// See egui::viewport::ViewportBuilder. This is a convenience function that sets the field.
+    /// See `egui::viewport::ViewportBuilder`. This is a convenience function that sets the field.
     pub const fn maximized(mut self, maximized: Option<bool>) -> Self {
         self.viewport_builder.maximized = maximized;
         self
     }
 
-    /// See egui::viewport::ViewportBuilder. This is a convenience function that sets the field.
+    /// See `egui::viewport::ViewportBuilder`. This is a convenience function that sets the field.
     pub const fn resizable(mut self, resizable: Option<bool>) -> Self {
         self.viewport_builder.resizable = resizable;
         self
     }
 
-    /// See egui::viewport::ViewportBuilder. This is a convenience function that sets the field.
+    /// See `egui::viewport::ViewportBuilder`. This is a convenience function that sets the field.
     pub const fn transparent(mut self, transparent: Option<bool>) -> Self {
         self.viewport_builder.transparent = transparent;
         self
     }
 
-    /// See egui::viewport::ViewportBuilder. This is a convenience function that sets the field.
+    /// See `egui::viewport::ViewportBuilder`. This is a convenience function that sets the field.
     pub const fn decorations(mut self, decorations: Option<bool>) -> Self {
         self.viewport_builder.decorations = decorations;
         self
     }
 
-    /// See egui::viewport::ViewportBuilder. This is a convenience function that sets the field.
+    /// See `egui::viewport::ViewportBuilder`. This is a convenience function that sets the field.
     pub fn icon(mut self, icon: Option<Arc<IconData>>) -> Self {
         self.viewport_builder.icon = icon;
         self
     }
 
-    /// See egui::viewport::ViewportBuilder. This is a convenience function that sets the field.
+    /// See `egui::viewport::ViewportBuilder`. This is a convenience function that sets the field.
     pub fn active(mut self, active: Option<bool>) -> Self {
         self.viewport_builder.active = active;
         self
     }
 
-    /// See egui::viewport::ViewportBuilder. This is a convenience function that sets the field.
+    /// See `egui::viewport::ViewportBuilder`. This is a convenience function that sets the field.
     pub fn visible(mut self, visible: Option<bool>) -> Self {
         self.viewport_builder.visible = visible;
         self
     }
 
-    /// See egui::viewport::ViewportBuilder. This is a convenience function that sets the field.
+    /// See `egui::viewport::ViewportBuilder`. This is a convenience function that sets the field.
     pub fn fullsize_content_view(mut self, fullsize_content_view: Option<bool>) -> Self {
         self.viewport_builder.fullsize_content_view = fullsize_content_view;
         self
     }
 
-    /// See egui::viewport::ViewportBuilder. This is a convenience function that sets the field.
+    /// See `egui::viewport::ViewportBuilder`. This is a convenience function that sets the field.
     pub fn movable_by_window_background(
         mut self,
         movable_by_window_background: Option<bool>,
@@ -994,73 +994,73 @@ impl SoftwareBackendAppConfiguration {
         self
     }
 
-    /// See egui::viewport::ViewportBuilder. This is a convenience function that sets the field.
+    /// See `egui::viewport::ViewportBuilder`. This is a convenience function that sets the field.
     pub fn title_shown(mut self, title_shown: Option<bool>) -> Self {
         self.viewport_builder.title_shown = title_shown;
         self
     }
 
-    /// See egui::viewport::ViewportBuilder. This is a convenience function that sets the field.
+    /// See `egui::viewport::ViewportBuilder`. This is a convenience function that sets the field.
     pub fn titlebar_buttons_shown(mut self, titlebar_buttons_shown: Option<bool>) -> Self {
         self.viewport_builder.titlebar_buttons_shown = titlebar_buttons_shown;
         self
     }
 
-    /// See egui::viewport::ViewportBuilder. This is a convenience function that sets the field.
+    /// See `egui::viewport::ViewportBuilder`. This is a convenience function that sets the field.
     pub fn titlebar_shown(mut self, titlebar_shown: Option<bool>) -> Self {
         self.viewport_builder.titlebar_shown = titlebar_shown;
         self
     }
 
-    /// See egui::viewport::ViewportBuilder. This is a convenience function that sets the field.
+    /// See `egui::viewport::ViewportBuilder`. This is a convenience function that sets the field.
     pub fn has_shadow(mut self, has_shadow: Option<bool>) -> Self {
         self.viewport_builder.has_shadow = has_shadow;
         self
     }
 
-    /// See egui::viewport::ViewportBuilder. This is a convenience function that sets the field.
+    /// See `egui::viewport::ViewportBuilder`. This is a convenience function that sets the field.
     pub fn drag_and_drop(mut self, drag_and_drop: Option<bool>) -> Self {
         self.viewport_builder.has_shadow = drag_and_drop;
         self
     }
 
-    /// See egui::viewport::ViewportBuilder. This is a convenience function that sets the field.
+    /// See `egui::viewport::ViewportBuilder`. This is a convenience function that sets the field.
     pub fn taskbar(mut self, taskbar: Option<bool>) -> Self {
         self.viewport_builder.has_shadow = taskbar;
         self
     }
 
-    /// See egui::viewport::ViewportBuilder. This is a convenience function that sets the field.
+    /// See `egui::viewport::ViewportBuilder`. This is a convenience function that sets the field.
     pub const fn close_button(mut self, close_button: Option<bool>) -> Self {
         self.viewport_builder.close_button = close_button;
         self
     }
 
-    /// See egui::viewport::ViewportBuilder. This is a convenience function that sets the field.
+    /// See `egui::viewport::ViewportBuilder`. This is a convenience function that sets the field.
     pub const fn minimize_button(mut self, minimize_button: Option<bool>) -> Self {
         self.viewport_builder.minimize_button = minimize_button;
         self
     }
 
-    /// See egui::viewport::ViewportBuilder. This is a convenience function that sets the field.
+    /// See `egui::viewport::ViewportBuilder`. This is a convenience function that sets the field.
     pub const fn maximize_button(mut self, maximize_button: Option<bool>) -> Self {
         self.viewport_builder.maximize_button = maximize_button;
         self
     }
 
-    /// See egui::viewport::ViewportBuilder. This is a convenience function that sets the field.
+    /// See `egui::viewport::ViewportBuilder`. This is a convenience function that sets the field.
     pub const fn window_level(mut self, window_level: Option<WindowLevel>) -> Self {
         self.viewport_builder.window_level = window_level;
         self
     }
 
-    /// See egui::viewport::ViewportBuilder. This is a convenience function that sets the field.
+    /// See `egui::viewport::ViewportBuilder`. This is a convenience function that sets the field.
     pub const fn mouse_passthrough(mut self, mouse_passthrough: Option<bool>) -> Self {
         self.viewport_builder.mouse_passthrough = mouse_passthrough;
         self
     }
 
-    /// See egui::viewport::ViewportBuilder. This is a convenience function that sets the field.
+    /// See `egui::viewport::ViewportBuilder`. This is a convenience function that sets the field.
     pub const fn window_type(mut self, window_type: Option<X11WindowType>) -> Self {
         self.viewport_builder.window_type = window_type;
         self
@@ -1084,8 +1084,8 @@ impl SoftwareBackendAppConfiguration {
         self
     }
 
-    /// If true: rasterized ClippedPrimitives are cached and rendered to an intermediate tiled canvas. That canvas is
-    /// then rendered over the frame buffer. If false ClippedPrimitives are rendered directly to the frame buffer.
+    /// If true: rasterized `ClippedPrimitives` are cached and rendered to an intermediate tiled canvas. That canvas is
+    /// then rendered over the frame buffer. If false `ClippedPrimitives` are rendered directly to the frame buffer.
     /// Rendering without caching is much slower and primarily intended for testing.
     ///
     /// Default is true!

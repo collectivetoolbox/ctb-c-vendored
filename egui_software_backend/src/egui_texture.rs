@@ -16,7 +16,7 @@ pub struct EguiTexture {
     /// height - 1
     pub height_extent: i32,
     pub width: usize,
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     pub height: usize,
     pub fsize: Vec2,
     pub options: TextureOptions,
@@ -28,7 +28,7 @@ impl EguiTexture {
         options: TextureOptions,
         size: [usize; 2],
         pixels: &[Color32],
-    ) -> EguiTexture {
+    ) -> Self {
         let data = pixels
             .iter()
             .map(|p| match field_order {
@@ -37,7 +37,7 @@ impl EguiTexture {
             })
             .collect::<Vec<_>>();
         let uv_zero_val = data[0];
-        EguiTexture {
+        Self {
             data,
             width_extent: size[0] as i32 - 1,
             height_extent: size[1] as i32 - 1,
@@ -49,7 +49,7 @@ impl EguiTexture {
         }
     }
 
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     pub fn sample_nearest(&self, uv: Vec2) -> [u8; 4] {
         let ss_x = ((uv.x * self.fsize.x) as i32).max(0).min(self.width_extent);
         let ss_y = ((uv.y * self.fsize.y) as i32)

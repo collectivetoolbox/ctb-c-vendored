@@ -34,7 +34,7 @@ pub fn draw_egui_mesh<const SUBPIX_BITS: i32>(
             convert_tris_to_rects,
             #[cfg(all(feature = "raster_stats", not(feature = "rayon")))]
             stats,
-        )
+        );
     } else {
         draw_egui_mesh_impl::<SUBPIX_BITS, false>(
             textures,
@@ -46,7 +46,7 @@ pub fn draw_egui_mesh<const SUBPIX_BITS: i32>(
             convert_tris_to_rects,
             #[cfg(all(feature = "raster_stats", not(feature = "rayon")))]
             stats,
-        )
+        );
     }
 
     #[cfg(all(feature = "std", not(any(target_arch = "x86_64", target_arch = "aarch64"))))]

@@ -3,7 +3,7 @@ pub struct Hash32(pub u32);
 impl Hash32 {
     #[inline(always)]
     pub fn new_fnv() -> Self {
-        Hash32(0x811c9dc5) // FNV offset basis
+        Self(0x811c9dc5) // FNV offset basis
     }
 
     #[inline(always)]

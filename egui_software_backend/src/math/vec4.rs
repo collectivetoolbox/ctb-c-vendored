@@ -351,12 +351,12 @@ impl Add<Vec4> for &Vec4 {
     }
 }
 
-impl Add<&Vec4> for Vec4 {
-    type Output = Vec4;
+impl Add<&Self> for Vec4 {
+    type Output = Self;
 
     #[inline(always)]
-    fn add(self, rhs: &Vec4) -> Vec4 {
-        Vec4 {
+    fn add(self, rhs: &Self) -> Self {
+        Self {
             x: self.x + rhs.x,
             y: self.y + rhs.y,
             z: self.z + rhs.z,
