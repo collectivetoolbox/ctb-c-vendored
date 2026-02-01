@@ -15,7 +15,7 @@ macro_rules! x11_link {
       $(pub fn $vfn_name ($($vparam_name : $vparam_type),+, ...) -> $vret_type;)*
     }
 
-    extern {
+    extern "C" {
       $(pub static $var_name : $var_type;)*
     }
   }
