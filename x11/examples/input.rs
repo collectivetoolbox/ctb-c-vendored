@@ -41,20 +41,12 @@ impl DemoWindow {
             }
 
             // Load atoms
-            let wm_delete_window_str =
-                CString::new("WM_DELETE_WINDOW").unwrap();
+            let wm_delete_window_str = CString::new("WM_DELETE_WINDOW").unwrap();
             let wm_protocols_str = CString::new("WM_PROTOCOLS").unwrap();
 
-            let wm_delete_window = xlib::XInternAtom(
-                display,
-                wm_delete_window_str.as_ptr(),
-                xlib::False,
-            );
-            let wm_protocols = xlib::XInternAtom(
-                display,
-                wm_protocols_str.as_ptr(),
-                xlib::False,
-            );
+            let wm_delete_window =
+                xlib::XInternAtom(display, wm_delete_window_str.as_ptr(), xlib::False);
+            let wm_protocols = xlib::XInternAtom(display, wm_protocols_str.as_ptr(), xlib::False);
 
             if wm_delete_window == 0 || wm_protocols == 0 {
                 panic!("can't load atoms");
@@ -89,12 +81,8 @@ impl DemoWindow {
             // Subscribe to delete (close) events
             let mut protocols = [wm_delete_window];
 
-            if xlib::XSetWMProtocols(
-                display,
-                window,
-                &mut protocols[0] as *mut xlib::Atom,
-                1,
-            ) == xlib::False
+            if xlib::XSetWMProtocols(display, window, &mut protocols[0] as *mut xlib::Atom, 1)
+                == xlib::False
             {
                 panic!("can't set WM protocols");
             }
@@ -117,10 +105,8 @@ impl DemoWindow {
 
     /// Process events for the window. Window close events are handled automatically,
     /// other events are passed on to |event_handler|
-    pub fn run_event_loop<EventHandler>(
-        &mut self,
-        mut event_handler: EventHandler,
-    ) where
+    pub fn run_event_loop<EventHandler>(&mut self, mut event_handler: EventHandler)
+    where
         EventHandler: FnMut(&xlib::XEvent),
     {
         let mut event: xlib::XEvent = unsafe { zeroed() };
@@ -131,9 +117,7 @@ impl DemoWindow {
                     let xclient: xlib::XClientMessageEvent = From::from(event);
 
                     // WM_PROTOCOLS client message
-                    if xclient.message_type == self.wm_protocols
-                        && xclient.format == 32
-                    {
+                    if xclient.message_type == self.wm_protocols && xclient.format == 32 {
                         let protocol = xclient.data.get_long(0) as xlib::Atom;
 
                         // WM_DELETE_WINDOW (close event)
@@ -195,32 +179,22 @@ fn read_input_axis_info(display: *mut xlib::Display) -> Vec<Axis> {
 
     // only get events from the master devices which are 'attached'
     // to the keyboard or cursor
-    let devices = unsafe {
-        xinput2::XIQueryDevice(
-            display,
-            xinput2::XIAllMasterDevices,
-            &mut device_count,
-        )
-    };
+    let devices =
+        unsafe { xinput2::XIQueryDevice(display, xinput2::XIAllMasterDevices, &mut device_count) };
     for i in 0..device_count {
         let device = unsafe { *(devices.offset(i as isize)) };
         for k in 0..device.num_classes {
             let class = unsafe { *(device.classes.offset(k as isize)) };
             match unsafe { (*class)._type } {
                 xinput2::XIScrollClass => {
-                    let scroll_class: &xinput2::XIScrollClassInfo =
-                        unsafe { transmute(class) };
+                    let scroll_class: &xinput2::XIScrollClassInfo = unsafe { transmute(class) };
                     axis_list.push(Axis {
                         id: scroll_class.sourceid,
                         device_id: device.deviceid,
                         axis_number: scroll_class.number,
                         axis_type: match scroll_class.scroll_type {
-                            xinput2::XIScrollTypeHorizontal => {
-                                AxisType::HorizontalScroll
-                            }
-                            xinput2::XIScrollTypeVertical => {
-                                AxisType::VerticalScroll
-                            }
+                            xinput2::XIScrollTypeHorizontal => AxisType::HorizontalScroll,
+                            xinput2::XIScrollTypeVertical => AxisType::VerticalScroll,
                             _ => {
                                 unreachable!()
                             }
@@ -228,8 +202,7 @@ fn read_input_axis_info(display: *mut xlib::Display) -> Vec<Axis> {
                     })
                 }
                 xinput2::XIValuatorClass => {
-                    let valuator_class: &xinput2::XIValuatorClassInfo =
-                        unsafe { transmute(class) };
+                    let valuator_class: &xinput2::XIValuatorClassInfo = unsafe { transmute(class) };
                     axis_list.push(Axis {
                         id: valuator_class.sourceid,
                         device_id: device.deviceid,
@@ -265,8 +238,7 @@ fn calc_scroll_deltas(
     prev_axis_values: &mut Vec<AxisValue>,
 ) -> (f64, f64) {
     let prev_value_pos = prev_axis_values.iter().position(|prev_axis| {
-        prev_axis.device_id == event.sourceid
-            && prev_axis.axis_number == axis_id
+        prev_axis.device_id == event.sourceid && prev_axis.axis_number == axis_id
     });
     let delta = match prev_value_pos {
         Some(idx) => axis_value - prev_axis_values[idx].value,
@@ -388,16 +360,13 @@ fn main() {
     demo_window.run_event_loop(|event| match event.get_type() {
         xlib::GenericEvent => {
             let mut cookie: xlib::XGenericEventCookie = From::from(*event);
-            if unsafe { xlib::XGetEventData(display, &mut cookie) }
-                != xlib::True
-            {
+            if unsafe { xlib::XGetEventData(display, &mut cookie) } != xlib::True {
                 println!("Failed to retrieve event data");
                 return;
             }
             match cookie.evtype {
                 xinput2::XI_KeyPress | xinput2::XI_KeyRelease => {
-                    let event_data: &xinput2::XIDeviceEvent =
-                        unsafe { transmute(cookie.data) };
+                    let event_data: &xinput2::XIDeviceEvent = unsafe { transmute(cookie.data) };
                     if cookie.evtype == xinput2::XI_KeyPress {
                         if event_data.flags & xinput2::XIKeyRepeat == 0 {
                             println!("Key {} pressed", event_data.detail);
@@ -407,8 +376,7 @@ fn main() {
                     }
                 }
                 xinput2::XI_ButtonPress | xinput2::XI_ButtonRelease => {
-                    let event_data: &xinput2::XIDeviceEvent =
-                        unsafe { transmute(cookie.data) };
+                    let event_data: &xinput2::XIDeviceEvent = unsafe { transmute(cookie.data) };
                     if cookie.evtype == xinput2::XI_ButtonPress {
                         println!("Button {} pressed", event_data.detail);
                     } else {
@@ -416,23 +384,16 @@ fn main() {
                     }
                 }
                 xinput2::XI_Motion => {
-                    let event_data: &xinput2::XIDeviceEvent =
-                        unsafe { transmute(cookie.data) };
+                    let event_data: &xinput2::XIDeviceEvent = unsafe { transmute(cookie.data) };
                     let axis_state = event_data.valuators;
-                    let mask = unsafe {
-                        from_raw_parts(
-                            axis_state.mask,
-                            axis_state.mask_len as usize,
-                        )
-                    };
+                    let mask =
+                        unsafe { from_raw_parts(axis_state.mask, axis_state.mask_len as usize) };
                     let mut axis_count = 0;
 
                     let mut scroll_delta = (0.0, 0.0);
                     for axis_id in 0..axis_state.mask_len {
                         if xinput2::XIMaskIsSet(&mask, axis_id) {
-                            let axis_value = unsafe {
-                                *axis_state.values.offset(axis_count)
-                            };
+                            let axis_value = unsafe { *axis_state.values.offset(axis_count) };
                             let delta = calc_scroll_deltas(
                                 event_data,
                                 axis_id,
@@ -446,16 +407,14 @@ fn main() {
                         }
                     }
 
-                    if scroll_delta.0.abs() > 0.0 || scroll_delta.1.abs() > 0.0
-                    {
+                    if scroll_delta.0.abs() > 0.0 || scroll_delta.1.abs() > 0.0 {
                         println!(
                             "Mouse wheel/trackpad scrolled by ({}, {})",
                             scroll_delta.0, scroll_delta.1
                         );
                     }
 
-                    let new_cursor_pos =
-                        (event_data.event_x, event_data.event_y);
+                    let new_cursor_pos = (event_data.event_x, event_data.event_y);
                     if new_cursor_pos != prev_state.cursor_pos {
                         println!(
                             "Mouse moved to ({}, {})",

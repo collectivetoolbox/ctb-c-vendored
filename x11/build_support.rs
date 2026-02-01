@@ -30,32 +30,26 @@ pub(crate) fn build_autotools(
 ) -> Result<()> {
     let pkg_dir = c_src_dir.join(pkg);
     if !pkg_dir.exists() {
-        println!(
-            "cargo:warning=vendored x11: missing {pkg_dir:?}; skipping {pkg}"
-        );
+        println!("cargo:warning=vendored x11: missing {pkg_dir:?}; skipping {pkg}");
         return Ok(());
     }
 
     let src_dir = prepare_source_tree(
         &pkg_dir,
-        &out_dir.join("ctb-vendored-x11").join("unpacked").join(pkg),
+        &out_dir
+            .join("ctb-vendored-x11")
+            .join("unpacked")
+            .join(pkg),
     )
-    .with_context(|| {
-        format!(
-            "could not prepare source dir for {pkg} in {}",
-            pkg_dir.display()
-        )
-    })?;
+    .with_context(|| format!("could not prepare source dir for {pkg} in {}", pkg_dir.display()))?;
     let build_root = out_dir.join("ctb-vendored-x11").join("build").join(pkg);
     let src_copy = build_root.join("src");
     let build_dir = build_root.join("build");
 
     // Clean build dirs to avoid subtle cross-target reuse.
     let _ = fs::remove_dir_all(&build_root);
-    fs::create_dir_all(&build_dir)
-        .with_context(|| format!("create build dir for {pkg}"))?;
-    copy_dir_recursive(&src_dir, &src_copy)
-        .with_context(|| format!("copy sources for {pkg}"))?;
+    fs::create_dir_all(&build_dir).with_context(|| format!("create build dir for {pkg}"))?;
+    copy_dir_recursive(&src_dir, &src_copy).with_context(|| format!("copy sources for {pkg}"))?;
 
     // Some of the Debian-sourced Xorg tarballs we consume can carry an
     // automake/autoconf toolchain mismatch in their generated files.
@@ -80,9 +74,8 @@ pub(crate) fn build_autotools(
     // Some (e.g. xorgproto) don't recognize libtool/static flags, which is
     // noisy and can be misleading in build logs. Probe `configure --help` and
     // only pass flags that are actually supported by the specific package.
-    let help =
-        autotools_configure_help(&configure_script, &build_dir, base_env)
-            .with_context(|| format!("query configure help for {pkg}"))?;
+    let help = autotools_configure_help(&configure_script, &build_dir, base_env)
+        .with_context(|| format!("query configure help for {pkg}"))?;
     let candidate_opts = [
         "--disable-maintainer-mode",
         "--disable-shared",
@@ -156,9 +149,9 @@ fn autotools_configure_help(
         cmd.env(k, v);
     }
 
-    let output = cmd.output().with_context(|| {
-        format!("failed to execute {} --help", configure_script.display())
-    })?;
+    let output = cmd
+        .output()
+        .with_context(|| format!("failed to execute {} --help", configure_script.display()))?;
 
     if !output.status.success() {
         return Err(anyhow!(
@@ -174,11 +167,7 @@ fn autotools_configure_help(
     Ok(combined)
 }
 
-fn run_autoreconf(
-    src_dir: &Path,
-    base_env: &[(String, String)],
-    pkg: &str,
-) -> Result<()> {
+fn run_autoreconf(src_dir: &Path, base_env: &[(String, String)], pkg: &str) -> Result<()> {
     let has_configure_ac = src_dir.join("configure.ac").is_file();
     let has_configure_in = src_dir.join("configure.in").is_file();
     if !has_configure_ac && !has_configure_in {
@@ -235,8 +224,7 @@ pub(crate) fn build_meson_xkbcommon(
 
     let _ = fs::remove_dir_all(&build_root);
     fs::create_dir_all(&build_dir).context("create xkbcommon build dir")?;
-    copy_dir_recursive(&src_dir, &src_copy)
-        .context("copy xkbcommon sources")?;
+    copy_dir_recursive(&src_dir, &src_copy).context("copy xkbcommon sources")?;
 
     if !program_exists("meson")? || !program_exists("ninja")? {
         println!("cargo:warning=vendored x11: meson/ninja not found; skipping libxkbcommon build");
@@ -314,33 +302,26 @@ pub(crate) fn install_xkeyboard_config(
     let pkg = "xkeyboard-config";
     let pkg_dir = c_src_dir.join(pkg);
     if !pkg_dir.exists() {
-        println!(
-            "cargo:warning=vendored x11: missing {pkg_dir:?}; skipping {pkg}"
-        );
+        println!("cargo:warning=vendored x11: missing {pkg_dir:?}; skipping {pkg}");
         return Ok(());
     }
 
     let src_dir = prepare_source_tree(
         &pkg_dir,
-        &out_dir.join("ctb-vendored-x11").join("unpacked").join(pkg),
+        &out_dir
+            .join("ctb-vendored-x11")
+            .join("unpacked")
+            .join(pkg),
     )
-    .with_context(|| {
-        format!(
-            "could not prepare source dir for {pkg} in {}",
-            pkg_dir.display()
-        )
-    })?;
+    .with_context(|| format!("could not prepare source dir for {pkg} in {}", pkg_dir.display()))?;
 
     let dst_root = prefix.join("share").join("X11").join("xkb");
-    fs::create_dir_all(&dst_root).with_context(|| {
-        format!("create xkb data dir {}", dst_root.display())
-    })?;
+    fs::create_dir_all(&dst_root)
+        .with_context(|| format!("create xkb data dir {}", dst_root.display()))?;
 
     // Keep this minimal: only install the directories libxkbcommon expects
     // under $XKB_CONFIG_ROOT.
-    let subdirs = [
-        "compat", "geometry", "keycodes", "rules", "symbols", "types",
-    ];
+    let subdirs = ["compat", "geometry", "keycodes", "rules", "symbols", "types"];
     for subdir in subdirs {
         let src = src_dir.join(subdir);
         if !src.is_dir() {
@@ -358,9 +339,7 @@ fn program_exists(program: &str) -> Result<bool> {
     match status {
         Ok(s) => Ok(s.success()),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(false),
-        Err(e) => {
-            Err(e).with_context(|| format!("failed to run {program} --version"))
-        }
+        Err(e) => Err(e).with_context(|| format!("failed to run {program} --version")),
     }
 }
 
@@ -373,22 +352,13 @@ pub(crate) fn command_to_string(cmd: &Command) -> String {
     s
 }
 
-fn write_meson_cross_file(
-    path: &Path,
-    base_env: &[(String, String)],
-    target: &str,
-) -> Result<()> {
+fn write_meson_cross_file(path: &Path, base_env: &[(String, String)], target: &str) -> Result<()> {
     let cc = env_value(base_env, "CC").unwrap_or("cc");
     let ar = env_value(base_env, "AR").unwrap_or("ar");
-    let pkg_config =
-        env::var("PKG_CONFIG").unwrap_or_else(|_| "pkg-config".to_string());
+    let pkg_config = env::var("PKG_CONFIG").unwrap_or_else(|_| "pkg-config".to_string());
 
     let (cpu_family, cpu) = cpu_info_from_target(target);
-    let system = if target.contains("linux") {
-        "linux"
-    } else {
-        "unknown"
-    };
+    let system = if target.contains("linux") { "linux" } else { "unknown" };
     let endian = if target.contains("mips") || target.contains("powerpc64") {
         // Most of our current targets are little-endian; keep this conservative.
         "little"
@@ -422,9 +392,8 @@ endian = '{endian}'\n\
 \
 needs_exe_wrapper = true\n"
     );
-    fs::write(path, content).with_context(|| {
-        format!("write meson cross file at {}", path.display())
-    })?;
+    fs::write(path, content)
+        .with_context(|| format!("write meson cross file at {}", path.display()))?;
     Ok(())
 }
 
@@ -458,18 +427,15 @@ fn prepare_source_tree(pkg_dir: &Path, unpack_root: &Path) -> Result<PathBuf> {
     // upstream sources without applying Debian patches. Apply Debian patches
     // here (without relying on dpkg tools) so builds are consistent.
 
-    let upstream_src = find_project_src_dir(pkg_dir).with_context(|| {
-        format!("locate upstream source dir under {}", pkg_dir.display())
-    })?;
+    let upstream_src = find_project_src_dir(pkg_dir)
+        .with_context(|| format!("locate upstream source dir under {}", pkg_dir.display()))?;
 
     let _ = fs::remove_dir_all(unpack_root);
-    fs::create_dir_all(unpack_root).with_context(|| {
-        format!("create unpack root {}", unpack_root.display())
-    })?;
+    fs::create_dir_all(unpack_root)
+        .with_context(|| format!("create unpack root {}", unpack_root.display()))?;
 
     let src_copy = unpack_root.join("src");
-    fs::create_dir_all(&src_copy)
-        .with_context(|| format!("create src dir {}", src_copy.display()))?;
+    fs::create_dir_all(&src_copy).with_context(|| format!("create src dir {}", src_copy.display()))?;
     copy_dir_recursive(&upstream_src, &src_copy).with_context(|| {
         format!(
             "copy upstream sources {} -> {}",
@@ -478,9 +444,8 @@ fn prepare_source_tree(pkg_dir: &Path, unpack_root: &Path) -> Result<PathBuf> {
         )
     })?;
 
-    apply_debian_patches(pkg_dir, &src_copy).with_context(|| {
-        format!("apply Debian patches for {}", pkg_dir.display())
-    })?;
+    apply_debian_patches(pkg_dir, &src_copy)
+        .with_context(|| format!("apply Debian patches for {}", pkg_dir.display()))?;
 
     Ok(src_copy)
 }
@@ -511,8 +476,7 @@ fn apply_debian_patches(pkg_dir: &Path, src_root: &Path) -> Result<()> {
     if quilt_dir.as_os_str().is_empty() {
         // 1.0 format: apply single diff.gz if present.
         if let Some(diff) = find_first_file(pkg_dir, "*.diff.gz")? {
-            apply_patch_gz(&diff, src_root)
-                .with_context(|| format!("apply {}", diff.display()))?;
+            apply_patch_gz(&diff, src_root).with_context(|| format!("apply {}", diff.display()))?;
         }
         return Ok(());
     }
@@ -523,9 +487,8 @@ fn apply_debian_patches(pkg_dir: &Path, src_root: &Path) -> Result<()> {
         return Ok(());
     }
 
-    let series_contents = fs::read_to_string(&series).with_context(|| {
-        format!("read quilt series at {}", series.display())
-    })?;
+    let series_contents = fs::read_to_string(&series)
+        .with_context(|| format!("read quilt series at {}", series.display()))?;
 
     for line in series_contents.lines() {
         let line = line.trim();
@@ -539,19 +502,14 @@ fn apply_debian_patches(pkg_dir: &Path, src_root: &Path) -> Result<()> {
                 patch_path.display()
             ));
         }
-        apply_patch_file(&patch_path, src_root).with_context(|| {
-            format!("apply quilt patch {}", patch_path.display())
-        })?;
+        apply_patch_file(&patch_path, src_root)
+            .with_context(|| format!("apply quilt patch {}", patch_path.display()))?;
     }
 
     Ok(())
 }
 
-fn unpack_debian_tar(
-    pkg_dir: &Path,
-    debian_tar: &Path,
-    dst: &Path,
-) -> Result<PathBuf> {
+fn unpack_debian_tar(pkg_dir: &Path, debian_tar: &Path, dst: &Path) -> Result<PathBuf> {
     let work_dir = pkg_dir.join(".ctb_debian");
     let _ = fs::remove_dir_all(&work_dir);
     fs::create_dir_all(&work_dir).context("create debian work dir")?;
@@ -596,9 +554,7 @@ fn find_project_src_dir(pkg_dir: &Path) -> Result<PathBuf> {
     // scripts/download-x11 unpacks upstream sources into a single directory
     // under each package dir. Pick the first dir that looks like a project.
     let mut candidates = Vec::new();
-    for entry in fs::read_dir(pkg_dir)
-        .with_context(|| format!("read {}", pkg_dir.display()))?
-    {
+    for entry in fs::read_dir(pkg_dir).with_context(|| format!("read {}", pkg_dir.display()))? {
         let entry = entry?;
         let path = entry.path();
         if !path.is_dir() {
@@ -610,8 +566,7 @@ fn find_project_src_dir(pkg_dir: &Path) -> Result<PathBuf> {
             continue;
         }
         // Heuristic: most upstream trees have a configure script or meson.build.
-        if path.join("configure").exists() || path.join("meson.build").exists()
-        {
+        if path.join("configure").exists() || path.join("meson.build").exists() {
             return Ok(path);
         }
         candidates.push(path);
@@ -629,9 +584,7 @@ fn find_project_src_dir(pkg_dir: &Path) -> Result<PathBuf> {
 
 fn find_single_dir(root: &Path, pattern: &str) -> Result<PathBuf> {
     // Find a single matching file and return it.
-    for entry in fs::read_dir(root)
-        .with_context(|| format!("read {}", root.display()))?
-    {
+    for entry in fs::read_dir(root).with_context(|| format!("read {}", root.display()))? {
         let entry = entry?;
         let path = entry.path();
         if !path.is_file() {
@@ -647,9 +600,7 @@ fn find_single_dir(root: &Path, pattern: &str) -> Result<PathBuf> {
 }
 
 fn find_first_file(root: &Path, pattern: &str) -> Result<Option<PathBuf>> {
-    for entry in fs::read_dir(root)
-        .with_context(|| format!("read {}", root.display()))?
-    {
+    for entry in fs::read_dir(root).with_context(|| format!("read {}", root.display()))? {
         let entry = entry?;
         let path = entry.path();
         if !path.is_file() {
@@ -677,12 +628,9 @@ fn glob_match(pattern: &str, value: &str) -> bool {
 }
 
 fn copy_dir_recursive(src: &Path, dst: &Path) -> Result<()> {
-    fs::create_dir_all(dst)
-        .with_context(|| format!("create dir {}", dst.display()))?;
+    fs::create_dir_all(dst).with_context(|| format!("create dir {}", dst.display()))?;
 
-    for entry in fs::read_dir(src)
-        .with_context(|| format!("read dir {}", src.display()))?
-    {
+    for entry in fs::read_dir(src).with_context(|| format!("read dir {}", src.display()))? {
         let entry = entry?;
         let path = entry.path();
         let dst_path = dst.join(entry.file_name());
@@ -703,9 +651,9 @@ fn copy_dir_recursive(src: &Path, dst: &Path) -> Result<()> {
 }
 
 fn run(cmd: &mut Command) -> Result<()> {
-    let status = cmd.status().with_context(|| {
-        format!("failed to execute {}", cmd.get_program().to_string_lossy())
-    })?;
+    let status = cmd
+        .status()
+        .with_context(|| format!("failed to execute {}", cmd.get_program().to_string_lossy()))?;
     if !status.success() {
         return Err(anyhow!("command failed with exit code {status}"));
     }

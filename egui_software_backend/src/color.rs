@@ -18,7 +18,7 @@ pub fn u8x4_to_vec4(v: &[u8; 4]) -> Vec4 {
 
 // https://github.com/emilk/egui/blob/226bdc4c5bbb2230fb829e01b3fcb0460e741b34/crates/egui/src/lib.rs#L162
 #[inline(always)]
-#[expect(dead_code)]
+#[allow(dead_code)]
 pub fn egui_blend(src: &Vec4, dst: &Vec4) -> Vec4 {
     dst * (1.0 - src.w) + src
 }
@@ -32,7 +32,7 @@ pub fn as_color16(color: u32) -> u64 {
 }
 
 // https://www.lgfae.com/posts/2025-09-01-AlphaBlendWithSIMD.html
-/// blend fn is (ONE, `ONE_MINUS_SRC_ALPHA`)
+/// blend fn is (ONE, ONE_MINUS_SRC_ALPHA)
 #[inline(always)]
 pub fn egui_blend_u8(src: [u8; 4], mut dst: [u8; 4]) -> [u8; 4] {
     let a = src[3];

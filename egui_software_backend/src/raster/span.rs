@@ -2,7 +2,7 @@ use crate::raster::bary::SingleStepper;
 use strength_reduce::StrengthReducedU64;
 
 /// Returns Some((start, end)) for the current row in the triangle. The end points are defined within the aabb of the
-/// triangle so add `ss_min.x` to each to get the screen space coordinate. Returns None if there is no span intersecting
+/// triangle so add ss_min.x to each to get the screen space coordinate. Returns None if there is no span intersecting
 /// this row.
 pub fn calc_row_span(
     stepper: &SingleStepper,

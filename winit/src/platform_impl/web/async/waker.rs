@@ -1,7 +1,7 @@
 use std::future;
 use std::num::NonZeroUsize;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::Arc;
 use std::task::Poll;
 
 use super::super::main_thread::MainThreadMarker;
@@ -56,21 +56,19 @@ impl<T> WakerSpawner<T> {
                             None => {
                                 inner.waker.register(cx.waker());
 
-                                let count =
-                                    inner.counter.swap(0, Ordering::Relaxed);
+                                let count = inner.counter.swap(0, Ordering::Relaxed);
 
                                 match NonZeroUsize::new(count) {
                                     Some(count) => Poll::Ready(Some(count)),
                                     None => {
-                                        if inner.closed.load(Ordering::Relaxed)
-                                        {
+                                        if inner.closed.load(Ordering::Relaxed) {
                                             return Poll::Ready(None);
                                         }
 
                                         Poll::Pending
-                                    }
+                                    },
                                 }
-                            }
+                            },
                         }
                     })
                     .await
@@ -101,9 +99,7 @@ impl<T> WakerSpawner<T> {
             "this should only be called from the main thread"
         );
 
-        self.0.with_sender_data(|inner| {
-            inner.0.counter.swap(0, Ordering::Relaxed)
-        })
+        self.0.with_sender_data(|inner| inner.0.counter.swap(0, Ordering::Relaxed))
     }
 }
 

@@ -40,12 +40,8 @@ impl fmt::Display for GetPropertyError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             GetPropertyError::X11rbError(err) => err.fmt(f),
-            GetPropertyError::TypeMismatch(err) => {
-                write!(f, "type mismatch: {err}")
-            }
-            GetPropertyError::FormatMismatch(err) => {
-                write!(f, "format mismatch: {err}")
-            }
+            GetPropertyError::TypeMismatch(err) => write!(f, "type mismatch: {err}"),
+            GetPropertyError::FormatMismatch(err) => write!(f, "format mismatch: {err}"),
         }
     }
 }
@@ -63,12 +59,7 @@ impl XConnection {
         property: xproto::Atom,
         property_type: xproto::Atom,
     ) -> Result<Vec<T>, GetPropertyError> {
-        let mut iter = PropIterator::new(
-            self.xcb_connection(),
-            window,
-            property,
-            property_type,
-        );
+        let mut iter = PropIterator::new(self.xcb_connection(), window, property, property_type);
         let mut data = vec![];
 
         loop {
@@ -96,10 +87,7 @@ impl XConnection {
                 property,
                 property_type,
                 (mem::size_of::<T>() * 8) as u8,
-                new_value
-                    .len()
-                    .try_into()
-                    .expect("too many items for property"),
+                new_value.len().try_into().expect("too many items for property"),
                 bytemuck::cast_slice::<T, u8>(new_value),
             )
             .map_err(Into::into)
@@ -159,10 +147,7 @@ impl<'a, C: Connection + ?Sized, T: Pod> PropIterator<'a, C, T> {
     /// Get the next window and append it to `data`.
     ///
     /// Returns whether there are more windows to fetch.
-    fn next_window(
-        &mut self,
-        data: &mut Vec<T>,
-    ) -> Result<bool, GetPropertyError> {
+    fn next_window(&mut self, data: &mut Vec<T>) -> Result<bool, GetPropertyError> {
         // Send the request and wait for the reply.
         let reply = self
             .conn
@@ -201,8 +186,7 @@ impl<'a, C: Connection + ?Sized, T: Pod> PropIterator<'a, C, T> {
             let old_len = data.len();
             let added_len = reply.value.len() / mem::size_of::<T>();
             data.resize(old_len + added_len, T::zeroed());
-            bytemuck::cast_slice_mut::<T, u8>(&mut data[old_len..])
-                .copy_from_slice(&reply.value);
+            bytemuck::cast_slice_mut::<T, u8>(&mut data[old_len..]).copy_from_slice(&reply.value);
         }
 
         // Check `bytes_after` to see if there are more windows to fetch.

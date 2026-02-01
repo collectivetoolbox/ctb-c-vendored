@@ -1,6 +1,4 @@
-use crate::monitor::{
-    MonitorHandle as RootMonitorHandle, VideoModeHandle as RootVideoModeHandle,
-};
+use crate::monitor::{MonitorHandle as RootMonitorHandle, VideoModeHandle as RootVideoModeHandle};
 use crate::window::Fullscreen as RootFullscreen;
 
 #[cfg(android_platform)]
@@ -47,9 +45,7 @@ impl From<RootFullscreen> for Fullscreen {
     fn from(f: RootFullscreen) -> Self {
         match f {
             RootFullscreen::Exclusive(mode) => Self::Exclusive(mode.video_mode),
-            RootFullscreen::Borderless(Some(handle)) => {
-                Self::Borderless(Some(handle.inner))
-            }
+            RootFullscreen::Borderless(Some(handle)) => Self::Borderless(Some(handle.inner)),
             RootFullscreen::Borderless(None) => Self::Borderless(None),
         }
     }
@@ -60,10 +56,10 @@ impl From<Fullscreen> for RootFullscreen {
         match f {
             Fullscreen::Exclusive(video_mode) => {
                 Self::Exclusive(RootVideoModeHandle { video_mode })
-            }
+            },
             Fullscreen::Borderless(Some(inner)) => {
                 Self::Borderless(Some(RootMonitorHandle { inner }))
-            }
+            },
             Fullscreen::Borderless(None) => Self::Borderless(None),
         }
     }

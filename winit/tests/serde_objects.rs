@@ -1,13 +1,9 @@
 #![cfg(feature = "serde")]
 
 use serde::{Deserialize, Serialize};
-use winit::dpi::{
-    LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize,
-};
+use winit::dpi::{LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize};
 use winit::event::{ElementState, MouseButton, MouseScrollDelta, TouchPhase};
-use winit::keyboard::{
-    Key, KeyCode, KeyLocation, ModifiersState, NamedKey, PhysicalKey,
-};
+use winit::keyboard::{Key, KeyCode, KeyLocation, ModifiersState, NamedKey, PhysicalKey};
 use winit::window::CursorIcon;
 
 #[allow(dead_code)]

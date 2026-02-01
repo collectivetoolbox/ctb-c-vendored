@@ -1,19 +1,16 @@
-use std::ffi::{OsString, c_void};
+use std::ffi::{c_void, OsString};
 use std::os::windows::prelude::OsStringExt;
 use std::ptr::null_mut;
 
 use windows_sys::Win32::Foundation::{POINT, RECT};
 use windows_sys::Win32::Globalization::HIMC;
 use windows_sys::Win32::UI::Input::Ime::{
-    ATTR_TARGET_CONVERTED, ATTR_TARGET_NOTCONVERTED, CANDIDATEFORM,
-    CFS_EXCLUDE, CFS_POINT, COMPOSITIONFORM, GCS_COMPATTR, GCS_COMPSTR,
-    GCS_CURSORPOS, GCS_RESULTSTR, IACE_CHILDREN, IACE_DEFAULT,
-    ImmAssociateContextEx, ImmGetCompositionStringW, ImmGetContext,
-    ImmReleaseContext, ImmSetCandidateWindow, ImmSetCompositionWindow,
+    ImmAssociateContextEx, ImmGetCompositionStringW, ImmGetContext, ImmReleaseContext,
+    ImmSetCandidateWindow, ImmSetCompositionWindow, ATTR_TARGET_CONVERTED,
+    ATTR_TARGET_NOTCONVERTED, CANDIDATEFORM, CFS_EXCLUDE, CFS_POINT, COMPOSITIONFORM, GCS_COMPATTR,
+    GCS_COMPSTR, GCS_CURSORPOS, GCS_RESULTSTR, IACE_CHILDREN, IACE_DEFAULT,
 };
-use windows_sys::Win32::UI::WindowsAndMessaging::{
-    GetSystemMetrics, SM_IMMENABLED,
-};
+use windows_sys::Win32::UI::WindowsAndMessaging::{GetSystemMetrics, SM_IMMENABLED};
 
 use crate::dpi::{Position, Size};
 use crate::platform::windows::HWND;
@@ -33,8 +30,7 @@ impl ImeContext {
         &self,
     ) -> Option<(String, Option<usize>, Option<usize>)> {
         let text = unsafe { self.get_composition_string(GCS_COMPSTR) }?;
-        let attrs = unsafe { self.get_composition_data(GCS_COMPATTR) }
-            .unwrap_or_default();
+        let attrs = unsafe { self.get_composition_data(GCS_COMPATTR) }.unwrap_or_default();
 
         let mut first = None;
         let mut last = None;
@@ -46,8 +42,8 @@ impl ImeContext {
                 break;
             };
 
-            let char_is_targeted = attr as u32 == ATTR_TARGET_CONVERTED
-                || attr as u32 == ATTR_TARGET_NOTCONVERTED;
+            let char_is_targeted =
+                attr as u32 == ATTR_TARGET_CONVERTED || attr as u32 == ATTR_TARGET_NOTCONVERTED;
 
             if first.is_none() && char_is_targeted {
                 first = Some(boundary_before_char);
@@ -77,11 +73,8 @@ impl ImeContext {
     }
 
     unsafe fn get_composition_cursor(&self, text: &str) -> Option<usize> {
-        let cursor = unsafe {
-            ImmGetCompositionStringW(self.himc, GCS_CURSORPOS, null_mut(), 0)
-        };
-        (cursor >= 0)
-            .then(|| text.chars().take(cursor as _).map(|c| c.len_utf8()).sum())
+        let cursor = unsafe { ImmGetCompositionStringW(self.himc, GCS_CURSORPOS, null_mut(), 0) };
+        (cursor >= 0).then(|| text.chars().take(cursor as _).map(|c| c.len_utf8()).sum())
     }
 
     unsafe fn get_composition_string(&self, gcs_mode: u32) -> Option<String> {
@@ -95,9 +88,7 @@ impl ImeContext {
     }
 
     unsafe fn get_composition_data(&self, gcs_mode: u32) -> Option<Vec<u8>> {
-        let size = match unsafe {
-            ImmGetCompositionStringW(self.himc, gcs_mode, null_mut(), 0)
-        } {
+        let size = match unsafe { ImmGetCompositionStringW(self.himc, gcs_mode, null_mut(), 0) } {
             0 => return Some(Vec::new()),
             size if size < 0 => return None,
             size => size,
@@ -121,25 +112,14 @@ impl ImeContext {
         }
     }
 
-    pub unsafe fn set_ime_cursor_area(
-        &self,
-        spot: Position,
-        size: Size,
-        scale_factor: f64,
-    ) {
+    pub unsafe fn set_ime_cursor_area(&self, spot: Position, size: Size, scale_factor: f64) {
         if !unsafe { ImeContext::system_has_ime() } {
             return;
         }
 
         let (x, y) = spot.to_physical::<i32>(scale_factor).into();
-        let (width, height): (i32, i32) =
-            size.to_physical::<i32>(scale_factor).into();
-        let rc_area = RECT {
-            left: x,
-            top: y,
-            right: x + width,
-            bottom: y + height,
-        };
+        let (width, height): (i32, i32) = size.to_physical::<i32>(scale_factor).into();
+        let rc_area = RECT { left: x, top: y, right: x + width, bottom: y + height };
         let candidate_form = CANDIDATEFORM {
             dwIndex: 0,
             dwStyle: CFS_EXCLUDE,

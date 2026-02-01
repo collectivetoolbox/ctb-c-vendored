@@ -4,19 +4,16 @@ use std::{io, mem, ptr};
 
 use windows_sys::Win32::Foundation::{BOOL, HWND, LPARAM, POINT, RECT};
 use windows_sys::Win32::Graphics::Gdi::{
-    DEVMODEW, DM_BITSPERPEL, DM_DISPLAYFREQUENCY, DM_PELSHEIGHT, DM_PELSWIDTH,
-    ENUM_CURRENT_SETTINGS, EnumDisplayMonitors, EnumDisplaySettingsExW,
-    GetMonitorInfoW, HDC, HMONITOR, MONITOR_DEFAULTTONEAREST,
-    MONITOR_DEFAULTTOPRIMARY, MONITORINFO, MONITORINFOEXW, MonitorFromPoint,
-    MonitorFromWindow,
+    EnumDisplayMonitors, EnumDisplaySettingsExW, GetMonitorInfoW, MonitorFromPoint,
+    MonitorFromWindow, DEVMODEW, DM_BITSPERPEL, DM_DISPLAYFREQUENCY, DM_PELSHEIGHT, DM_PELSWIDTH,
+    ENUM_CURRENT_SETTINGS, HDC, HMONITOR, MONITORINFO, MONITORINFOEXW, MONITOR_DEFAULTTONEAREST,
+    MONITOR_DEFAULTTOPRIMARY,
 };
 
 use super::util::decode_wide;
 use crate::dpi::{PhysicalPosition, PhysicalSize};
 use crate::monitor::VideoModeHandle as RootVideoModeHandle;
-use crate::platform_impl::platform::dpi::{
-    dpi_to_scale_factor, get_monitor_dpi,
-};
+use crate::platform_impl::platform::dpi::{dpi_to_scale_factor, get_monitor_dpi};
 use crate::platform_impl::platform::util::has_flag;
 use crate::platform_impl::platform::window::Window;
 
@@ -115,8 +112,7 @@ pub fn available_monitors() -> VecDeque<MonitorHandle> {
 
 pub fn primary_monitor() -> MonitorHandle {
     const ORIGIN: POINT = POINT { x: 0, y: 0 };
-    let hmonitor =
-        unsafe { MonitorFromPoint(ORIGIN, MONITOR_DEFAULTTOPRIMARY) };
+    let hmonitor = unsafe { MonitorFromPoint(ORIGIN, MONITOR_DEFAULTTOPRIMARY) };
     MonitorHandle::new(hmonitor)
 }
 
@@ -136,16 +132,11 @@ impl Window {
     }
 }
 
-pub(crate) fn get_monitor_info(
-    hmonitor: HMONITOR,
-) -> Result<MONITORINFOEXW, io::Error> {
+pub(crate) fn get_monitor_info(hmonitor: HMONITOR) -> Result<MONITORINFOEXW, io::Error> {
     let mut monitor_info: MONITORINFOEXW = unsafe { mem::zeroed() };
     monitor_info.monitorInfo.cbSize = mem::size_of::<MONITORINFOEXW>() as u32;
     let status = unsafe {
-        GetMonitorInfoW(
-            hmonitor,
-            &mut monitor_info as *mut MONITORINFOEXW as *mut MONITORINFO,
-        )
+        GetMonitorInfoW(hmonitor, &mut monitor_info as *mut MONITORINFOEXW as *mut MONITORINFO)
     };
     if status == false.into() {
         Err(io::Error::last_os_error())
@@ -162,11 +153,7 @@ impl MonitorHandle {
     #[inline]
     pub fn name(&self) -> Option<String> {
         let monitor_info = get_monitor_info(self.0).unwrap();
-        Some(
-            decode_wide(&monitor_info.szDevice)
-                .to_string_lossy()
-                .to_string(),
-        )
+        Some(decode_wide(&monitor_info.szDevice).to_string_lossy().to_string())
     }
 
     #[inline]
@@ -181,8 +168,7 @@ impl MonitorHandle {
 
     #[inline]
     pub fn size(&self) -> PhysicalSize<u32> {
-        let rc_monitor =
-            get_monitor_info(self.0).unwrap().monitorInfo.rcMonitor;
+        let rc_monitor = get_monitor_info(self.0).unwrap().monitorInfo.rcMonitor;
         PhysicalSize {
             width: (rc_monitor.right - rc_monitor.left) as u32,
             height: (rc_monitor.bottom - rc_monitor.top) as u32,
@@ -196,12 +182,8 @@ impl MonitorHandle {
         unsafe {
             let mut mode: DEVMODEW = mem::zeroed();
             mode.dmSize = mem::size_of_val(&mode) as u16;
-            if EnumDisplaySettingsExW(
-                device_name,
-                ENUM_CURRENT_SETTINGS,
-                &mut mode,
-                0,
-            ) == false.into()
+            if EnumDisplaySettingsExW(device_name, ENUM_CURRENT_SETTINGS, &mut mode, 0)
+                == false.into()
             {
                 None
             } else {
@@ -215,10 +197,7 @@ impl MonitorHandle {
         get_monitor_info(self.0)
             .map(|info| {
                 let rc_monitor = info.monitorInfo.rcMonitor;
-                PhysicalPosition {
-                    x: rc_monitor.left,
-                    y: rc_monitor.top,
-                }
+                PhysicalPosition { x: rc_monitor.left, y: rc_monitor.top }
             })
             .unwrap_or(PhysicalPosition { x: 0, y: 0 })
     }
@@ -241,7 +220,7 @@ impl MonitorHandle {
             Err(error) => {
                 tracing::warn!("Error from get_monitor_info: {error}");
                 return modes.into_iter().map(mod_map);
-            }
+            },
         };
 
         let device_name = monitor_info.szDevice.as_ptr();
@@ -250,16 +229,12 @@ impl MonitorHandle {
         loop {
             let mut mode: DEVMODEW = unsafe { mem::zeroed() };
             mode.dmSize = mem::size_of_val(&mode) as u16;
-            if unsafe { EnumDisplaySettingsExW(device_name, i, &mut mode, 0) }
-                == false.into()
-            {
+            if unsafe { EnumDisplaySettingsExW(device_name, i, &mut mode, 0) } == false.into() {
                 break;
             }
 
-            const REQUIRED_FIELDS: u32 = DM_BITSPERPEL
-                | DM_PELSWIDTH
-                | DM_PELSHEIGHT
-                | DM_DISPLAYFREQUENCY;
+            const REQUIRED_FIELDS: u32 =
+                DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT | DM_DISPLAYFREQUENCY;
             assert!(has_flag(mode.dmFields, REQUIRED_FIELDS));
 
             // Use Ord impl of RootVideoModeHandle

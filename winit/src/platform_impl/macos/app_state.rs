@@ -4,21 +4,16 @@ use std::rc::Weak;
 use std::time::Instant;
 
 use objc2::rc::Retained;
-use objc2::{ClassType, DeclaredClass, declare_class, msg_send_id, mutability};
+use objc2::{declare_class, msg_send_id, mutability, ClassType, DeclaredClass};
 use objc2_app_kit::{
-    NSApplication, NSApplicationActivationPolicy, NSApplicationDelegate,
-    NSRunningApplication,
+    NSApplication, NSApplicationActivationPolicy, NSApplicationDelegate, NSRunningApplication,
 };
-use objc2_foundation::{
-    MainThreadMarker, NSNotification, NSObject, NSObjectProtocol,
-};
+use objc2_foundation::{MainThreadMarker, NSNotification, NSObject, NSObjectProtocol};
 
 use super::event_handler::EventHandler;
-use super::event_loop::{
-    ActiveEventLoop, PanicInfo, notify_windows_of_exit, stop_app_immediately,
-};
+use super::event_loop::{notify_windows_of_exit, stop_app_immediately, ActiveEventLoop, PanicInfo};
 use super::observer::{EventLoopWaker, RunLoop};
-use super::{DEVICE_ID, WindowId, menu};
+use super::{menu, WindowId, DEVICE_ID};
 use crate::event::{DeviceEvent, Event, StartCause, WindowEvent};
 use crate::event_loop::{ActiveEventLoop as RootActiveEventLoop, ControlFlow};
 use crate::window::WindowId as RootWindowId;
@@ -130,11 +125,8 @@ impl ApplicationDelegate {
             // See:
             // - https://github.com/rust-windowing/winit/issues/261
             // - https://github.com/rust-windowing/winit/issues/3958
-            let is_bundled = unsafe {
-                NSRunningApplication::currentApplication()
-                    .bundleIdentifier()
-                    .is_some()
-            };
+            let is_bundled =
+                unsafe { NSRunningApplication::currentApplication().bundleIdentifier().is_some() };
             if !is_bundled {
                 app.setActivationPolicy(NSApplicationActivationPolicy::Regular);
             }
@@ -142,9 +134,7 @@ impl ApplicationDelegate {
 
         window_activation_hack(&app);
         #[allow(deprecated)]
-        app.activateIgnoringOtherApps(
-            self.ivars().activate_ignoring_other_apps,
-        );
+        app.activateIgnoringOtherApps(self.ivars().activate_ignoring_other_apps);
 
         if self.ivars().default_menu {
             // The menubar initialization should be before the `NewEvents` event, to allow
@@ -183,15 +173,13 @@ impl ApplicationDelegate {
 
     pub fn get(mtm: MainThreadMarker) -> Retained<Self> {
         let app = NSApplication::sharedApplication(mtm);
-        let delegate = unsafe { app.delegate() }
-            .expect("a delegate was not configured on the application");
+        let delegate =
+            unsafe { app.delegate() }.expect("a delegate was not configured on the application");
         if delegate.is_kind_of::<Self>() {
             // SAFETY: Just checked that the delegate is an instance of `ApplicationDelegate`
             unsafe { Retained::cast(delegate) }
         } else {
-            panic!(
-                "tried to get a delegate that was not the one Winit has registered"
-            )
+            panic!("tried to get a delegate that was not the one Winit has registered")
         }
     }
 
@@ -274,29 +262,16 @@ impl ApplicationDelegate {
         self.ivars().control_flow.get()
     }
 
-    pub fn maybe_queue_window_event(
-        &self,
-        window_id: WindowId,
-        event: WindowEvent,
-    ) {
-        self.maybe_queue_event(Event::WindowEvent {
-            window_id: RootWindowId(window_id),
-            event,
-        });
+    pub fn maybe_queue_window_event(&self, window_id: WindowId, event: WindowEvent) {
+        self.maybe_queue_event(Event::WindowEvent { window_id: RootWindowId(window_id), event });
     }
 
     pub fn handle_window_event(&self, window_id: WindowId, event: WindowEvent) {
-        self.handle_event(Event::WindowEvent {
-            window_id: RootWindowId(window_id),
-            event,
-        });
+        self.handle_event(Event::WindowEvent { window_id: RootWindowId(window_id), event });
     }
 
     pub fn maybe_queue_device_event(&self, event: DeviceEvent) {
-        self.maybe_queue_event(Event::DeviceEvent {
-            device_id: DEVICE_ID,
-            event,
-        });
+        self.maybe_queue_event(Event::DeviceEvent { device_id: DEVICE_ID, event });
     }
 
     pub fn handle_redraw(&self, window_id: WindowId) {
@@ -338,22 +313,15 @@ impl ApplicationDelegate {
         if !self.ivars().event_handler.in_use() {
             self.handle_event(event);
         } else {
-            tracing::debug!(
-                ?event,
-                "had to queue event since another is currently being handled"
-            );
+            tracing::debug!(?event, "had to queue event since another is currently being handled");
             let this = self.retain();
-            self.ivars()
-                .run_loop
-                .queue_closure(move || this.handle_event(event));
+            self.ivars().run_loop.queue_closure(move || this.handle_event(event));
         }
     }
 
     #[track_caller]
     fn handle_event(&self, event: Event<HandlePendingUserEvents>) {
-        self.ivars()
-            .event_handler
-            .handle_event(event, &ActiveEventLoop::new_root(self.retain()))
+        self.ivars().event_handler.handle_event(event, &ActiveEventLoop::new_root(self.retain()))
     }
 
     /// dispatch `NewEvents(Init)` + `Resumed`
@@ -372,10 +340,7 @@ impl ApplicationDelegate {
             .expect("The panic info must exist here. This failure indicates a developer error.");
 
         // Return when in event handler due to https://github.com/rust-windowing/winit/issues/1779
-        if panic_info.is_panicking()
-            || !self.ivars().event_handler.ready()
-            || !self.is_running()
-        {
+        if panic_info.is_panicking() || !self.ivars().event_handler.ready() || !self.is_running() {
             return;
         }
 
@@ -387,23 +352,14 @@ impl ApplicationDelegate {
         let start = self.ivars().start_time.get().unwrap();
         let cause = match self.control_flow() {
             ControlFlow::Poll => StartCause::Poll,
-            ControlFlow::Wait => StartCause::WaitCancelled {
-                start,
-                requested_resume: None,
-            },
+            ControlFlow::Wait => StartCause::WaitCancelled { start, requested_resume: None },
             ControlFlow::WaitUntil(requested_resume) => {
                 if Instant::now() >= requested_resume {
-                    StartCause::ResumeTimeReached {
-                        start,
-                        requested_resume,
-                    }
+                    StartCause::ResumeTimeReached { start, requested_resume }
                 } else {
-                    StartCause::WaitCancelled {
-                        start,
-                        requested_resume: Some(requested_resume),
-                    }
+                    StartCause::WaitCancelled { start, requested_resume: Some(requested_resume) }
                 }
-            }
+            },
         };
 
         self.handle_event(Event::NewEvents(cause));
@@ -419,10 +375,7 @@ impl ApplicationDelegate {
         // Return when in event handler due to https://github.com/rust-windowing/winit/issues/1779
         // XXX: how does it make sense that `event_handler.ready()` can ever return `false` here if
         // we're about to return to the `CFRunLoop` to poll for new events?
-        if panic_info.is_panicking()
-            || !self.ivars().event_handler.ready()
-            || !self.is_running()
-        {
+        if panic_info.is_panicking() || !self.ivars().event_handler.ready() || !self.is_running() {
             return;
         }
 
@@ -455,10 +408,7 @@ impl ApplicationDelegate {
             ControlFlow::Poll => Some(Instant::now()),
             ControlFlow::WaitUntil(instant) => Some(instant),
         };
-        self.ivars()
-            .waker
-            .borrow_mut()
-            .start_at(min_timeout(wait_timeout, app_timeout));
+        self.ivars().waker.borrow_mut().start_at(min_timeout(wait_timeout, app_timeout));
     }
 }
 
@@ -469,9 +419,7 @@ pub(crate) struct HandlePendingUserEvents;
 /// equates to an infinite timeout, not a zero timeout (so can't just use
 /// `Option::min`)
 fn min_timeout(a: Option<Instant>, b: Option<Instant>) -> Option<Instant> {
-    a.map_or(b, |a_timeout| {
-        b.map_or(Some(a_timeout), |b_timeout| Some(a_timeout.min(b_timeout)))
-    })
+    a.map_or(b, |a_timeout| b.map_or(Some(a_timeout), |b_timeout| Some(a_timeout.min(b_timeout))))
 }
 
 /// A hack to make activation of multiple windows work when creating them before

@@ -3,41 +3,28 @@ use std::cell::{Cell, RefCell};
 
 use objc2::rc::Retained;
 use objc2::runtime::{NSObjectProtocol, ProtocolObject};
-use objc2::{
-    ClassType, DeclaredClass, declare_class, msg_send, msg_send_id, mutability,
-    sel,
-};
-use objc2_foundation::{
-    CGFloat, CGPoint, CGRect, MainThreadMarker, NSObject, NSSet, NSString,
-};
+use objc2::{declare_class, msg_send, msg_send_id, mutability, sel, ClassType, DeclaredClass};
+use objc2_foundation::{CGFloat, CGPoint, CGRect, MainThreadMarker, NSObject, NSSet, NSString};
 use objc2_ui_kit::{
     UICoordinateSpace, UIEvent, UIForceTouchCapability, UIGestureRecognizer,
-    UIGestureRecognizerDelegate, UIGestureRecognizerState, UIKeyInput,
-    UIPanGestureRecognizer, UIPinchGestureRecognizer, UIResponder,
-    UIRotationGestureRecognizer, UITapGestureRecognizer, UITextInputTraits,
-    UITouch, UITouchPhase, UITouchType, UITraitEnvironment, UIView,
+    UIGestureRecognizerDelegate, UIGestureRecognizerState, UIKeyInput, UIPanGestureRecognizer,
+    UIPinchGestureRecognizer, UIResponder, UIRotationGestureRecognizer, UITapGestureRecognizer,
+    UITextInputTraits, UITouch, UITouchPhase, UITouchType, UITraitEnvironment, UIView,
 };
 
 use super::app_state::{self, EventWrapper};
 use super::window::WinitUIWindow;
 use crate::dpi::PhysicalPosition;
-use crate::event::{
-    ElementState, Event, Force, KeyEvent, Touch, TouchPhase, WindowEvent,
-};
-use crate::keyboard::{
-    Key, KeyCode, KeyLocation, NamedKey, NativeKeyCode, PhysicalKey,
-};
-use crate::platform_impl::KeyEventExtra;
+use crate::event::{ElementState, Event, Force, KeyEvent, Touch, TouchPhase, WindowEvent};
+use crate::keyboard::{Key, KeyCode, KeyLocation, NamedKey, NativeKeyCode, PhysicalKey};
 use crate::platform_impl::platform::DEVICE_ID;
+use crate::platform_impl::KeyEventExtra;
 use crate::window::{WindowAttributes, WindowId as RootWindowId};
 
 pub struct WinitViewState {
-    pinch_gesture_recognizer:
-        RefCell<Option<Retained<UIPinchGestureRecognizer>>>,
-    doubletap_gesture_recognizer:
-        RefCell<Option<Retained<UITapGestureRecognizer>>>,
-    rotation_gesture_recognizer:
-        RefCell<Option<Retained<UIRotationGestureRecognizer>>>,
+    pinch_gesture_recognizer: RefCell<Option<Retained<UIPinchGestureRecognizer>>>,
+    doubletap_gesture_recognizer: RefCell<Option<Retained<UITapGestureRecognizer>>>,
+    rotation_gesture_recognizer: RefCell<Option<Retained<UIRotationGestureRecognizer>>>,
     pan_gesture_recognizer: RefCell<Option<Retained<UIPanGestureRecognizer>>>,
 
     // for iOS delta references the start of the Gesture
@@ -382,14 +369,11 @@ impl WinitView {
             pinch_last_delta: Cell::new(0.0),
             pan_last_delta: Cell::new(CGPoint { x: 0.0, y: 0.0 }),
         });
-        let this: Retained<Self> =
-            unsafe { msg_send_id![super(this), initWithFrame: frame] };
+        let this: Retained<Self> = unsafe { msg_send_id![super(this), initWithFrame: frame] };
 
         this.setMultipleTouchEnabled(true);
 
-        if let Some(scale_factor) =
-            window_attributes.platform_specific.scale_factor
-        {
+        if let Some(scale_factor) = window_attributes.platform_specific.scale_factor {
             this.setContentScaleFactor(scale_factor as _);
         }
 
@@ -398,9 +382,7 @@ impl WinitView {
 
     fn window(&self) -> Option<Retained<WinitUIWindow>> {
         // SAFETY: `WinitView`s are always installed in a `WinitUIWindow`
-        (**self)
-            .window()
-            .map(|window| unsafe { Retained::cast(window) })
+        (**self).window().map(|window| unsafe { Retained::cast(window) })
     }
 
     pub(crate) fn recognize_pinch_gesture(&self, should_recognize: bool) {
@@ -418,9 +400,7 @@ impl WinitView {
                 self.addGestureRecognizer(&pinch);
                 self.ivars().pinch_gesture_recognizer.replace(Some(pinch));
             }
-        } else if let Some(recognizer) =
-            self.ivars().pinch_gesture_recognizer.take()
-        {
+        } else if let Some(recognizer) = self.ivars().pinch_gesture_recognizer.take() {
             self.removeGestureRecognizer(&recognizer);
         }
     }
@@ -447,9 +427,7 @@ impl WinitView {
                 self.addGestureRecognizer(&pan);
                 self.ivars().pan_gesture_recognizer.replace(Some(pan));
             }
-        } else if let Some(recognizer) =
-            self.ivars().pan_gesture_recognizer.take()
-        {
+        } else if let Some(recognizer) = self.ivars().pan_gesture_recognizer.take() {
             self.removeGestureRecognizer(&recognizer);
         }
     }
@@ -471,9 +449,7 @@ impl WinitView {
                 self.addGestureRecognizer(&tap);
                 self.ivars().doubletap_gesture_recognizer.replace(Some(tap));
             }
-        } else if let Some(recognizer) =
-            self.ivars().doubletap_gesture_recognizer.take()
-        {
+        } else if let Some(recognizer) = self.ivars().doubletap_gesture_recognizer.take() {
             self.removeGestureRecognizer(&recognizer);
         }
     }
@@ -491,13 +467,9 @@ impl WinitView {
                 };
                 rotation.setDelegate(Some(ProtocolObject::from_ref(self)));
                 self.addGestureRecognizer(&rotation);
-                self.ivars()
-                    .rotation_gesture_recognizer
-                    .replace(Some(rotation));
+                self.ivars().rotation_gesture_recognizer.replace(Some(rotation));
             }
-        } else if let Some(recognizer) =
-            self.ivars().rotation_gesture_recognizer.take()
-        {
+        } else if let Some(recognizer) = self.ivars().rotation_gesture_recognizer.take() {
             self.removeGestureRecognizer(&recognizer);
         }
     }
@@ -518,13 +490,12 @@ impl WinitView {
                 {
                     let force = touch.force();
                     let max_possible_force = touch.maximumPossibleForce();
-                    let altitude_angle: Option<f64> =
-                        if touch_type == UITouchType::Pencil {
-                            let angle = touch.altitudeAngle();
-                            Some(angle as _)
-                        } else {
-                            None
-                        };
+                    let altitude_angle: Option<f64> = if touch_type == UITouchType::Pencil {
+                        let angle = touch.altitudeAngle();
+                        Some(angle as _)
+                    } else {
+                        None
+                    };
                     Some(Force::Calibrated {
                         force: force as _,
                         max_possible_force: max_possible_force as _,

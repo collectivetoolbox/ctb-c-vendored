@@ -13,19 +13,17 @@ use block2::Block;
 use core_foundation::base::{CFIndex, CFOptionFlags, CFRelease, CFTypeRef};
 use core_foundation::date::CFAbsoluteTimeGetCurrent;
 use core_foundation::runloop::{
-    CFRunLoopActivity, CFRunLoopAddObserver, CFRunLoopAddTimer,
-    CFRunLoopGetMain, CFRunLoopObserverCallBack, CFRunLoopObserverContext,
-    CFRunLoopObserverCreate, CFRunLoopObserverRef, CFRunLoopRef,
-    CFRunLoopTimerCreate, CFRunLoopTimerInvalidate, CFRunLoopTimerRef,
-    CFRunLoopTimerSetNextFireDate, CFRunLoopWakeUp, kCFRunLoopAfterWaiting,
-    kCFRunLoopBeforeWaiting, kCFRunLoopCommonModes, kCFRunLoopDefaultMode,
-    kCFRunLoopExit,
+    kCFRunLoopAfterWaiting, kCFRunLoopBeforeWaiting, kCFRunLoopCommonModes, kCFRunLoopDefaultMode,
+    kCFRunLoopExit, CFRunLoopActivity, CFRunLoopAddObserver, CFRunLoopAddTimer, CFRunLoopGetMain,
+    CFRunLoopObserverCallBack, CFRunLoopObserverContext, CFRunLoopObserverCreate,
+    CFRunLoopObserverRef, CFRunLoopRef, CFRunLoopTimerCreate, CFRunLoopTimerInvalidate,
+    CFRunLoopTimerRef, CFRunLoopTimerSetNextFireDate, CFRunLoopWakeUp,
 };
 use objc2_foundation::MainThreadMarker;
 use tracing::error;
 
 use super::app_state::ApplicationDelegate;
-use super::event_loop::{PanicInfo, stop_app_on_panic};
+use super::event_loop::{stop_app_on_panic, PanicInfo};
 use super::ffi;
 
 unsafe fn control_flow_handler<F>(panic_info: *mut c_void, f: F)
@@ -61,10 +59,9 @@ extern "C" fn control_flow_begin_handler(
             match activity {
                 kCFRunLoopAfterWaiting => {
                     // trace!("Triggered `CFRunLoopAfterWaiting`");
-                    ApplicationDelegate::get(MainThreadMarker::new().unwrap())
-                        .wakeup(panic_info);
+                    ApplicationDelegate::get(MainThreadMarker::new().unwrap()).wakeup(panic_info);
                     // trace!("Completed `CFRunLoopAfterWaiting`");
-                }
+                },
                 _ => unreachable!(),
             }
         });
@@ -84,10 +81,9 @@ extern "C" fn control_flow_end_handler(
             match activity {
                 kCFRunLoopBeforeWaiting => {
                     // trace!("Triggered `CFRunLoopBeforeWaiting`");
-                    ApplicationDelegate::get(MainThreadMarker::new().unwrap())
-                        .cleared(panic_info);
+                    ApplicationDelegate::get(MainThreadMarker::new().unwrap()).cleared(panic_info);
                     // trace!("Completed `CFRunLoopBeforeWaiting`");
-                }
+                },
                 kCFRunLoopExit => (), // unimplemented!(), // not expected to ever happen
                 _ => unreachable!(),
             }
@@ -133,9 +129,7 @@ impl RunLoop {
                 context,
             )
         };
-        unsafe {
-            CFRunLoopAddObserver(self.0, observer, kCFRunLoopCommonModes)
-        };
+        unsafe { CFRunLoopAddObserver(self.0, observer, kCFRunLoopCommonModes) };
     }
 
     /// Submit a closure to run on the main thread as the next step in the run loop, before other
@@ -173,11 +167,7 @@ impl RunLoop {
     /// handling whatever event it's currently handling.
     pub fn queue_closure(&self, closure: impl FnOnce() + 'static) {
         extern "C" {
-            fn CFRunLoopPerformBlock(
-                rl: CFRunLoopRef,
-                mode: CFTypeRef,
-                block: &Block<dyn Fn()>,
-            );
+            fn CFRunLoopPerformBlock(rl: CFRunLoopRef, mode: CFTypeRef, block: &Block<dyn Fn()>);
         }
 
         // Convert `FnOnce()` to `Block<dyn Fn()>`.
@@ -212,10 +202,7 @@ impl RunLoop {
     }
 }
 
-pub fn setup_control_flow_observers(
-    mtm: MainThreadMarker,
-    panic_info: Weak<PanicInfo>,
-) {
+pub fn setup_control_flow_observers(mtm: MainThreadMarker, panic_info: Weak<PanicInfo>) {
     let run_loop = RunLoop::main(mtm);
     unsafe {
         let mut context = CFRunLoopObserverContext {
@@ -266,11 +253,7 @@ impl Drop for EventLoopWaker {
 
 impl EventLoopWaker {
     pub(crate) fn new() -> Self {
-        extern "C" fn wakeup_main_loop(
-            _timer: CFRunLoopTimerRef,
-            _info: *mut c_void,
-        ) {
-        }
+        extern "C" fn wakeup_main_loop(_timer: CFRunLoopTimerRef, _info: *mut c_void) {}
         unsafe {
             // Create a timer with a 0.1µs interval (1ns does not work) to mimic polling.
             // It is initially setup with a first fire time really far into the
@@ -285,11 +268,7 @@ impl EventLoopWaker {
                 ptr::null_mut(),
             );
             CFRunLoopAddTimer(CFRunLoopGetMain(), timer, kCFRunLoopCommonModes);
-            Self {
-                timer,
-                start_instant: Instant::now(),
-                next_fire_date: None,
-            }
+            Self { timer, start_instant: Instant::now(), next_fire_date: None }
         }
     }
 
@@ -312,26 +291,22 @@ impl EventLoopWaker {
         match instant {
             Some(instant) if now >= instant => {
                 self.start();
-            }
+            },
             Some(instant) => {
                 if self.next_fire_date != Some(instant) {
                     self.next_fire_date = Some(instant);
                     unsafe {
                         let current = CFAbsoluteTimeGetCurrent();
                         let duration = instant - now;
-                        let fsecs = duration.subsec_nanos() as f64
-                            / 1_000_000_000.0
+                        let fsecs = duration.subsec_nanos() as f64 / 1_000_000_000.0
                             + duration.as_secs() as f64;
-                        CFRunLoopTimerSetNextFireDate(
-                            self.timer,
-                            current + fsecs,
-                        )
+                        CFRunLoopTimerSetNextFireDate(self.timer, current + fsecs)
                     }
                 }
-            }
+            },
             None => {
                 self.stop();
-            }
+            },
         }
     }
 }

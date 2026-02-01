@@ -3,10 +3,10 @@
 use std::fmt::Display;
 use std::sync::Arc;
 
-use sctk::reexports::client::Proxy;
 use sctk::reexports::client::globals::{BindError, GlobalError};
 use sctk::reexports::client::protocol::wl_surface::WlSurface;
 use sctk::reexports::client::{self, ConnectError, DispatchError};
+use sctk::reexports::client::Proxy;
 
 pub(super) use crate::cursor::OnlyCursorImage as CustomCursor;
 use crate::dpi::{LogicalSize, PhysicalSize};
@@ -84,10 +84,7 @@ fn make_wid(surface: &WlSurface) -> WindowId {
 }
 
 /// The default routine does floor, but we need round on Wayland.
-fn logical_to_physical_rounded(
-    size: LogicalSize<u32>,
-    scale_factor: f64,
-) -> PhysicalSize<u32> {
+fn logical_to_physical_rounded(size: LogicalSize<u32>, scale_factor: f64) -> PhysicalSize<u32> {
     let width = size.width as f64 * scale_factor;
     let height = size.height as f64 * scale_factor;
     (width.round(), height.round()).into()

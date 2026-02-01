@@ -3,9 +3,7 @@
 // Based on emath Vec2
 
 use core::fmt;
-use core::ops::{
-    Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign,
-};
+use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 #[repr(C, align(16))]
 #[derive(Clone, Copy, Default, PartialEq)]
@@ -199,10 +197,7 @@ impl Vec4 {
     /// True if all members are also finite.
     #[inline(always)]
     pub fn is_finite(self) -> bool {
-        self.x.is_finite()
-            && self.y.is_finite()
-            && self.z.is_finite()
-            && self.w.is_finite()
+        self.x.is_finite() && self.y.is_finite() && self.z.is_finite() && self.w.is_finite()
     }
 
     /// True if any member is NaN.
@@ -236,10 +231,7 @@ impl Vec4 {
     /// The dot-product of two vectors.
     #[inline]
     pub fn dot(self, other: Self) -> f32 {
-        self.x * other.x
-            + self.y * other.y
-            + self.z * other.z
-            + self.w * other.w
+        self.x * other.x + self.y * other.y + self.z * other.z + self.w * other.w
     }
 
     /// Returns the minimum of all elements.
@@ -359,12 +351,12 @@ impl Add<Vec4> for &Vec4 {
     }
 }
 
-impl Add<&Self> for Vec4 {
-    type Output = Self;
+impl Add<&Vec4> for Vec4 {
+    type Output = Vec4;
 
     #[inline(always)]
-    fn add(self, rhs: &Self) -> Self {
-        Self {
+    fn add(self, rhs: &Vec4) -> Vec4 {
+        Vec4 {
             x: self.x + rhs.x,
             y: self.y + rhs.y,
             z: self.z + rhs.z,
@@ -587,11 +579,7 @@ mod test {
 
     #[test]
     fn test_vec4_normalized() {
-        fn generate_spiral(
-            n: usize,
-            start: Vec4,
-            end: Vec4,
-        ) -> impl Iterator<Item = Vec4> {
+        fn generate_spiral(n: usize, start: Vec4, end: Vec4) -> impl Iterator<Item = Vec4> {
             let angle_step = 2.0 * core::f32::consts::PI / n as f32;
             let radius_step = (end.length() - start.length()) / n as f32;
 

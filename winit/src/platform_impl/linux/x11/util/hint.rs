@@ -76,13 +76,7 @@ mod mwm {
 impl MotifHints {
     pub fn new() -> MotifHints {
         MotifHints {
-            hints: MwmHints {
-                flags: 0,
-                functions: 0,
-                decorations: 0,
-                input_mode: 0,
-                status: 0,
-            },
+            hints: MwmHints { flags: 0, functions: 0, decorations: 0, input_mode: 0, status: 0 },
         }
     }
 
@@ -136,9 +130,7 @@ impl XConnection {
 
         let mut hints = MotifHints::new();
 
-        if let Ok(props) =
-            self.get_property::<u32>(window, motif_hints, motif_hints)
-        {
+        if let Ok(props) = self.get_property::<u32>(window, motif_hints, motif_hints) {
             hints.hints.flags = props.first().cloned().unwrap_or(0);
             hints.hints.functions = props.get(1).cloned().unwrap_or(0);
             hints.hints.decorations = props.get(2).cloned().unwrap_or(0);

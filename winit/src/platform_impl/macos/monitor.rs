@@ -6,16 +6,14 @@ use std::fmt;
 use core_foundation::array::{CFArrayGetCount, CFArrayGetValueAtIndex};
 use core_foundation::base::{CFRelease, TCFType};
 use core_foundation::string::CFString;
-use core_foundation::uuid::{CFUUID, CFUUIDGetUUIDBytes};
+use core_foundation::uuid::{CFUUIDGetUUIDBytes, CFUUID};
 use core_graphics::display::{
     CGDirectDisplayID, CGDisplay, CGDisplayBounds, CGDisplayCopyDisplayMode,
 };
 use objc2::rc::Retained;
 use objc2::runtime::AnyObject;
 use objc2_app_kit::NSScreen;
-use objc2_foundation::{
-    MainThreadMarker, NSNumber, NSPoint, NSRect, ns_string, run_on_main,
-};
+use objc2_foundation::{ns_string, run_on_main, MainThreadMarker, NSNumber, NSPoint, NSRect};
 use tracing::warn;
 
 use super::ffi;
@@ -145,9 +143,7 @@ impl MonitorHandle {
     }
 
     fn display_id(&self) -> CGDirectDisplayID {
-        unsafe {
-            ffi::CGDisplayGetDisplayIDFromUUID(self.0.as_concrete_TypeRef())
-        }
+        unsafe { ffi::CGDisplayGetDisplayIDFromUUID(self.0.as_concrete_TypeRef()) }
     }
 
     #[track_caller]
@@ -155,9 +151,7 @@ impl MonitorHandle {
         // kCGNullDirectDisplay
         if display_id == 0 {
             // `CGDisplayCreateUUIDFromDisplayID` checks kCGNullDirectDisplay internally.
-            warn!(
-                "constructing monitor from invalid display ID 0; falling back to main monitor"
-            );
+            warn!("constructing monitor from invalid display ID 0; falling back to main monitor");
         }
         let ptr = unsafe { ffi::CGDisplayCreateUUIDFromDisplayID(display_id) };
         if ptr.is_null() {
@@ -198,9 +192,7 @@ pub fn available_monitors() -> VecDeque<MonitorHandle> {
         let mut monitors = VecDeque::with_capacity(displays.len());
         for display in displays {
             // Display ID just fetched from `CGGetActiveDisplayList`, should be fine to unwrap.
-            monitors.push_back(
-                MonitorHandle::new(display).expect("invalid display ID"),
-            );
+            monitors.push_back(MonitorHandle::new(display).expect("invalid display ID"));
         }
         monitors
     } else {
@@ -243,10 +235,7 @@ impl MonitorHandle {
         let display = CGDisplay::new(self.display_id());
         let height = display.pixels_high();
         let width = display.pixels_wide();
-        PhysicalSize::from_logical::<_, f64>(
-            (width as f64, height as f64),
-            self.scale_factor(),
-        )
+        PhysicalSize::from_logical::<_, f64>((width as f64, height as f64), self.scale_factor())
     }
 
     #[inline]
@@ -270,26 +259,20 @@ impl MonitorHandle {
 
     pub fn refresh_rate_millihertz(&self) -> Option<u32> {
         unsafe {
-            let current_display_mode = NativeDisplayMode(
-                CGDisplayCopyDisplayMode(self.display_id()) as _,
-            );
-            let refresh_rate =
-                ffi::CGDisplayModeGetRefreshRate(current_display_mode.0);
+            let current_display_mode =
+                NativeDisplayMode(CGDisplayCopyDisplayMode(self.display_id()) as _);
+            let refresh_rate = ffi::CGDisplayModeGetRefreshRate(current_display_mode.0);
             if refresh_rate > 0.0 {
                 return Some((refresh_rate * 1000.0).round() as u32);
             }
 
             let mut display_link = std::ptr::null_mut();
-            if ffi::CVDisplayLinkCreateWithCGDisplay(
-                self.display_id(),
-                &mut display_link,
-            ) != ffi::kCVReturnSuccess
+            if ffi::CVDisplayLinkCreateWithCGDisplay(self.display_id(), &mut display_link)
+                != ffi::kCVReturnSuccess
             {
                 return None;
             }
-            let time = ffi::CVDisplayLinkGetNominalOutputVideoRefreshPeriod(
-                display_link,
-            );
+            let time = ffi::CVDisplayLinkGetNominalOutputVideoRefreshPeriod(display_link);
             ffi::CVDisplayLinkRelease(display_link);
 
             // This value is indefinite if an invalid display link was specified
@@ -297,23 +280,17 @@ impl MonitorHandle {
                 return None;
             }
 
-            (time.time_scale as i64)
-                .checked_div(time.time_value)
-                .map(|v| (v * 1000) as u32)
+            (time.time_scale as i64).checked_div(time.time_value).map(|v| (v * 1000) as u32)
         }
     }
 
     pub fn video_modes(&self) -> impl Iterator<Item = VideoModeHandle> {
-        let refresh_rate_millihertz =
-            self.refresh_rate_millihertz().unwrap_or(0);
+        let refresh_rate_millihertz = self.refresh_rate_millihertz().unwrap_or(0);
         let monitor = self.clone();
 
         unsafe {
             let modes = {
-                let array = ffi::CGDisplayCopyAllDisplayModes(
-                    self.display_id(),
-                    std::ptr::null(),
-                );
+                let array = ffi::CGDisplayCopyAllDisplayModes(self.display_id(), std::ptr::null());
                 if array.is_null() {
                     // Occasionally, certain CalDigit Thunderbolt Hubs report a spurious monitor
                     // during sleep/wake/cycling monitors. It tends to have null
@@ -324,8 +301,7 @@ impl MonitorHandle {
                     let array_count = CFArrayGetCount(array);
                     let modes: Vec<_> = (0..array_count)
                         .map(move |i| {
-                            let mode =
-                                CFArrayGetValueAtIndex(array, i) as *mut _;
+                            let mode = CFArrayGetValueAtIndex(array, i) as *mut _;
                             ffi::CGDisplayModeRetain(mode);
                             mode
                         })
@@ -336,8 +312,7 @@ impl MonitorHandle {
             };
 
             modes.into_iter().map(move |mode| {
-                let cg_refresh_rate_hertz =
-                    ffi::CGDisplayModeGetRefreshRate(mode);
+                let cg_refresh_rate_hertz = ffi::CGDisplayModeGetRefreshRate(mode);
 
                 // CGDisplayModeGetRefreshRate returns 0.0 for any display that
                 // isn't a CRT
@@ -347,21 +322,14 @@ impl MonitorHandle {
                     refresh_rate_millihertz
                 };
 
-                let pixel_encoding = CFString::wrap_under_create_rule(
-                    ffi::CGDisplayModeCopyPixelEncoding(mode),
-                )
-                .to_string();
-                let bit_depth = if pixel_encoding
-                    .eq_ignore_ascii_case(ffi::IO32BitDirectPixels)
-                {
+                let pixel_encoding =
+                    CFString::wrap_under_create_rule(ffi::CGDisplayModeCopyPixelEncoding(mode))
+                        .to_string();
+                let bit_depth = if pixel_encoding.eq_ignore_ascii_case(ffi::IO32BitDirectPixels) {
                     32
-                } else if pixel_encoding
-                    .eq_ignore_ascii_case(ffi::IO16BitDirectPixels)
-                {
+                } else if pixel_encoding.eq_ignore_ascii_case(ffi::IO16BitDirectPixels) {
                     16
-                } else if pixel_encoding
-                    .eq_ignore_ascii_case(ffi::kIO30BitDirectPixels)
-                {
+                } else if pixel_encoding.eq_ignore_ascii_case(ffi::kIO30BitDirectPixels) {
                     30
                 } else {
                     unimplemented!()
@@ -381,10 +349,7 @@ impl MonitorHandle {
         }
     }
 
-    pub(crate) fn ns_screen(
-        &self,
-        mtm: MainThreadMarker,
-    ) -> Option<Retained<NSScreen>> {
+    pub(crate) fn ns_screen(&self, mtm: MainThreadMarker) -> Option<Retained<NSScreen>> {
         let uuid = self.uuid();
         NSScreen::screens(mtm).into_iter().find(|screen| {
             let other_native_id = get_display_id(screen);
@@ -393,10 +358,7 @@ impl MonitorHandle {
             } else {
                 // Display ID was just fetched from live NSScreen, but can still result in `None`
                 // with certain Thunderbolt docked monitors.
-                warn!(
-                    other_native_id,
-                    "comparing against screen with invalid display ID"
-                );
+                warn!(other_native_id, "comparing against screen with invalid display ID");
                 false
             }
         })

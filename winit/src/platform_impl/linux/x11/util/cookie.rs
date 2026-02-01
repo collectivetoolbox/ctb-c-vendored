@@ -14,10 +14,7 @@ pub struct GenericEventCookie {
 }
 
 impl GenericEventCookie {
-    pub fn from_event(
-        xconn: Arc<XConnection>,
-        event: XEvent,
-    ) -> Option<GenericEventCookie> {
+    pub fn from_event(xconn: Arc<XConnection>, event: XEvent) -> Option<GenericEventCookie> {
         unsafe {
             let mut cookie: XGenericEventCookie = From::from(event);
             if ffi::XGetEventData(xconn.display, &mut cookie) == ffi::True {

@@ -23,8 +23,8 @@ use crate::platform_impl::{
     Fullscreen, MonitorHandle as PlatformMonitorHandle, OsError, PlatformIcon,
 };
 use crate::window::{
-    Cursor, CursorGrabMode, ImePurpose, ResizeDirection, Theme,
-    UserAttentionType, WindowAttributes, WindowButtons, WindowLevel,
+    Cursor, CursorGrabMode, ImePurpose, ResizeDirection, Theme, UserAttentionType,
+    WindowAttributes, WindowButtons, WindowLevel,
 };
 
 use super::event_loop::sink::EventSink;
@@ -89,15 +89,11 @@ impl Window {
 
         let surface = state.compositor_state.create_surface(&queue_handle);
         let compositor = state.compositor_state.clone();
-        let xdg_activation = state
-            .xdg_activation
-            .as_ref()
-            .map(|activation_state| activation_state.global().clone());
+        let xdg_activation =
+            state.xdg_activation.as_ref().map(|activation_state| activation_state.global().clone());
         let connection = event_loop_window_target.connection.clone();
 
-        let size: Size = attributes
-            .inner_size
-            .unwrap_or(LogicalSize::new(800., 600.).into());
+        let size: Size = attributes.inner_size.unwrap_or(LogicalSize::new(800., 600.).into());
 
         // We prefer server side decorations, however to not have decorations we ask for client
         // side decorations instead.
@@ -107,11 +103,8 @@ impl Window {
             WindowDecorations::RequestClient
         };
 
-        let window = state.xdg_shell.create_window(
-            surface.clone(),
-            default_decorations,
-            &queue_handle,
-        );
+        let window =
+            state.xdg_shell.create_window(surface.clone(), default_decorations, &queue_handle);
 
         let mut window_state = WindowState::new(
             event_loop_window_target.connection.clone(),
@@ -131,9 +124,7 @@ impl Window {
         window_state.set_decorate(attributes.decorations);
 
         // Set the app_id.
-        if let Some(name) =
-            attributes.platform_specific.name.map(|name| name.general)
-        {
+        if let Some(name) = attributes.platform_specific.name.map(|name| name.general) {
             window.set_app_id(name);
         }
 
@@ -142,10 +133,8 @@ impl Window {
 
         // Set the min and max sizes. We must set the hints upon creating a window, so
         // we use the default `1.` scaling...
-        let min_size =
-            attributes.min_inner_size.map(|size| size.to_logical(1.));
-        let max_size =
-            attributes.max_inner_size.map(|size| size.to_logical(1.));
+        let min_size = attributes.min_inner_size.map(|size| size.to_logical(1.));
+        let max_size = attributes.max_inner_size.map(|size| size.to_logical(1.));
         window_state.set_min_inner_size(min_size);
         window_state.set_max_inner_size(max_size);
 
@@ -156,19 +145,17 @@ impl Window {
         match attributes.fullscreen.map(Into::into) {
             Some(Fullscreen::Exclusive(_)) => {
                 warn!("`Fullscreen::Exclusive` is ignored on Wayland");
-            }
+            },
             #[cfg_attr(not(x11_platform), allow(clippy::bind_instead_of_map))]
             Some(Fullscreen::Borderless(monitor)) => {
                 let output = monitor.and_then(|monitor| match monitor {
-                    PlatformMonitorHandle::Wayland(monitor) => {
-                        Some(monitor.proxy)
-                    }
+                    PlatformMonitorHandle::Wayland(monitor) => Some(monitor.proxy),
                     #[cfg(x11_platform)]
                     PlatformMonitorHandle::X(_) => None,
                 });
 
                 window.set_fullscreen(output.as_ref())
-            }
+            },
             _ if attributes.maximized => window.set_maximized(),
             _ => (),
         };
@@ -179,10 +166,9 @@ impl Window {
         }
 
         // Activate the window when the token is passed.
-        if let (Some(xdg_activation), Some(token)) = (
-            xdg_activation.as_ref(),
-            attributes.platform_specific.activation_token,
-        ) {
+        if let (Some(xdg_activation), Some(token)) =
+            (xdg_activation.as_ref(), attributes.platform_specific.activation_token)
+        {
             xdg_activation.activate(token.token, &surface);
         }
 
@@ -192,47 +178,35 @@ impl Window {
         // Add the window and window requests into the state.
         let window_state = Arc::new(Mutex::new(window_state));
         let window_id = super::make_wid(&surface);
-        state
-            .windows
-            .get_mut()
-            .insert(window_id, window_state.clone());
+        state.windows.get_mut().insert(window_id, window_state.clone());
 
         let window_requests = WindowRequests {
             redraw_requested: AtomicBool::new(true),
             closed: AtomicBool::new(false),
         };
         let window_requests = Arc::new(window_requests);
-        state
-            .window_requests
-            .get_mut()
-            .insert(window_id, window_requests.clone());
+        state.window_requests.get_mut().insert(window_id, window_requests.clone());
 
         // Setup the event sync to insert `WindowEvents` right from the window.
         let window_events_sink = state.window_events_sink.clone();
 
-        let mut wayland_source =
-            event_loop_window_target.wayland_dispatcher.as_source_mut();
+        let mut wayland_source = event_loop_window_target.wayland_dispatcher.as_source_mut();
         let event_queue = wayland_source.queue();
 
         // Do a roundtrip.
         event_queue.roundtrip(&mut state).map_err(|error| {
-            os_error!(OsError::WaylandError(Arc::new(WaylandError::Dispatch(
-                error
-            ))))
+            os_error!(OsError::WaylandError(Arc::new(WaylandError::Dispatch(error))))
         })?;
 
         // XXX Wait for the initial configure to arrive.
         while !window_state.lock().unwrap().is_configured() {
             event_queue.blocking_dispatch(&mut state).map_err(|error| {
-                os_error!(OsError::WaylandError(Arc::new(
-                    WaylandError::Dispatch(error)
-                )))
+                os_error!(OsError::WaylandError(Arc::new(WaylandError::Dispatch(error))))
             })?;
         }
 
         // Wake-up event loop, so it'll send initial redraw requested.
-        let event_loop_awakener =
-            event_loop_window_target.event_loop_awakener.clone();
+        let event_loop_awakener = event_loop_window_target.event_loop_awakener.clone();
         event_loop_awakener.ping();
 
         Ok(Self {
@@ -279,16 +253,12 @@ impl Window {
     }
 
     #[inline]
-    pub fn outer_position(
-        &self,
-    ) -> Result<PhysicalPosition<i32>, NotSupportedError> {
+    pub fn outer_position(&self) -> Result<PhysicalPosition<i32>, NotSupportedError> {
         Err(NotSupportedError::new())
     }
 
     #[inline]
-    pub fn inner_position(
-        &self,
-    ) -> Result<PhysicalPosition<i32>, NotSupportedError> {
+    pub fn inner_position(&self) -> Result<PhysicalPosition<i32>, NotSupportedError> {
         Err(NotSupportedError::new())
     }
 
@@ -301,10 +271,7 @@ impl Window {
     pub fn inner_size(&self) -> PhysicalSize<u32> {
         let window_state = self.window_state.lock().unwrap();
         let scale_factor = window_state.scale_factor();
-        super::logical_to_physical_rounded(
-            window_state.inner_size(),
-            scale_factor,
-        )
+        super::logical_to_physical_rounded(window_state.inner_size(), scale_factor)
     }
 
     #[inline]
@@ -332,10 +299,7 @@ impl Window {
     pub fn outer_size(&self) -> PhysicalSize<u32> {
         let window_state = self.window_state.lock().unwrap();
         let scale_factor = window_state.scale_factor();
-        super::logical_to_physical_rounded(
-            window_state.outer_size(),
-            scale_factor,
-        )
+        super::logical_to_physical_rounded(window_state.outer_size(), scale_factor)
     }
 
     #[inline]
@@ -351,10 +315,7 @@ impl Window {
     pub fn set_min_inner_size(&self, min_size: Option<Size>) {
         let scale_factor = self.scale_factor();
         let min_size = min_size.map(|size| size.to_logical(scale_factor));
-        self.window_state
-            .lock()
-            .unwrap()
-            .set_min_inner_size(min_size);
+        self.window_state.lock().unwrap().set_min_inner_size(min_size);
         // NOTE: Requires commit to be applied.
         self.request_redraw();
     }
@@ -364,10 +325,7 @@ impl Window {
     pub fn set_max_inner_size(&self, max_size: Option<Size>) {
         let scale_factor = self.scale_factor();
         let max_size = max_size.map(|size| size.to_logical(scale_factor));
-        self.window_state
-            .lock()
-            .unwrap()
-            .set_max_inner_size(max_size);
+        self.window_state.lock().unwrap().set_max_inner_size(max_size);
         // NOTE: Requires commit to be applied.
         self.request_redraw();
     }
@@ -384,10 +342,7 @@ impl Window {
 
     #[inline]
     pub fn set_transparent(&self, transparent: bool) {
-        self.window_state
-            .lock()
-            .unwrap()
-            .set_transparent(transparent);
+        self.window_state.lock().unwrap().set_transparent(transparent);
     }
 
     #[inline]
@@ -409,14 +364,8 @@ impl Window {
     }
 
     #[inline]
-    pub fn drag_resize_window(
-        &self,
-        direction: ResizeDirection,
-    ) -> Result<(), ExternalError> {
-        self.window_state
-            .lock()
-            .unwrap()
-            .drag_resize_window(direction)
+    pub fn drag_resize_window(&self, direction: ResizeDirection) -> Result<(), ExternalError> {
+        self.window_state.lock().unwrap().drag_resize_window(direction)
     }
 
     #[inline]
@@ -512,8 +461,7 @@ impl Window {
             .unwrap_or_default();
 
         if is_fullscreen {
-            let current_monitor =
-                self.current_monitor().map(PlatformMonitorHandle::Wayland);
+            let current_monitor = self.current_monitor().map(PlatformMonitorHandle::Wayland);
             Some(Fullscreen::Borderless(current_monitor))
         } else {
             None
@@ -525,19 +473,17 @@ impl Window {
         match fullscreen {
             Some(Fullscreen::Exclusive(_)) => {
                 warn!("`Fullscreen::Exclusive` is ignored on Wayland");
-            }
+            },
             #[cfg_attr(not(x11_platform), allow(clippy::bind_instead_of_map))]
             Some(Fullscreen::Borderless(monitor)) => {
                 let output = monitor.and_then(|monitor| match monitor {
-                    PlatformMonitorHandle::Wayland(monitor) => {
-                        Some(monitor.proxy)
-                    }
+                    PlatformMonitorHandle::Wayland(monitor) => Some(monitor.proxy),
                     #[cfg(x11_platform)]
                     PlatformMonitorHandle::X(_) => None,
                 });
 
                 self.window.set_fullscreen(output.as_ref())
-            }
+            },
             None => self.window.unset_fullscreen(),
         }
     }
@@ -554,29 +500,21 @@ impl Window {
 
     #[inline]
     pub fn set_cursor_visible(&self, visible: bool) {
-        self.window_state
-            .lock()
-            .unwrap()
-            .set_cursor_visible(visible);
+        self.window_state.lock().unwrap().set_cursor_visible(visible);
     }
 
-    pub fn request_user_attention(
-        &self,
-        request_type: Option<UserAttentionType>,
-    ) {
+    pub fn request_user_attention(&self, request_type: Option<UserAttentionType>) {
         let xdg_activation = match self.xdg_activation.as_ref() {
             Some(xdg_activation) => xdg_activation,
             None => {
                 warn!("`request_user_attention` isn't supported");
                 return;
-            }
+            },
         };
 
         // Urgency is only removed by the compositor and there's no need to raise urgency when it
         // was already raised.
-        if request_type.is_none()
-            || self.attention_requested.load(Ordering::Relaxed)
-        {
+        if request_type.is_none() || self.attention_requested.load(Ordering::Relaxed) {
             return;
         }
 
@@ -586,15 +524,12 @@ impl Window {
             surface.clone(),
             Arc::downgrade(&self.attention_requested),
         ));
-        let xdg_activation_token =
-            xdg_activation.get_activation_token(&self.queue_handle, data);
+        let xdg_activation_token = xdg_activation.get_activation_token(&self.queue_handle, data);
         xdg_activation_token.set_surface(&surface);
         xdg_activation_token.commit();
     }
 
-    pub fn request_activation_token(
-        &self,
-    ) -> Result<AsyncRequestSerial, NotSupportedError> {
+    pub fn request_activation_token(&self) -> Result<AsyncRequestSerial, NotSupportedError> {
         let xdg_activation = match self.xdg_activation.as_ref() {
             Some(xdg_activation) => xdg_activation,
             None => return Err(NotSupportedError::new()),
@@ -603,8 +538,7 @@ impl Window {
         let serial = AsyncRequestSerial::get();
 
         let data = XdgActivationTokenData::Obtain((self.window_id, serial));
-        let xdg_activation_token =
-            xdg_activation.get_activation_token(&self.queue_handle, data);
+        let xdg_activation_token = xdg_activation.get_activation_token(&self.queue_handle, data);
         xdg_activation_token.set_surface(self.surface());
         xdg_activation_token.commit();
 
@@ -612,18 +546,12 @@ impl Window {
     }
 
     #[inline]
-    pub fn set_cursor_grab(
-        &self,
-        mode: CursorGrabMode,
-    ) -> Result<(), ExternalError> {
+    pub fn set_cursor_grab(&self, mode: CursorGrabMode) -> Result<(), ExternalError> {
         self.window_state.lock().unwrap().set_cursor_grab(mode)
     }
 
     #[inline]
-    pub fn set_cursor_position(
-        &self,
-        position: Position,
-    ) -> Result<(), ExternalError> {
+    pub fn set_cursor_position(&self, position: Position) -> Result<(), ExternalError> {
         let scale_factor = self.scale_factor();
         let position = position.to_logical(scale_factor);
         self.window_state
@@ -640,10 +568,7 @@ impl Window {
     }
 
     #[inline]
-    pub fn set_cursor_hittest(
-        &self,
-        hittest: bool,
-    ) -> Result<(), ExternalError> {
+    pub fn set_cursor_hittest(&self, hittest: bool) -> Result<(), ExternalError> {
         let surface = self.window.wl_surface();
 
         if hittest {
@@ -651,9 +576,7 @@ impl Window {
             Ok(())
         } else {
             let region = Region::new(&*self.compositor).map_err(|_| {
-                ExternalError::Os(os_error!(OsError::Misc(
-                    "failed to set input region."
-                )))
+                ExternalError::Os(os_error!(OsError::Misc("failed to set input region.")))
             })?;
             region.add(0, 0, 0, 0);
             surface.set_input_region(Some(region.wl_region()));
@@ -676,18 +599,9 @@ impl Window {
     pub fn set_ime_allowed(&self, allowed: bool) {
         let mut window_state = self.window_state.lock().unwrap();
 
-        if window_state.ime_allowed() != allowed
-            && window_state.set_ime_allowed(allowed)
-        {
-            let event = WindowEvent::Ime(if allowed {
-                Ime::Enabled
-            } else {
-                Ime::Disabled
-            });
-            self.window_events_sink
-                .lock()
-                .unwrap()
-                .push_window_event(event, self.window_id);
+        if window_state.ime_allowed() != allowed && window_state.set_ime_allowed(allowed) {
+            let event = WindowEvent::Ime(if allowed { Ime::Enabled } else { Ime::Disabled });
+            self.window_events_sink.lock().unwrap().push_window_event(event, self.window_id);
             self.event_loop_awakener.ping();
         }
     }
@@ -726,12 +640,8 @@ impl Window {
     #[inline]
     pub fn raw_window_handle_rwh_04(&self) -> rwh_04::RawWindowHandle {
         let mut window_handle = rwh_04::WaylandHandle::empty();
-        window_handle.surface =
-            std::ptr::NonNull::from(self.window.wl_surface())
-                .cast()
-                .as_ptr();
-        window_handle.display =
-            std::ptr::NonNull::from(&self.connection).cast().as_ptr();
+        window_handle.surface = std::ptr::NonNull::from(self.window.wl_surface()).cast().as_ptr();
+        window_handle.display = std::ptr::NonNull::from(&self.connection).cast().as_ptr();
         rwh_04::RawWindowHandle::Wayland(window_handle)
     }
 
@@ -739,10 +649,7 @@ impl Window {
     #[inline]
     pub fn raw_window_handle_rwh_05(&self) -> rwh_05::RawWindowHandle {
         let mut window_handle = rwh_05::WaylandWindowHandle::empty();
-        window_handle.surface =
-            std::ptr::NonNull::from(self.window.wl_surface())
-                .cast()
-                .as_ptr();
+        window_handle.surface = std::ptr::NonNull::from(self.window.wl_surface()).cast().as_ptr();
         rwh_05::RawWindowHandle::Wayland(window_handle)
     }
 
@@ -750,20 +657,14 @@ impl Window {
     #[inline]
     pub fn raw_display_handle_rwh_05(&self) -> rwh_05::RawDisplayHandle {
         let mut display_handle = rwh_05::WaylandDisplayHandle::empty();
-        display_handle.display =
-            std::ptr::NonNull::from(&self.connection).cast().as_ptr();
+        display_handle.display = std::ptr::NonNull::from(&self.connection).cast().as_ptr();
         rwh_05::RawDisplayHandle::Wayland(display_handle)
     }
 
     #[cfg(feature = "rwh_06")]
     #[inline]
-    pub fn raw_window_handle_rwh_06(
-        &self,
-    ) -> Result<rwh_06::RawWindowHandle, rwh_06::HandleError> {
-        Ok(rwh_06::WaylandWindowHandle::new(
-            std::ptr::NonNull::from(self.window.wl_surface()).cast(),
-        )
-        .into())
+    pub fn raw_window_handle_rwh_06(&self) -> Result<rwh_06::RawWindowHandle, rwh_06::HandleError> {
+        Ok(rwh_06::WaylandWindowHandle::new(std::ptr::NonNull::from(self.window.wl_surface()).cast()).into())
     }
 
     #[cfg(feature = "rwh_06")]
@@ -771,10 +672,7 @@ impl Window {
     pub fn raw_display_handle_rwh_06(
         &self,
     ) -> Result<rwh_06::RawDisplayHandle, rwh_06::HandleError> {
-        Ok(rwh_06::WaylandDisplayHandle::new(
-            std::ptr::NonNull::from(&self.connection).cast(),
-        )
-        .into())
+        Ok(rwh_06::WaylandDisplayHandle::new(std::ptr::NonNull::from(&self.connection).cast()).into())
     }
 
     #[inline]

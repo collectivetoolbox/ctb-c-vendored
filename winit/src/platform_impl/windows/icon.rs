@@ -4,17 +4,15 @@ use std::sync::Arc;
 use std::{fmt, io, mem};
 
 use cursor_icon::CursorIcon;
+use windows_sys::core::PCWSTR;
 use windows_sys::Win32::Foundation::HWND;
 use windows_sys::Win32::Graphics::Gdi::{
-    CreateBitmap, CreateCompatibleBitmap, DeleteObject, GetDC, ReleaseDC,
-    SetBitmapBits,
+    CreateBitmap, CreateCompatibleBitmap, DeleteObject, GetDC, ReleaseDC, SetBitmapBits,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    CreateIcon, CreateIconIndirect, DestroyCursor, DestroyIcon, HCURSOR, HICON,
-    ICON_BIG, ICON_SMALL, ICONINFO, IMAGE_ICON, LR_DEFAULTSIZE,
-    LR_LOADFROMFILE, LoadImageW, SendMessageW, WM_SETICON,
+    CreateIcon, CreateIconIndirect, DestroyCursor, DestroyIcon, LoadImageW, SendMessageW, HCURSOR,
+    HICON, ICONINFO, ICON_BIG, ICON_SMALL, IMAGE_ICON, LR_DEFAULTSIZE, LR_LOADFROMFILE, WM_SETICON,
 };
-use windows_sys::core::PCWSTR;
 
 use crate::cursor::CursorImage;
 use crate::dpi::PhysicalSize;
@@ -33,12 +31,8 @@ impl RgbaIcon {
         let rgba = self.rgba;
         let pixel_count = rgba.len() / PIXEL_SIZE;
         let mut and_mask = Vec::with_capacity(pixel_count);
-        let pixels = unsafe {
-            std::slice::from_raw_parts_mut(
-                rgba.as_ptr() as *mut Pixel,
-                pixel_count,
-            )
-        };
+        let pixels =
+            unsafe { std::slice::from_raw_parts_mut(rgba.as_ptr() as *mut Pixel, pixel_count) };
         for pixel in pixels {
             and_mask.push(pixel.a.wrapping_sub(u8::MAX)); // invert alpha channel
             pixel.convert_to_bgra();
@@ -150,30 +144,19 @@ impl WinIcon {
         }
     }
 
-    pub fn from_rgba(
-        rgba: Vec<u8>,
-        width: u32,
-        height: u32,
-    ) -> Result<Self, BadIcon> {
+    pub fn from_rgba(rgba: Vec<u8>, width: u32, height: u32) -> Result<Self, BadIcon> {
         let rgba_icon = RgbaIcon::from_rgba(rgba, width, height)?;
         rgba_icon.into_windows_icon()
     }
 
     pub fn set_for_window(&self, hwnd: HWND, icon_type: IconType) {
         unsafe {
-            SendMessageW(
-                hwnd,
-                WM_SETICON,
-                icon_type as usize,
-                self.as_raw_handle(),
-            );
+            SendMessageW(hwnd, WM_SETICON, icon_type as usize, self.as_raw_handle());
         }
     }
 
     fn from_handle(handle: HICON) -> Self {
-        Self {
-            inner: Arc::new(RaiiIcon { handle }),
-        }
+        Self { inner: Arc::new(RaiiIcon { handle }) }
     }
 }
 
@@ -184,10 +167,7 @@ impl Drop for RaiiIcon {
 }
 
 impl fmt::Debug for WinIcon {
-    fn fmt(
-        &self,
-        formatter: &mut fmt::Formatter<'_>,
-    ) -> Result<(), fmt::Error> {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         (*self.inner).fmt(formatter)
     }
 }
@@ -234,21 +214,14 @@ impl WinCursor {
             if hbm_color == 0 {
                 return Err(io::Error::last_os_error());
             }
-            if SetBitmapBits(
-                hbm_color,
-                bgra.len() as u32,
-                bgra.as_ptr() as *const c_void,
-            ) == 0
-            {
+            if SetBitmapBits(hbm_color, bgra.len() as u32, bgra.as_ptr() as *const c_void) == 0 {
                 DeleteObject(hbm_color);
                 return Err(io::Error::last_os_error());
             };
 
             // Mask created according to https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-createbitmap#parameters
-            let mask_bits: Vec<u8> =
-                vec![0xff; ((((w + 15) >> 4) << 1) * h) as usize];
-            let hbm_mask =
-                CreateBitmap(w, h, 1, 1, mask_bits.as_ptr() as *const _);
+            let mask_bits: Vec<u8> = vec![0xff; ((((w + 15) >> 4) << 1) * h) as usize];
+            let hbm_mask = CreateBitmap(w, h, 1, 1, mask_bits.as_ptr() as *const _);
             if hbm_mask == 0 {
                 DeleteObject(hbm_color);
                 return Err(io::Error::last_os_error());

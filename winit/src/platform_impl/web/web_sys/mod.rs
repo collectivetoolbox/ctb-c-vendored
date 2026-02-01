@@ -19,12 +19,11 @@ pub use self::schedule::Schedule;
 
 use crate::dpi::{LogicalPosition, LogicalSize};
 use js_sys::Array;
-use wasm_bindgen::JsCast;
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen::prelude::wasm_bindgen;
+use wasm_bindgen::JsCast;
 use web_sys::{
-    Document, HtmlCanvasElement, Navigator, PageTransitionEvent,
-    VisibilityState, Window,
+    Document, HtmlCanvasElement, Navigator, PageTransitionEvent, VisibilityState, Window,
 };
 
 pub fn throw(msg: &str) {
@@ -32,10 +31,8 @@ pub fn throw(msg: &str) {
 }
 
 pub struct PageTransitionEventHandle {
-    _show_listener:
-        event_handle::EventListenerHandle<dyn FnMut(PageTransitionEvent)>,
-    _hide_listener:
-        event_handle::EventListenerHandle<dyn FnMut(PageTransitionEvent)>,
+    _show_listener: event_handle::EventListenerHandle<dyn FnMut(PageTransitionEvent)>,
+    _hide_listener: event_handle::EventListenerHandle<dyn FnMut(PageTransitionEvent)>,
 }
 
 pub fn on_page_transition(
@@ -46,30 +43,17 @@ pub fn on_page_transition(
     let show_closure = Closure::new(show_handler);
     let hide_closure = Closure::new(hide_handler);
 
-    let show_listener = event_handle::EventListenerHandle::new(
-        window.clone(),
-        "pageshow",
-        show_closure,
-    );
-    let hide_listener = event_handle::EventListenerHandle::new(
-        window,
-        "pagehide",
-        hide_closure,
-    );
-    PageTransitionEventHandle {
-        _show_listener: show_listener,
-        _hide_listener: hide_listener,
-    }
+    let show_listener =
+        event_handle::EventListenerHandle::new(window.clone(), "pageshow", show_closure);
+    let hide_listener = event_handle::EventListenerHandle::new(window, "pagehide", hide_closure);
+    PageTransitionEventHandle { _show_listener: show_listener, _hide_listener: hide_listener }
 }
 
 pub fn scale_factor(window: &web_sys::Window) -> f64 {
     window.device_pixel_ratio()
 }
 
-fn fix_canvas_size(
-    style: &Style,
-    mut size: LogicalSize<f64>,
-) -> LogicalSize<f64> {
+fn fix_canvas_size(style: &Style, mut size: LogicalSize<f64>) -> LogicalSize<f64> {
     if style.get("box-sizing") == "border-box" {
         size.width += style_size_property(style, "border-left-width")
             + style_size_property(style, "border-right-width")
@@ -167,19 +151,13 @@ pub fn set_canvas_position(
 pub fn style_size_property(style: &Style, property: &str) -> f64 {
     let prop = style.get(property);
     prop.strip_suffix("px")
-        .expect(
-            "Element was not inserted into the DOM or is not a size in pixel",
-        )
+        .expect("Element was not inserted into the DOM or is not a size in pixel")
         .parse()
         .expect("CSS property is not a size in pixel")
 }
 
 pub fn is_dark_mode(window: &web_sys::Window) -> Option<bool> {
-    window
-        .match_media("(prefers-color-scheme: dark)")
-        .ok()
-        .flatten()
-        .map(|media| media.matches())
+    window.match_media("(prefers-color-scheme: dark)").ok().flatten().map(|media| media.matches())
 }
 
 pub fn is_visible(document: &Document) -> bool {

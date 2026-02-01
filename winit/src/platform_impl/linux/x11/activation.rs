@@ -15,10 +15,7 @@ use x11rb::protocol::xproto::{self, ConnectionExt as _};
 
 impl XConnection {
     /// "Request" a new activation token from the server.
-    pub(crate) fn request_activation_token(
-        &self,
-        window_title: &str,
-    ) -> Result<String, X11Error> {
+    pub(crate) fn request_activation_token(&self, window_title: &str) -> Result<String, X11Error> {
         // The specification recommends the format "hostname+pid+"_TIME"+current time"
         let uname = rustix::system::uname();
         let pid = rustix::process::getpid();
@@ -42,9 +39,7 @@ impl XConnection {
             push_display(&mut buffer, &self.default_screen_index());
 
             CString::new(buffer)
-                .map_err(|err| {
-                    X11Error::InvalidActivationToken(err.into_vec())
-                })?
+                .map_err(|err| X11Error::InvalidActivationToken(err.into_vec()))?
                 .into_bytes_with_nul()
         };
         self.send_message(&notification)?;
@@ -87,9 +82,7 @@ impl XConnection {
             buffer.extend_from_slice(MESSAGE_ROOT.as_bytes());
             quote_string(startup_id, &mut buffer);
             CString::new(buffer)
-                .map_err(|err| {
-                    X11Error::InvalidActivationToken(err.into_vec())
-                })?
+                .map_err(|err| X11Error::InvalidActivationToken(err.into_vec()))?
                 .into_bytes_with_nul()
         };
 
@@ -113,12 +106,9 @@ impl XConnection {
             0,
             xproto::WindowClass::INPUT_OUTPUT,
             screen.root_visual,
-            &xproto::CreateWindowAux::new()
-                .override_redirect(1)
-                .event_mask(
-                    xproto::EventMask::STRUCTURE_NOTIFY
-                        | xproto::EventMask::PROPERTY_CHANGE,
-                ),
+            &xproto::CreateWindowAux::new().override_redirect(1).event_mask(
+                xproto::EventMask::STRUCTURE_NOTIFY | xproto::EventMask::PROPERTY_CHANGE,
+            ),
         )?;
 
         // Serialize the messages in 20-byte chunks.
@@ -128,12 +118,8 @@ impl XConnection {
             .map(|chunk| {
                 let mut buffer = [0u8; 20];
                 buffer[..chunk.len()].copy_from_slice(chunk);
-                let event = xproto::ClientMessageEvent::new(
-                    8,
-                    window.window(),
-                    message_type,
-                    buffer,
-                );
+                let event =
+                    xproto::ClientMessageEvent::new(8, window.window(), message_type, buffer);
 
                 // Set the message type to the continuation atom for the next chunk.
                 message_type = atoms[_NET_STARTUP_INFO];
@@ -143,12 +129,7 @@ impl XConnection {
             .try_for_each(|event| {
                 // Send each event in order.
                 self.xcb_connection()
-                    .send_event(
-                        false,
-                        screen.root,
-                        xproto::EventMask::PROPERTY_CHANGE,
-                        event,
-                    )
+                    .send_event(false, screen.root, xproto::EventMask::PROPERTY_CHANGE, event)
                     .map(VoidCookie::ignore_error)
             })?;
 

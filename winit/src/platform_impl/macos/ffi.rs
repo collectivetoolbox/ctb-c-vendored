@@ -21,8 +21,7 @@ pub const kCGDisplayBlendNormal: f32 = 0.0;
 pub const kCGDisplayBlendSolidColor: f32 = 1.0;
 
 pub type CGDisplayFadeReservationToken = u32;
-pub const kCGDisplayFadeReservationInvalidToken: CGDisplayFadeReservationToken =
-    0;
+pub const kCGDisplayFadeReservationInvalidToken: CGDisplayFadeReservationToken = 0;
 
 pub type Boolean = u8;
 pub const FALSE: Boolean = 0;
@@ -68,9 +67,7 @@ pub type CGDisplayModeRef = *mut c_void;
 // https://developer.apple.com/library/archive/documentation/MacOSX/Conceptual/OSX_Technology_Overview/SystemFrameworks/SystemFrameworks.html#//apple_ref/doc/uid/TP40001067-CH210-BBCFFIEG
 #[link(name = "ApplicationServices", kind = "framework")]
 extern "C" {
-    pub fn CGDisplayCreateUUIDFromDisplayID(
-        display: CGDirectDisplayID,
-    ) -> CFUUIDRef;
+    pub fn CGDisplayCreateUUIDFromDisplayID(display: CGDirectDisplayID) -> CFUUIDRef;
 
     pub fn CGDisplayGetDisplayIDFromUUID(uuid: CFUUIDRef) -> CGDirectDisplayID;
 }
@@ -102,9 +99,7 @@ extern "C" {
         blueBlend: f32,
         synchronous: Boolean,
     ) -> CGError;
-    pub fn CGReleaseDisplayFadeReservation(
-        token: CGDisplayFadeReservationToken,
-    ) -> CGError;
+    pub fn CGReleaseDisplayFadeReservation(token: CGDisplayFadeReservationToken) -> CGError;
     pub fn CGShieldingWindowLevel() -> CGWindowLevel;
     pub fn CGDisplaySetDisplayMode(
         display: CGDirectDisplayID,
@@ -118,9 +113,7 @@ extern "C" {
     pub fn CGDisplayModeGetPixelWidth(mode: CGDisplayModeRef) -> usize;
     pub fn CGDisplayModeGetPixelHeight(mode: CGDisplayModeRef) -> usize;
     pub fn CGDisplayModeGetRefreshRate(mode: CGDisplayModeRef) -> f64;
-    pub fn CGDisplayModeCopyPixelEncoding(
-        mode: CGDisplayModeRef,
-    ) -> CFStringRef;
+    pub fn CGDisplayModeCopyPixelEncoding(mode: CGDisplayModeRef) -> CFStringRef;
     pub fn CGDisplayModeRetain(mode: CGDisplayModeRef);
     pub fn CGDisplayModeRelease(mode: CGDisplayModeRef);
 
@@ -237,10 +230,8 @@ mod window_level {
     const kCGNumReservedBaseWindowLevels: i32 = 5;
 
     pub const kCGBaseWindowLevel: i32 = i32::MIN;
-    pub const kCGMinimumWindowLevel: i32 =
-        kCGBaseWindowLevel + kCGNumReservedBaseWindowLevels;
-    pub const kCGMaximumWindowLevel: i32 =
-        i32::MAX - kCGNumReservedWindowLevels;
+    pub const kCGMinimumWindowLevel: i32 = kCGBaseWindowLevel + kCGNumReservedBaseWindowLevels;
+    pub const kCGMaximumWindowLevel: i32 = i32::MAX - kCGNumReservedWindowLevels;
 
     pub const kCGDesktopWindowLevel: i32 = kCGMinimumWindowLevel + 20;
     pub const kCGDesktopIconWindowLevel: i32 = kCGDesktopWindowLevel + 20;

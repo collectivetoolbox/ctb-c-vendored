@@ -7,10 +7,7 @@ use crate::event_loop::ActiveEventLoop as RootActiveEventLoop;
 
 struct EventHandlerData {
     #[allow(clippy::type_complexity)]
-    handler: Box<
-        dyn FnMut(Event<HandlePendingUserEvents>, &RootActiveEventLoop)
-            + 'static,
-    >,
+    handler: Box<dyn FnMut(Event<HandlePendingUserEvents>, &RootActiveEventLoop) + 'static>,
 }
 
 impl fmt::Debug for EventHandlerData {
@@ -30,9 +27,7 @@ pub(crate) struct EventHandler {
 
 impl EventHandler {
     pub(crate) const fn new() -> Self {
-        Self {
-            inner: RefCell::new(None),
-        }
+        Self { inner: RefCell::new(None) }
     }
 
     /// Set the event loop handler for the duration of the given closure.
@@ -42,8 +37,7 @@ impl EventHandler {
     /// from within the closure.
     pub(crate) fn set<'handler, R>(
         &self,
-        handler: impl FnMut(Event<HandlePendingUserEvents>, &RootActiveEventLoop)
-        + 'handler,
+        handler: impl FnMut(Event<HandlePendingUserEvents>, &RootActiveEventLoop) + 'handler,
         closure: impl FnOnce() -> R,
     ) -> R {
         // SAFETY: We extend the lifetime of the handler here so that we can
@@ -54,33 +48,21 @@ impl EventHandler {
         // extended beyond `'handler`.
         let handler = unsafe {
             mem::transmute::<
-                Box<
-                    dyn FnMut(
-                            Event<HandlePendingUserEvents>,
-                            &RootActiveEventLoop,
-                        ) + 'handler,
-                >,
-                Box<
-                    dyn FnMut(
-                            Event<HandlePendingUserEvents>,
-                            &RootActiveEventLoop,
-                        ) + 'static,
-                >,
+                Box<dyn FnMut(Event<HandlePendingUserEvents>, &RootActiveEventLoop) + 'handler>,
+                Box<dyn FnMut(Event<HandlePendingUserEvents>, &RootActiveEventLoop) + 'static>,
             >(Box::new(handler))
         };
 
         match self.inner.try_borrow_mut().as_deref_mut() {
             Ok(Some(_)) => {
-                unreachable!(
-                    "tried to set handler while another was already set"
-                );
-            }
+                unreachable!("tried to set handler while another was already set");
+            },
             Ok(data @ None) => {
                 *data = Some(EventHandlerData { handler });
-            }
+            },
             Err(_) => {
                 unreachable!("tried to set handler that is currently in use");
-            }
+            },
         }
 
         struct ClearOnDrop<'a>(&'a EventHandler);
@@ -90,12 +72,10 @@ impl EventHandler {
                 match self.0.inner.try_borrow_mut().as_deref_mut() {
                     Ok(data @ Some(_)) => {
                         *data = None;
-                    }
+                    },
                     Ok(None) => {
-                        tracing::error!(
-                            "tried to clear handler, but no handler was set"
-                        );
-                    }
+                        tracing::error!("tried to clear handler, but no handler was set");
+                    },
                     Err(_) => {
                         // Note: This is not expected to ever happen, this
                         // module generally controls the `RefCell`, and
@@ -104,11 +84,9 @@ impl EventHandler {
                         // But if it _does_ happen, it is a serious error, and
                         // we must abort the process, it'd be unsound if we
                         // weren't able to unset the handler.
-                        eprintln!(
-                            "tried to clear handler that is currently in use"
-                        );
+                        eprintln!("tried to clear handler that is currently in use");
                         std::process::abort();
-                    }
+                    },
                 }
             }
         }
@@ -145,21 +123,17 @@ impl EventHandler {
                 // If the handler unwinds, the `RefMut` will ensure that the
                 // handler is no longer borrowed.
                 (handler)(event, event_loop);
-            }
+            },
             Ok(None) => {
                 // `NSApplication`, our app delegate and this handler are all
                 // global state and so it's not impossible that we could get
                 // an event after the application has exited the `EventLoop`.
-                tracing::error!(
-                    "tried to run event handler, but no handler was set"
-                );
-            }
+                tracing::error!("tried to run event handler, but no handler was set");
+            },
             Err(_) => {
                 // Prevent re-entrancy.
-                panic!(
-                    "tried to handle event while another event is currently being handled"
-                );
-            }
+                panic!("tried to handle event while another event is currently being handled");
+            },
         }
     }
 }

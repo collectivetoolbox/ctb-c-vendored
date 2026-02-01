@@ -30,7 +30,7 @@ pub use self::wm::*;
 pub use self::xmodmap::ModifierKeymap;
 
 use super::atoms::*;
-use super::{VoidCookie, X11Error, XConnection, XError, ffi};
+use super::{ffi, VoidCookie, X11Error, XConnection, XError};
 use x11rb::protocol::xproto::{self, ConnectionExt as _};
 
 pub fn maybe_change<T: PartialEq>(field: &mut Option<T>, value: T) -> bool {

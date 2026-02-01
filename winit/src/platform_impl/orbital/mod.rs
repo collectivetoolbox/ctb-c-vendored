@@ -9,9 +9,7 @@ use smol_str::SmolStr;
 use crate::dpi::{PhysicalPosition, PhysicalSize};
 use crate::keyboard::Key;
 
-pub(crate) use self::event_loop::{
-    ActiveEventLoop, EventLoop, EventLoopProxy, OwnedDisplayHandle,
-};
+pub(crate) use self::event_loop::{ActiveEventLoop, EventLoop, EventLoopProxy, OwnedDisplayHandle};
 mod event_loop;
 
 pub use self::window::Window;
@@ -59,8 +57,7 @@ impl RedoxSocket {
 
     fn fpath<'a>(&self, buf: &'a mut [u8]) -> syscall::Result<&'a str> {
         let count = syscall::fpath(self.fd, buf)?;
-        str::from_utf8(&buf[..count])
-            .map_err(|_err| syscall::Error::new(syscall::EINVAL))
+        str::from_utf8(&buf[..count]).map_err(|_err| syscall::Error::new(syscall::EINVAL))
     }
 }
 
@@ -148,27 +145,12 @@ impl<'a> WindowProperties<'a> {
         // orbital:flags/x/y/w/h/t
         let mut parts = path.splitn(6, '/');
         let flags = parts.next().unwrap_or("");
-        let x = parts
-            .next()
-            .map_or(0, |part| part.parse::<i32>().unwrap_or(0));
-        let y = parts
-            .next()
-            .map_or(0, |part| part.parse::<i32>().unwrap_or(0));
-        let w = parts
-            .next()
-            .map_or(0, |part| part.parse::<u32>().unwrap_or(0));
-        let h = parts
-            .next()
-            .map_or(0, |part| part.parse::<u32>().unwrap_or(0));
+        let x = parts.next().map_or(0, |part| part.parse::<i32>().unwrap_or(0));
+        let y = parts.next().map_or(0, |part| part.parse::<i32>().unwrap_or(0));
+        let w = parts.next().map_or(0, |part| part.parse::<u32>().unwrap_or(0));
+        let h = parts.next().map_or(0, |part| part.parse::<u32>().unwrap_or(0));
         let title = parts.next().unwrap_or("");
-        Self {
-            flags,
-            x,
-            y,
-            w,
-            h,
-            title,
-        }
+        Self { flags, x, y, w, h, title }
     }
 }
 
@@ -198,8 +180,7 @@ impl Display for OsError {
 }
 
 pub(crate) use crate::cursor::{
-    NoCustomCursor as PlatformCustomCursor,
-    NoCustomCursor as PlatformCustomCursorSource,
+    NoCustomCursor as PlatformCustomCursor, NoCustomCursor as PlatformCustomCursorSource,
 };
 pub(crate) use crate::icon::NoIcon as PlatformIcon;
 

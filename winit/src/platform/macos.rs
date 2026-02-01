@@ -180,8 +180,7 @@ impl WindowExtMacOS for Window {
 
     #[inline]
     fn set_simple_fullscreen(&self, fullscreen: bool) -> bool {
-        self.window
-            .maybe_wait_on_main(move |w| w.set_simple_fullscreen(fullscreen))
+        self.window.maybe_wait_on_main(move |w| w.set_simple_fullscreen(fullscreen))
     }
 
     #[inline]
@@ -191,14 +190,12 @@ impl WindowExtMacOS for Window {
 
     #[inline]
     fn set_has_shadow(&self, has_shadow: bool) {
-        self.window
-            .maybe_queue_on_main(move |w| w.set_has_shadow(has_shadow))
+        self.window.maybe_queue_on_main(move |w| w.set_has_shadow(has_shadow))
     }
 
     #[inline]
     fn set_tabbing_identifier(&self, identifier: &str) {
-        self.window
-            .maybe_wait_on_main(|w| w.set_tabbing_identifier(identifier))
+        self.window.maybe_wait_on_main(|w| w.set_tabbing_identifier(identifier))
     }
 
     #[inline]
@@ -218,8 +215,7 @@ impl WindowExtMacOS for Window {
 
     #[inline]
     fn select_tab_at_index(&self, index: usize) {
-        self.window
-            .maybe_queue_on_main(move |w| w.select_tab_at_index(index))
+        self.window.maybe_queue_on_main(move |w| w.select_tab_at_index(index))
     }
 
     #[inline]
@@ -234,14 +230,12 @@ impl WindowExtMacOS for Window {
 
     #[inline]
     fn set_document_edited(&self, edited: bool) {
-        self.window
-            .maybe_queue_on_main(move |w| w.set_document_edited(edited))
+        self.window.maybe_queue_on_main(move |w| w.set_document_edited(edited))
     }
 
     #[inline]
     fn set_option_as_alt(&self, option_as_alt: OptionAsAlt) {
-        self.window
-            .maybe_queue_on_main(move |w| w.set_option_as_alt(option_as_alt))
+        self.window.maybe_queue_on_main(move |w| w.set_option_as_alt(option_as_alt))
     }
 
     #[inline]
@@ -251,8 +245,7 @@ impl WindowExtMacOS for Window {
 
     #[inline]
     fn set_borderless_game(&self, borderless_game: bool) {
-        self.window
-            .maybe_wait_on_main(|w| w.set_borderless_game(borderless_game))
+        self.window.maybe_wait_on_main(|w| w.set_borderless_game(borderless_game))
     }
 
     #[inline]
@@ -286,10 +279,7 @@ pub enum ActivationPolicy {
 /// - `with_fullsize_content_view`
 pub trait WindowAttributesExtMacOS {
     /// Enables click-and-drag behavior for the entire window, not just the titlebar.
-    fn with_movable_by_window_background(
-        self,
-        movable_by_window_background: bool,
-    ) -> Self;
+    fn with_movable_by_window_background(self, movable_by_window_background: bool) -> Self;
     /// Makes the titlebar transparent and allows the content to appear behind it.
     fn with_titlebar_transparent(self, titlebar_transparent: bool) -> Self;
     /// Hides the window title.
@@ -297,10 +287,7 @@ pub trait WindowAttributesExtMacOS {
     /// Hides the window titlebar.
     fn with_titlebar_hidden(self, titlebar_hidden: bool) -> Self;
     /// Hides the window titlebar buttons.
-    fn with_titlebar_buttons_hidden(
-        self,
-        titlebar_buttons_hidden: bool,
-    ) -> Self;
+    fn with_titlebar_buttons_hidden(self, titlebar_buttons_hidden: bool) -> Self;
     /// Makes the window content appear behind the titlebar.
     fn with_fullsize_content_view(self, fullsize_content_view: bool) -> Self;
     fn with_disallow_hidpi(self, disallow_hidpi: bool) -> Self;
@@ -321,12 +308,8 @@ pub trait WindowAttributesExtMacOS {
 
 impl WindowAttributesExtMacOS for WindowAttributes {
     #[inline]
-    fn with_movable_by_window_background(
-        mut self,
-        movable_by_window_background: bool,
-    ) -> Self {
-        self.platform_specific.movable_by_window_background =
-            movable_by_window_background;
+    fn with_movable_by_window_background(mut self, movable_by_window_background: bool) -> Self {
+        self.platform_specific.movable_by_window_background = movable_by_window_background;
         self
     }
 
@@ -343,12 +326,8 @@ impl WindowAttributesExtMacOS for WindowAttributes {
     }
 
     #[inline]
-    fn with_titlebar_buttons_hidden(
-        mut self,
-        titlebar_buttons_hidden: bool,
-    ) -> Self {
-        self.platform_specific.titlebar_buttons_hidden =
-            titlebar_buttons_hidden;
+    fn with_titlebar_buttons_hidden(mut self, titlebar_buttons_hidden: bool) -> Self {
+        self.platform_specific.titlebar_buttons_hidden = titlebar_buttons_hidden;
         self
     }
 
@@ -359,10 +338,7 @@ impl WindowAttributesExtMacOS for WindowAttributes {
     }
 
     #[inline]
-    fn with_fullsize_content_view(
-        mut self,
-        fullsize_content_view: bool,
-    ) -> Self {
+    fn with_fullsize_content_view(mut self, fullsize_content_view: bool) -> Self {
         self.platform_specific.fullsize_content_view = fullsize_content_view;
         self
     }
@@ -387,9 +363,7 @@ impl WindowAttributesExtMacOS for WindowAttributes {
 
     #[inline]
     fn with_tabbing_identifier(mut self, tabbing_identifier: &str) -> Self {
-        self.platform_specific
-            .tabbing_identifier
-            .replace(tabbing_identifier.to_string());
+        self.platform_specific.tabbing_identifier.replace(tabbing_identifier.to_string());
         self
     }
 
@@ -430,10 +404,7 @@ pub trait EventLoopBuilderExtMacOS {
     /// let event_loop = builder.build();
     /// # }
     /// ```
-    fn with_activation_policy(
-        &mut self,
-        activation_policy: ActivationPolicy,
-    ) -> &mut Self;
+    fn with_activation_policy(&mut self, activation_policy: ActivationPolicy) -> &mut Self;
 
     /// Used to control whether a default menubar menu is created.
     ///
@@ -466,10 +437,7 @@ pub trait EventLoopBuilderExtMacOS {
 
 impl<T> EventLoopBuilderExtMacOS for EventLoopBuilder<T> {
     #[inline]
-    fn with_activation_policy(
-        &mut self,
-        activation_policy: ActivationPolicy,
-    ) -> &mut Self {
+    fn with_activation_policy(&mut self, activation_policy: ActivationPolicy) -> &mut Self {
         self.platform_specific.activation_policy = Some(activation_policy);
         self
     }
@@ -503,11 +471,8 @@ impl MonitorHandleExtMacOS for MonitorHandle {
 
     fn ns_screen(&self) -> Option<*mut c_void> {
         // SAFETY: We only use the marker to get a pointer
-        let mtm =
-            unsafe { objc2_foundation::MainThreadMarker::new_unchecked() };
-        self.inner
-            .ns_screen(mtm)
-            .map(|s| objc2::rc::Retained::as_ptr(&s) as _)
+        let mtm = unsafe { objc2_foundation::MainThreadMarker::new_unchecked() };
+        self.inner.ns_screen(mtm).map(|s| objc2::rc::Retained::as_ptr(&s) as _)
     }
 }
 

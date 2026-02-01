@@ -3,14 +3,10 @@ use std::os::raw::c_short;
 use std::sync::Arc;
 use std::{mem, ptr};
 
-use super::ffi::{
-    XIMCallback, XIMPreeditCaretCallbackStruct, XIMPreeditDrawCallbackStruct,
-};
+use super::ffi::{XIMCallback, XIMPreeditCaretCallbackStruct, XIMPreeditDrawCallbackStruct};
 
-use super::{XConnection, XError, ffi, util};
-use crate::platform_impl::platform::x11::ime::input_method::{
-    InputMethod, Style, XIMStyle,
-};
+use super::{ffi, util, XConnection, XError};
+use crate::platform_impl::platform::x11::ime::input_method::{InputMethod, Style, XIMStyle};
 use crate::platform_impl::platform::x11::ime::{ImeEvent, ImeEventSender};
 
 /// IME creation error.
@@ -24,19 +20,12 @@ pub enum ImeContextCreationError {
 }
 
 /// The callback used by XIM preedit functions.
-type XIMProcNonnull =
-    unsafe extern "C" fn(ffi::XIM, ffi::XPointer, ffi::XPointer);
+type XIMProcNonnull = unsafe extern "C" fn(ffi::XIM, ffi::XPointer, ffi::XPointer);
 
 /// Wrapper for creating XIM callbacks.
 #[inline]
-fn create_xim_callback(
-    client_data: ffi::XPointer,
-    callback: XIMProcNonnull,
-) -> ffi::XIMCallback {
-    XIMCallback {
-        client_data,
-        callback: Some(callback),
-    }
+fn create_xim_callback(client_data: ffi::XPointer, callback: XIMProcNonnull) -> ffi::XIMCallback {
+    XIMCallback { client_data, callback: Some(callback) }
 }
 
 /// The server started preedit.
@@ -45,8 +34,7 @@ extern "C" fn preedit_start_callback(
     client_data: ffi::XPointer,
     _call_data: ffi::XPointer,
 ) -> i32 {
-    let client_data =
-        unsafe { &mut *(client_data as *mut ImeContextClientData) };
+    let client_data = unsafe { &mut *(client_data as *mut ImeContextClientData) };
 
     client_data.text.clear();
     client_data.cursor_pos = 0;
@@ -63,8 +51,7 @@ extern "C" fn preedit_done_callback(
     client_data: ffi::XPointer,
     _call_data: ffi::XPointer,
 ) {
-    let client_data =
-        unsafe { &mut *(client_data as *mut ImeContextClientData) };
+    let client_data = unsafe { &mut *(client_data as *mut ImeContextClientData) };
 
     // Drop text buffer and reset cursor position on done.
     client_data.text = Vec::new();
@@ -77,9 +64,7 @@ extern "C" fn preedit_done_callback(
 }
 
 fn calc_byte_position(text: &[char], pos: usize) -> usize {
-    text.iter()
-        .take(pos)
-        .fold(0, |byte_pos, text| byte_pos + text.len_utf8())
+    text.iter().take(pos).fold(0, |byte_pos, text| byte_pos + text.len_utf8())
 }
 
 /// Preedit text information to be drawn inline by the client.
@@ -88,17 +73,13 @@ extern "C" fn preedit_draw_callback(
     client_data: ffi::XPointer,
     call_data: ffi::XPointer,
 ) {
-    let client_data =
-        unsafe { &mut *(client_data as *mut ImeContextClientData) };
-    let call_data =
-        unsafe { &mut *(call_data as *mut XIMPreeditDrawCallbackStruct) };
+    let client_data = unsafe { &mut *(client_data as *mut ImeContextClientData) };
+    let call_data = unsafe { &mut *(call_data as *mut XIMPreeditDrawCallbackStruct) };
     client_data.cursor_pos = call_data.caret as usize;
 
-    let chg_range = call_data.chg_first as usize
-        ..(call_data.chg_first + call_data.chg_length) as usize;
-    if chg_range.start > client_data.text.len()
-        || chg_range.end > client_data.text.len()
-    {
+    let chg_range =
+        call_data.chg_first as usize..(call_data.chg_first + call_data.chg_length) as usize;
+    if chg_range.start > client_data.text.len() || chg_range.end > client_data.text.len() {
         tracing::warn!(
             "invalid chg range: buffer length={}, but chg_first={} chg_lengthg={}",
             client_data.text.len(),
@@ -125,25 +106,19 @@ extern "C" fn preedit_draw_callback(
 
         let new_text = unsafe { CStr::from_ptr(new_text) };
 
-        String::from(new_text.to_str().expect("Invalid UTF-8 String from IME"))
-            .chars()
-            .collect()
+        String::from(new_text.to_str().expect("Invalid UTF-8 String from IME")).chars().collect()
     };
     let mut old_text_tail = client_data.text.split_off(chg_range.end);
     client_data.text.truncate(chg_range.start);
     client_data.text.append(&mut new_chars);
     client_data.text.append(&mut old_text_tail);
-    let cursor_byte_pos =
-        calc_byte_position(&client_data.text, client_data.cursor_pos);
+    let cursor_byte_pos = calc_byte_position(&client_data.text, client_data.cursor_pos);
 
     client_data
         .event_sender
         .send((
             client_data.window,
-            ImeEvent::Update(
-                client_data.text.iter().collect(),
-                cursor_byte_pos,
-            ),
+            ImeEvent::Update(client_data.text.iter().collect(), cursor_byte_pos),
         ))
         .expect("failed to send preedit update event");
 }
@@ -154,24 +129,18 @@ extern "C" fn preedit_caret_callback(
     client_data: ffi::XPointer,
     call_data: ffi::XPointer,
 ) {
-    let client_data =
-        unsafe { &mut *(client_data as *mut ImeContextClientData) };
-    let call_data =
-        unsafe { &mut *(call_data as *mut XIMPreeditCaretCallbackStruct) };
+    let client_data = unsafe { &mut *(client_data as *mut ImeContextClientData) };
+    let call_data = unsafe { &mut *(call_data as *mut XIMPreeditCaretCallbackStruct) };
 
     if call_data.direction == ffi::XIMCaretDirection::XIMAbsolutePosition {
         client_data.cursor_pos = call_data.position as usize;
-        let cursor_byte_pos =
-            calc_byte_position(&client_data.text, client_data.cursor_pos);
+        let cursor_byte_pos = calc_byte_position(&client_data.text, client_data.cursor_pos);
 
         client_data
             .event_sender
             .send((
                 client_data.window,
-                ImeEvent::Update(
-                    client_data.text.iter().collect(),
-                    cursor_byte_pos,
-                ),
+                ImeEvent::Update(client_data.text.iter().collect(), cursor_byte_pos),
             ))
             .expect("failed to send preedit update event");
     }
@@ -188,24 +157,15 @@ struct PreeditCallbacks {
 impl PreeditCallbacks {
     pub fn new(client_data: ffi::XPointer) -> PreeditCallbacks {
         let start_callback = create_xim_callback(client_data, unsafe {
-            mem::transmute::<
-                usize,
-                unsafe extern "C" fn(ffi::XIM, ffi::XPointer, ffi::XPointer),
-            >(preedit_start_callback as usize)
+            mem::transmute::<usize, unsafe extern "C" fn(ffi::XIM, ffi::XPointer, ffi::XPointer)>(
+                preedit_start_callback as usize,
+            )
         });
-        let done_callback =
-            create_xim_callback(client_data, preedit_done_callback);
-        let caret_callback =
-            create_xim_callback(client_data, preedit_caret_callback);
-        let draw_callback =
-            create_xim_callback(client_data, preedit_draw_callback);
+        let done_callback = create_xim_callback(client_data, preedit_done_callback);
+        let caret_callback = create_xim_callback(client_data, preedit_caret_callback);
+        let draw_callback = create_xim_callback(client_data, preedit_draw_callback);
 
-        PreeditCallbacks {
-            start_callback,
-            done_callback,
-            caret_callback,
-            draw_callback,
-        }
+        PreeditCallbacks { start_callback, done_callback, caret_callback, draw_callback }
     }
 }
 
@@ -245,11 +205,7 @@ impl ImeContext {
             cursor_pos: 0,
         }));
 
-        let style = if allowed {
-            im.preedit_style
-        } else {
-            im.none_style
-        };
+        let style = if allowed { im.preedit_style } else { im.none_style };
 
         let ic = match style as _ {
             Style::Preedit(style) => unsafe {
@@ -264,15 +220,11 @@ impl ImeContext {
             Style::Nothing(style) => unsafe {
                 ImeContext::create_nothing_ic(xconn, im.im, style, window)
             },
-            Style::None(style) => unsafe {
-                ImeContext::create_none_ic(xconn, im.im, style, window)
-            },
+            Style::None(style) => unsafe { ImeContext::create_none_ic(xconn, im.im, style, window) },
         }
         .ok_or(ImeContextCreationError::Null)?;
 
-        xconn
-            .check_errors()
-            .map_err(ImeContextCreationError::XError)?;
+        xconn.check_errors().map_err(ImeContextCreationError::XError)?;
 
         let mut context = ImeContext {
             ic,
@@ -376,10 +328,7 @@ impl ImeContext {
         xconn.check_errors()
     }
 
-    pub(crate) fn unfocus(
-        &self,
-        xconn: &Arc<XConnection>,
-    ) -> Result<(), XError> {
+    pub(crate) fn unfocus(&self, xconn: &Arc<XConnection>) -> Result<(), XError> {
         unsafe {
             ffi::XUnsetICFocus(self.ic);
         }
@@ -395,12 +344,7 @@ impl ImeContext {
     // window and couldn't be changed.
     //
     // For me see: https://bugs.freedesktop.org/show_bug.cgi?id=1580.
-    pub(crate) fn set_spot(
-        &mut self,
-        xconn: &Arc<XConnection>,
-        x: c_short,
-        y: c_short,
-    ) {
+    pub(crate) fn set_spot(&mut self, xconn: &Arc<XConnection>, x: c_short, y: c_short) {
         if !self.is_allowed() || self.ic_spot.x == x && self.ic_spot.y == y {
             return;
         }

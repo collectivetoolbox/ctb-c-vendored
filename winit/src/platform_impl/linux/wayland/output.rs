@@ -1,5 +1,5 @@
-use sctk::reexports::client::Proxy;
 use sctk::reexports::client::protocol::wl_output::WlOutput;
+use sctk::reexports::client::Proxy;
 
 use sctk::output::OutputData;
 
@@ -11,11 +11,7 @@ use super::event_loop::ActiveEventLoop;
 impl ActiveEventLoop {
     #[inline]
     pub fn available_monitors(&self) -> impl Iterator<Item = MonitorHandle> {
-        self.state
-            .borrow()
-            .output_state
-            .outputs()
-            .map(MonitorHandle::new)
+        self.state.borrow().output_state.outputs().map(MonitorHandle::new)
     }
 
     #[inline]
@@ -52,9 +48,7 @@ impl MonitorHandle {
     pub fn size(&self) -> PhysicalSize<u32> {
         let output_data = self.proxy.data::<OutputData>().unwrap();
         let dimensions = output_data.with_output_info(|info| {
-            info.modes
-                .iter()
-                .find_map(|mode| mode.current.then_some(mode.dimensions))
+            info.modes.iter().find_map(|mode| mode.current.then_some(mode.dimensions))
         });
 
         match dimensions {
@@ -85,9 +79,7 @@ impl MonitorHandle {
     pub fn refresh_rate_millihertz(&self) -> Option<u32> {
         let output_data = self.proxy.data::<OutputData>().unwrap();
         output_data.with_output_info(|info| {
-            info.modes.iter().find_map(|mode| {
-                mode.current.then_some(mode.refresh_rate as u32)
-            })
+            info.modes.iter().find_map(|mode| mode.current.then_some(mode.refresh_rate as u32))
         })
     }
 
@@ -106,8 +98,7 @@ impl MonitorHandle {
 
         modes.into_iter().map(move |mode| {
             PlatformVideoModeHandle::Wayland(VideoModeHandle {
-                size: (mode.dimensions.0 as u32, mode.dimensions.1 as u32)
-                    .into(),
+                size: (mode.dimensions.0 as u32, mode.dimensions.1 as u32).into(),
                 refresh_rate_millihertz: mode.refresh_rate as u32,
                 bit_depth: 32,
                 monitor: monitor.clone(),

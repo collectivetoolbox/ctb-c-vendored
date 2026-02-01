@@ -2,15 +2,14 @@ use crate::dpi::{PhysicalPosition, PhysicalSize, Position, Size};
 use crate::error::{ExternalError, NotSupportedError, OsError as RootOE};
 use crate::icon::Icon;
 use crate::window::{
-    Cursor, CursorGrabMode, ImePurpose, ResizeDirection, Theme,
-    UserAttentionType, WindowAttributes, WindowButtons, WindowId as RootWI,
-    WindowLevel,
+    Cursor, CursorGrabMode, ImePurpose, ResizeDirection, Theme, UserAttentionType,
+    WindowAttributes, WindowButtons, WindowId as RootWI, WindowLevel,
 };
 
-use super::r#async::Dispatcher;
 use super::main_thread::{MainThreadMarker, MainThreadSafe};
 use super::monitor::MonitorHandle;
-use super::{ActiveEventLoop, Fullscreen, backend};
+use super::r#async::Dispatcher;
+use super::{backend, ActiveEventLoop, Fullscreen};
 use web_sys::HtmlCanvasElement;
 
 use std::cell::RefCell;
@@ -50,15 +49,9 @@ impl Window {
         target.register(&canvas, id);
 
         let runner = target.runner.clone();
-        let destroy_fn =
-            Box::new(move || runner.notify_destroy_window(RootWI(id)));
+        let destroy_fn = Box::new(move || runner.notify_destroy_window(RootWI(id)));
 
-        let inner = Inner {
-            id,
-            window: window.clone(),
-            canvas,
-            destroy_fn: Some(destroy_fn),
-        };
+        let inner = Inner { id, window: window.clone(), canvas, destroy_fn: Some(destroy_fn) };
 
         inner.set_title(&attr.title);
         inner.set_maximized(attr.maximized);
@@ -67,58 +60,43 @@ impl Window {
         inner.set_cursor(attr.cursor);
 
         let canvas = Rc::downgrade(&inner.canvas);
-        let (dispatcher, runner) =
-            Dispatcher::new(target.runner.main_thread(), inner).unwrap();
+        let (dispatcher, runner) = Dispatcher::new(target.runner.main_thread(), inner).unwrap();
         target.runner.add_canvas(RootWI(id), canvas, runner);
 
         Ok(Window { inner: dispatcher })
     }
 
-    pub(crate) fn maybe_queue_on_main(
-        &self,
-        f: impl FnOnce(&Inner) + Send + 'static,
-    ) {
+    pub(crate) fn maybe_queue_on_main(&self, f: impl FnOnce(&Inner) + Send + 'static) {
         self.inner.dispatch(f)
     }
 
-    pub(crate) fn maybe_wait_on_main<R: Send>(
-        &self,
-        f: impl FnOnce(&Inner) -> R + Send,
-    ) -> R {
+    pub(crate) fn maybe_wait_on_main<R: Send>(&self, f: impl FnOnce(&Inner) -> R + Send) -> R {
         self.inner.queue(f)
     }
 
     pub fn canvas(&self) -> Option<HtmlCanvasElement> {
-        self.inner
-            .value()
-            .map(|inner| inner.canvas.borrow().raw().clone())
+        self.inner.value().map(|inner| inner.canvas.borrow().raw().clone())
     }
 
     pub(crate) fn prevent_default(&self) -> bool {
-        self.inner
-            .queue(|inner| inner.canvas.borrow().prevent_default.get())
+        self.inner.queue(|inner| inner.canvas.borrow().prevent_default.get())
     }
 
     pub(crate) fn set_prevent_default(&self, prevent_default: bool) {
-        self.inner.dispatch(move |inner| {
-            inner.canvas.borrow().prevent_default.set(prevent_default)
-        })
+        self.inner.dispatch(move |inner| inner.canvas.borrow().prevent_default.set(prevent_default))
     }
 
     #[cfg(feature = "rwh_06")]
     #[inline]
-    pub fn raw_window_handle_rwh_06(
-        &self,
-    ) -> Result<rwh_06::RawWindowHandle, rwh_06::HandleError> {
+    pub fn raw_window_handle_rwh_06(&self) -> Result<rwh_06::RawWindowHandle, rwh_06::HandleError> {
         self.inner
             .value()
             .map(|inner| {
                 let canvas = inner.canvas.borrow();
                 // SAFETY: This will only work if the reference to `HtmlCanvasElement` stays valid.
                 let canvas: &wasm_bindgen::JsValue = canvas.raw();
-                let window_handle = rwh_06::WebCanvasWindowHandle::new(
-                    std::ptr::NonNull::from(canvas).cast(),
-                );
+                let window_handle =
+                    rwh_06::WebCanvasWindowHandle::new(std::ptr::NonNull::from(canvas).cast());
                 rwh_06::RawWindowHandle::WebCanvas(window_handle)
             })
             .ok_or(rwh_06::HandleError::Unavailable)
@@ -129,9 +107,7 @@ impl Window {
     pub(crate) fn raw_display_handle_rwh_06(
         &self,
     ) -> Result<rwh_06::RawDisplayHandle, rwh_06::HandleError> {
-        Ok(rwh_06::RawDisplayHandle::Web(
-            rwh_06::WebDisplayHandle::new(),
-        ))
+        Ok(rwh_06::RawDisplayHandle::Web(rwh_06::WebDisplayHandle::new()))
     }
 }
 
@@ -159,19 +135,11 @@ impl Inner {
 
     pub fn pre_present_notify(&self) {}
 
-    pub fn outer_position(
-        &self,
-    ) -> Result<PhysicalPosition<i32>, NotSupportedError> {
-        Ok(self
-            .canvas
-            .borrow()
-            .position()
-            .to_physical(self.scale_factor()))
+    pub fn outer_position(&self) -> Result<PhysicalPosition<i32>, NotSupportedError> {
+        Ok(self.canvas.borrow().position().to_physical(self.scale_factor()))
     }
 
-    pub fn inner_position(
-        &self,
-    ) -> Result<PhysicalPosition<i32>, NotSupportedError> {
+    pub fn inner_position(&self) -> Result<PhysicalPosition<i32>, NotSupportedError> {
         // Note: the canvas element has no window decorations, so this is equal to `outer_position`.
         self.outer_position()
     }
@@ -180,12 +148,7 @@ impl Inner {
         let canvas = self.canvas.borrow();
         let position = position.to_logical::<f64>(self.scale_factor());
 
-        backend::set_canvas_position(
-            canvas.document(),
-            canvas.raw(),
-            canvas.style(),
-            position,
-        )
+        backend::set_canvas_position(canvas.document(), canvas.raw(), canvas.style(), position)
     }
 
     #[inline]
@@ -203,39 +166,22 @@ impl Inner {
     pub fn request_inner_size(&self, size: Size) -> Option<PhysicalSize<u32>> {
         let size = size.to_logical(self.scale_factor());
         let canvas = self.canvas.borrow();
-        backend::set_canvas_size(
-            canvas.document(),
-            canvas.raw(),
-            canvas.style(),
-            size,
-        );
+        backend::set_canvas_size(canvas.document(), canvas.raw(), canvas.style(), size);
         None
     }
 
     #[inline]
     pub fn set_min_inner_size(&self, dimensions: Option<Size>) {
-        let dimensions = dimensions
-            .map(|dimensions| dimensions.to_logical(self.scale_factor()));
+        let dimensions = dimensions.map(|dimensions| dimensions.to_logical(self.scale_factor()));
         let canvas = self.canvas.borrow();
-        backend::set_canvas_min_size(
-            canvas.document(),
-            canvas.raw(),
-            canvas.style(),
-            dimensions,
-        )
+        backend::set_canvas_min_size(canvas.document(), canvas.raw(), canvas.style(), dimensions)
     }
 
     #[inline]
     pub fn set_max_inner_size(&self, dimensions: Option<Size>) {
-        let dimensions = dimensions
-            .map(|dimensions| dimensions.to_logical(self.scale_factor()));
+        let dimensions = dimensions.map(|dimensions| dimensions.to_logical(self.scale_factor()));
         let canvas = self.canvas.borrow();
-        backend::set_canvas_max_size(
-            canvas.document(),
-            canvas.raw(),
-            canvas.style(),
-            dimensions,
-        )
+        backend::set_canvas_max_size(canvas.document(), canvas.raw(), canvas.style(), dimensions)
     }
 
     #[inline]
@@ -276,32 +222,21 @@ impl Inner {
     }
 
     #[inline]
-    pub fn set_cursor_position(
-        &self,
-        _position: Position,
-    ) -> Result<(), ExternalError> {
+    pub fn set_cursor_position(&self, _position: Position) -> Result<(), ExternalError> {
         Err(ExternalError::NotSupported(NotSupportedError::new()))
     }
 
     #[inline]
-    pub fn set_cursor_grab(
-        &self,
-        mode: CursorGrabMode,
-    ) -> Result<(), ExternalError> {
+    pub fn set_cursor_grab(&self, mode: CursorGrabMode) -> Result<(), ExternalError> {
         let lock = match mode {
             CursorGrabMode::None => false,
             CursorGrabMode::Locked => true,
             CursorGrabMode::Confined => {
-                return Err(ExternalError::NotSupported(
-                    NotSupportedError::new(),
-                ));
-            }
+                return Err(ExternalError::NotSupported(NotSupportedError::new()))
+            },
         };
 
-        self.canvas
-            .borrow()
-            .set_cursor_lock(lock)
-            .map_err(ExternalError::Os)
+        self.canvas.borrow().set_cursor_lock(lock).map_err(ExternalError::Os)
     }
 
     #[inline]
@@ -315,10 +250,7 @@ impl Inner {
     }
 
     #[inline]
-    pub fn drag_resize_window(
-        &self,
-        _direction: ResizeDirection,
-    ) -> Result<(), ExternalError> {
+    pub fn drag_resize_window(&self, _direction: ResizeDirection) -> Result<(), ExternalError> {
         Err(ExternalError::NotSupported(NotSupportedError::new()))
     }
 
@@ -326,10 +258,7 @@ impl Inner {
     pub fn show_window_menu(&self, _position: Position) {}
 
     #[inline]
-    pub fn set_cursor_hittest(
-        &self,
-        _hittest: bool,
-    ) -> Result<(), ExternalError> {
+    pub fn set_cursor_hittest(&self, _hittest: bool) -> Result<(), ExternalError> {
         Err(ExternalError::NotSupported(NotSupportedError::new()))
     }
 
@@ -415,10 +344,7 @@ impl Inner {
     }
 
     #[inline]
-    pub fn request_user_attention(
-        &self,
-        _request_type: Option<UserAttentionType>,
-    ) {
+    pub fn request_user_attention(&self, _request_type: Option<UserAttentionType>) {
         // Currently an intentional no-op
     }
 
@@ -531,18 +457,14 @@ pub struct PlatformSpecificWindowAttributes {
 }
 
 impl PlatformSpecificWindowAttributes {
-    pub(crate) fn set_canvas(
-        &mut self,
-        canvas: Option<backend::RawCanvasType>,
-    ) {
+    pub(crate) fn set_canvas(&mut self, canvas: Option<backend::RawCanvasType>) {
         let Some(canvas) = canvas else {
             self.canvas = None;
             return;
         };
 
-        let main_thread = MainThreadMarker::new().expect(
-            "received a `HtmlCanvasElement` outside the window context",
-        );
+        let main_thread = MainThreadMarker::new()
+            .expect("received a `HtmlCanvasElement` outside the window context");
 
         self.canvas = Some(Arc::new(MainThreadSafe::new(main_thread, canvas)));
     }
@@ -550,11 +472,6 @@ impl PlatformSpecificWindowAttributes {
 
 impl Default for PlatformSpecificWindowAttributes {
     fn default() -> Self {
-        Self {
-            canvas: None,
-            prevent_default: true,
-            focusable: true,
-            append: false,
-        }
+        Self { canvas: None, prevent_default: true, focusable: true, append: false }
     }
 }

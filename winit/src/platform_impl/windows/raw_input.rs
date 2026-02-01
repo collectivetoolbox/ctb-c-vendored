@@ -6,21 +6,19 @@ use windows_sys::Win32::Devices::HumanInterfaceDevice::{
 };
 use windows_sys::Win32::Foundation::{HANDLE, HWND};
 use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
-    MAPVK_VK_TO_VSC_EX, MapVirtualKeyW, VK_NUMLOCK, VK_SHIFT,
+    MapVirtualKeyW, MAPVK_VK_TO_VSC_EX, VK_NUMLOCK, VK_SHIFT,
 };
 use windows_sys::Win32::UI::Input::{
-    GetRawInputData, GetRawInputDeviceInfoW, GetRawInputDeviceList, HRAWINPUT,
-    RAWINPUT, RAWINPUTDEVICE, RAWINPUTDEVICELIST, RAWINPUTHEADER, RAWKEYBOARD,
-    RID_DEVICE_INFO, RID_DEVICE_INFO_HID, RID_DEVICE_INFO_KEYBOARD,
-    RID_DEVICE_INFO_MOUSE, RID_INPUT, RIDEV_DEVNOTIFY, RIDEV_INPUTSINK,
-    RIDEV_REMOVE, RIDI_DEVICEINFO, RIDI_DEVICENAME, RIM_TYPEHID,
-    RIM_TYPEKEYBOARD, RIM_TYPEMOUSE, RegisterRawInputDevices,
+    GetRawInputData, GetRawInputDeviceInfoW, GetRawInputDeviceList, RegisterRawInputDevices,
+    HRAWINPUT, RAWINPUT, RAWINPUTDEVICE, RAWINPUTDEVICELIST, RAWINPUTHEADER, RAWKEYBOARD,
+    RIDEV_DEVNOTIFY, RIDEV_INPUTSINK, RIDEV_REMOVE, RIDI_DEVICEINFO, RIDI_DEVICENAME,
+    RID_DEVICE_INFO, RID_DEVICE_INFO_HID, RID_DEVICE_INFO_KEYBOARD, RID_DEVICE_INFO_MOUSE,
+    RID_INPUT, RIM_TYPEHID, RIM_TYPEKEYBOARD, RIM_TYPEMOUSE,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    RI_KEY_E0, RI_KEY_E1, RI_MOUSE_BUTTON_1_DOWN, RI_MOUSE_BUTTON_1_UP,
-    RI_MOUSE_BUTTON_2_DOWN, RI_MOUSE_BUTTON_2_UP, RI_MOUSE_BUTTON_3_DOWN,
-    RI_MOUSE_BUTTON_3_UP, RI_MOUSE_BUTTON_4_DOWN, RI_MOUSE_BUTTON_4_UP,
-    RI_MOUSE_BUTTON_5_DOWN, RI_MOUSE_BUTTON_5_UP,
+    RI_KEY_E0, RI_KEY_E1, RI_MOUSE_BUTTON_1_DOWN, RI_MOUSE_BUTTON_1_UP, RI_MOUSE_BUTTON_2_DOWN,
+    RI_MOUSE_BUTTON_2_UP, RI_MOUSE_BUTTON_3_DOWN, RI_MOUSE_BUTTON_3_UP, RI_MOUSE_BUTTON_4_DOWN,
+    RI_MOUSE_BUTTON_4_UP, RI_MOUSE_BUTTON_5_DOWN, RI_MOUSE_BUTTON_5_UP,
 };
 
 use super::scancode_to_physicalkey;
@@ -34,9 +32,7 @@ pub fn get_raw_input_device_list() -> Option<Vec<RAWINPUTDEVICELIST>> {
     let list_size = size_of::<RAWINPUTDEVICELIST>() as u32;
 
     let mut num_devices = 0;
-    let status = unsafe {
-        GetRawInputDeviceList(ptr::null_mut(), &mut num_devices, list_size)
-    };
+    let status = unsafe { GetRawInputDeviceList(ptr::null_mut(), &mut num_devices, list_size) };
 
     if status == u32::MAX {
         return None;
@@ -44,9 +40,8 @@ pub fn get_raw_input_device_list() -> Option<Vec<RAWINPUTDEVICELIST>> {
 
     let mut buffer = Vec::with_capacity(num_devices as _);
 
-    let num_stored = unsafe {
-        GetRawInputDeviceList(buffer.as_mut_ptr(), &mut num_devices, list_size)
-    };
+    let num_stored =
+        unsafe { GetRawInputDeviceList(buffer.as_mut_ptr(), &mut num_devices, list_size) };
 
     if num_stored == u32::MAX {
         return None;
@@ -71,9 +66,7 @@ impl From<RID_DEVICE_INFO> for RawDeviceInfo {
         unsafe {
             match info.dwType {
                 RIM_TYPEMOUSE => RawDeviceInfo::Mouse(info.Anonymous.mouse),
-                RIM_TYPEKEYBOARD => {
-                    RawDeviceInfo::Keyboard(info.Anonymous.keyboard)
-                }
+                RIM_TYPEKEYBOARD => RawDeviceInfo::Keyboard(info.Anonymous.keyboard),
                 RIM_TYPEHID => RawDeviceInfo::Hid(info.Anonymous.hid),
                 _ => unreachable!(),
             }
@@ -90,12 +83,7 @@ pub fn get_raw_input_device_info(handle: HANDLE) -> Option<RawDeviceInfo> {
 
     let mut minimum_size = 0;
     let status = unsafe {
-        GetRawInputDeviceInfoW(
-            handle,
-            RIDI_DEVICEINFO,
-            &mut info as *mut _ as _,
-            &mut minimum_size,
-        )
+        GetRawInputDeviceInfoW(handle, RIDI_DEVICEINFO, &mut info as *mut _ as _, &mut minimum_size)
     };
 
     if status == u32::MAX || status == 0 {
@@ -110,12 +98,7 @@ pub fn get_raw_input_device_info(handle: HANDLE) -> Option<RawDeviceInfo> {
 pub fn get_raw_input_device_name(handle: HANDLE) -> Option<String> {
     let mut minimum_size = 0;
     let status = unsafe {
-        GetRawInputDeviceInfoW(
-            handle,
-            RIDI_DEVICENAME,
-            ptr::null_mut(),
-            &mut minimum_size,
-        )
+        GetRawInputDeviceInfoW(handle, RIDI_DEVICENAME, ptr::null_mut(), &mut minimum_size)
     };
 
     if status != 0 {
@@ -125,12 +108,7 @@ pub fn get_raw_input_device_name(handle: HANDLE) -> Option<String> {
     let mut name: Vec<u16> = Vec::with_capacity(minimum_size as _);
 
     let status = unsafe {
-        GetRawInputDeviceInfoW(
-            handle,
-            RIDI_DEVICENAME,
-            name.as_ptr() as _,
-            &mut minimum_size,
-        )
+        GetRawInputDeviceInfoW(handle, RIDI_DEVICENAME, name.as_ptr() as _, &mut minimum_size)
     };
 
     if status == u32::MAX || status == 0 {
@@ -148,11 +126,7 @@ pub fn register_raw_input_devices(devices: &[RAWINPUTDEVICE]) -> bool {
     let device_size = size_of::<RAWINPUTDEVICE>() as u32;
 
     unsafe {
-        RegisterRawInputDevices(
-            devices.as_ptr(),
-            devices.len() as u32,
-            device_size,
-        ) == true.into()
+        RegisterRawInputDevices(devices.as_ptr(), devices.len() as u32, device_size) == true.into()
     }
 }
 
@@ -167,7 +141,7 @@ pub fn register_all_mice_and_keyboards_for_raw_input(
         DeviceEvents::Never => {
             window_handle = 0;
             RIDEV_REMOVE
-        }
+        },
         DeviceEvents::WhenFocused => RIDEV_DEVNOTIFY,
         DeviceEvents::Always => RIDEV_DEVNOTIFY | RIDEV_INPUTSINK,
     };
@@ -196,13 +170,7 @@ pub fn get_raw_input_data(handle: HRAWINPUT) -> Option<RAWINPUT> {
     let header_size = size_of::<RAWINPUTHEADER>() as u32;
 
     let status = unsafe {
-        GetRawInputData(
-            handle,
-            RID_INPUT,
-            &mut data as *mut _ as _,
-            &mut data_size,
-            header_size,
-        )
+        GetRawInputData(handle, RID_INPUT, &mut data as *mut _ as _, &mut data_size, header_size)
     };
 
     if status == u32::MAX || status == 0 {
@@ -227,35 +195,13 @@ fn button_flags_to_element_state(
     }
 }
 
-pub fn get_raw_mouse_button_state(
-    button_flags: u32,
-) -> [Option<ElementState>; 5] {
+pub fn get_raw_mouse_button_state(button_flags: u32) -> [Option<ElementState>; 5] {
     [
-        button_flags_to_element_state(
-            button_flags,
-            RI_MOUSE_BUTTON_1_DOWN,
-            RI_MOUSE_BUTTON_1_UP,
-        ),
-        button_flags_to_element_state(
-            button_flags,
-            RI_MOUSE_BUTTON_2_DOWN,
-            RI_MOUSE_BUTTON_2_UP,
-        ),
-        button_flags_to_element_state(
-            button_flags,
-            RI_MOUSE_BUTTON_3_DOWN,
-            RI_MOUSE_BUTTON_3_UP,
-        ),
-        button_flags_to_element_state(
-            button_flags,
-            RI_MOUSE_BUTTON_4_DOWN,
-            RI_MOUSE_BUTTON_4_UP,
-        ),
-        button_flags_to_element_state(
-            button_flags,
-            RI_MOUSE_BUTTON_5_DOWN,
-            RI_MOUSE_BUTTON_5_UP,
-        ),
+        button_flags_to_element_state(button_flags, RI_MOUSE_BUTTON_1_DOWN, RI_MOUSE_BUTTON_1_UP),
+        button_flags_to_element_state(button_flags, RI_MOUSE_BUTTON_2_DOWN, RI_MOUSE_BUTTON_2_UP),
+        button_flags_to_element_state(button_flags, RI_MOUSE_BUTTON_3_DOWN, RI_MOUSE_BUTTON_3_UP),
+        button_flags_to_element_state(button_flags, RI_MOUSE_BUTTON_4_DOWN, RI_MOUSE_BUTTON_4_UP),
+        button_flags_to_element_state(button_flags, RI_MOUSE_BUTTON_5_DOWN, RI_MOUSE_BUTTON_5_UP),
     ]
 }
 
@@ -272,9 +218,7 @@ pub fn get_keyboard_physical_key(keyboard: RAWKEYBOARD) -> Option<PhysicalKey> {
     let scancode = if keyboard.MakeCode == 0 {
         // In some cases (often with media keys) the device reports a scancode of 0 but a
         // valid virtual key. In these cases we obtain the scancode from the virtual key.
-        unsafe {
-            MapVirtualKeyW(keyboard.VKey as u32, MAPVK_VK_TO_VSC_EX) as u16
-        }
+        unsafe { MapVirtualKeyW(keyboard.VKey as u32, MAPVK_VK_TO_VSC_EX) as u16 }
     } else {
         keyboard.MakeCode | extension
     };

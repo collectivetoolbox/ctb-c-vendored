@@ -60,13 +60,9 @@ fn main() {
         let wm_protocols_str = CString::new("WM_PROTOCOLS").unwrap();
         let wm_delete_window_str = CString::new("WM_DELETE_WINDOW").unwrap();
 
-        let wm_protocols =
-            xlib::XInternAtom(display, wm_protocols_str.as_ptr(), xlib::False);
-        let wm_delete_window = xlib::XInternAtom(
-            display,
-            wm_delete_window_str.as_ptr(),
-            xlib::False,
-        );
+        let wm_protocols = xlib::XInternAtom(display, wm_protocols_str.as_ptr(), xlib::False);
+        let wm_delete_window =
+            xlib::XInternAtom(display, wm_delete_window_str.as_ptr(), xlib::False);
 
         let mut protocols = [wm_delete_window];
 
@@ -91,9 +87,7 @@ fn main() {
                 xlib::ClientMessage => {
                     let xclient = xlib::XClientMessageEvent::from(*event);
 
-                    if xclient.message_type == wm_protocols
-                        && xclient.format == 32
-                    {
+                    if xclient.message_type == wm_protocols && xclient.format == 32 {
                         let protocol = xclient.data.get_long(0) as xlib::Atom;
 
                         if protocol == wm_delete_window {

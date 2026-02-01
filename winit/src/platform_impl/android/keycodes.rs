@@ -1,9 +1,7 @@
-use android_activity::AndroidApp;
 use android_activity::input::{KeyAction, KeyEvent, KeyMapChar, Keycode};
+use android_activity::AndroidApp;
 
-use crate::keyboard::{
-    Key, KeyCode, KeyLocation, NamedKey, NativeKey, NativeKeyCode, PhysicalKey,
-};
+use crate::keyboard::{Key, KeyCode, KeyLocation, NamedKey, NativeKey, NativeKeyCode, PhysicalKey};
 
 pub fn to_physical_key(keycode: Keycode) -> PhysicalKey {
     PhysicalKey::Code(match keycode {
@@ -155,11 +153,7 @@ pub fn to_physical_key(keycode: Keycode) -> PhysicalKey {
         Keycode::Sleep => KeyCode::Sleep, // what about SoftSleep?
         Keycode::Wakeup => KeyCode::WakeUp,
 
-        keycode => {
-            return PhysicalKey::Unidentified(NativeKeyCode::Android(
-                keycode.into(),
-            ));
-        }
+        keycode => return PhysicalKey::Unidentified(NativeKeyCode::Android(keycode.into())),
     })
 }
 
@@ -178,11 +172,9 @@ pub fn character_map_and_combine_key(
     let key_map = match app.device_key_character_map(device_id) {
         Ok(key_map) => key_map,
         Err(err) => {
-            tracing::warn!(
-                "Failed to look up `KeyCharacterMap` for device {device_id}: {err:?}"
-            );
+            tracing::warn!("Failed to look up `KeyCharacterMap` for device {device_id}: {err:?}");
             return None;
-        }
+        },
     };
 
     match key_map.get(key_event.key_code(), key_event.meta_state()) {
@@ -199,7 +191,7 @@ pub fn character_map_and_combine_key(
                                  '{unicode}': {err:?}"
                             );
                             None
-                        }
+                        },
                     }
                 } else {
                     Some(unicode)
@@ -209,25 +201,23 @@ pub fn character_map_and_combine_key(
             } else {
                 Some(KeyMapChar::Unicode(unicode))
             }
-        }
+        },
         Ok(KeyMapChar::CombiningAccent(accent)) => {
             if key_event.action() == KeyAction::Down {
                 *combining_accent = Some(accent);
             }
             Some(KeyMapChar::CombiningAccent(accent))
-        }
+        },
         Ok(KeyMapChar::None) => {
             // Leave any combining_accent state in tact (seems to match how other
             // Android apps work)
             None
-        }
+        },
         Err(err) => {
-            tracing::warn!(
-                "KeyEvent: Failed to get key map character: {err:?}"
-            );
+            tracing::warn!("KeyEvent: Failed to get key map character: {err:?}");
             *combining_accent = None;
             None
-        }
+        },
     }
 }
 
@@ -237,9 +227,7 @@ pub fn to_logical(key_char: Option<KeyMapChar>, keycode: Keycode) -> Key {
     let native = NativeKey::Android(keycode.into());
 
     match key_char {
-        Some(KeyMapChar::Unicode(c)) => {
-            Key::Character(smol_str::SmolStr::from_iter([c]))
-        }
+        Some(KeyMapChar::Unicode(c)) => Key::Character(smol_str::SmolStr::from_iter([c])),
         Some(KeyMapChar::CombiningAccent(c)) => Key::Dead(Some(c)),
         None | Some(KeyMapChar::None) => match keycode {
             // Using `BrowserHome` instead of `GoHome` according to
@@ -467,12 +455,8 @@ pub fn to_logical(key_char: Option<KeyMapChar>, keycode: Keycode) -> Key {
             TvInputComponent2 => Key::Named(NamedKey::TVInputComponent2),
             TvInputVga1 => Key::Named(NamedKey::TVInputVGA1),
             TvAudioDescription => Key::Named(NamedKey::TVAudioDescription),
-            TvAudioDescriptionMixUp => {
-                Key::Named(NamedKey::TVAudioDescriptionMixUp)
-            }
-            TvAudioDescriptionMixDown => {
-                Key::Named(NamedKey::TVAudioDescriptionMixDown)
-            }
+            TvAudioDescriptionMixUp => Key::Named(NamedKey::TVAudioDescriptionMixUp),
+            TvAudioDescriptionMixDown => Key::Named(NamedKey::TVAudioDescriptionMixDown),
             TvZoomMode => Key::Named(NamedKey::ZoomToggle),
             TvContentsMenu => Key::Named(NamedKey::TVContentsMenu),
             TvMediaContextMenu => Key::Named(NamedKey::TVMediaContext),

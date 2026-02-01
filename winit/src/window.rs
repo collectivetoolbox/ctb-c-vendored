@@ -6,9 +6,7 @@ use crate::error::{ExternalError, NotSupportedError};
 use crate::monitor::{MonitorHandle, VideoModeHandle};
 use crate::platform_impl::{self, PlatformSpecificWindowAttributes};
 
-pub use crate::cursor::{
-    BadImage, Cursor, CustomCursor, CustomCursorSource, MAX_CURSOR_SIZE,
-};
+pub use crate::cursor::{BadImage, Cursor, CustomCursor, CustomCursorSource, MAX_CURSOR_SIZE};
 pub use crate::icon::{BadIcon, Icon};
 
 #[doc(inline)]
@@ -54,9 +52,7 @@ impl Drop for Window {
             // video mode (generally this would be done on application exit, but
             // closing the window doesn't necessarily always mean application exit,
             // such as when there are multiple windows)
-            if let Some(Fullscreen::Exclusive(_)) =
-                w.fullscreen().map(|f| f.into())
-            {
+            if let Some(Fullscreen::Exclusive(_)) = w.fullscreen().map(|f| f.into()) {
                 w.set_fullscreen(None);
             }
         })
@@ -410,10 +406,7 @@ impl WindowAttributes {
     ///
     /// See [`Window::set_resize_increments`] for details.
     #[inline]
-    pub fn with_resize_increments<S: Into<Size>>(
-        mut self,
-        resize_increments: S,
-    ) -> Self {
+    pub fn with_resize_increments<S: Into<Size>>(mut self, resize_increments: S) -> Self {
         self.resize_increments = Some(resize_increments.into());
         self
     }
@@ -568,8 +561,7 @@ impl Window {
     /// [`contentScaleFactor`]: https://developer.apple.com/documentation/uikit/uiview/1622657-contentscalefactor?language=objc
     #[inline]
     pub fn scale_factor(&self) -> f64 {
-        let _span =
-            tracing::debug_span!("winit::Window::scale_factor",).entered();
+        let _span = tracing::debug_span!("winit::Window::scale_factor",).entered();
 
         self.window.maybe_wait_on_main(|w| w.scale_factor())
     }
@@ -603,8 +595,7 @@ impl Window {
     /// [`WindowEvent::RedrawRequested`]: crate::event::WindowEvent::RedrawRequested
     #[inline]
     pub fn request_redraw(&self) {
-        let _span =
-            tracing::debug_span!("winit::Window::request_redraw",).entered();
+        let _span = tracing::debug_span!("winit::Window::request_redraw",).entered();
 
         self.window.maybe_queue_on_main(|w| w.request_redraw())
     }
@@ -643,8 +634,7 @@ impl Window {
     /// [`WindowEvent::RedrawRequested`]: crate::event::WindowEvent::RedrawRequested
     #[inline]
     pub fn pre_present_notify(&self) {
-        let _span = tracing::debug_span!("winit::Window::pre_present_notify",)
-            .entered();
+        let _span = tracing::debug_span!("winit::Window::pre_present_notify",).entered();
 
         self.window.maybe_queue_on_main(|w| w.pre_present_notify());
     }
@@ -662,8 +652,7 @@ impl Window {
     // at least, then this function should be provided through a platform specific
     // extension trait
     pub fn reset_dead_keys(&self) {
-        let _span =
-            tracing::debug_span!("winit::Window::reset_dead_keys",).entered();
+        let _span = tracing::debug_span!("winit::Window::reset_dead_keys",).entered();
 
         self.window.maybe_queue_on_main(|w| w.reset_dead_keys())
     }
@@ -686,11 +675,8 @@ impl Window {
     ///
     /// [safe area]: https://developer.apple.com/documentation/uikit/uiview/2891103-safeareainsets?language=objc
     #[inline]
-    pub fn inner_position(
-        &self,
-    ) -> Result<PhysicalPosition<i32>, NotSupportedError> {
-        let _span =
-            tracing::debug_span!("winit::Window::inner_position",).entered();
+    pub fn inner_position(&self) -> Result<PhysicalPosition<i32>, NotSupportedError> {
+        let _span = tracing::debug_span!("winit::Window::inner_position",).entered();
 
         self.window.maybe_wait_on_main(|w| w.inner_position())
     }
@@ -712,11 +698,8 @@ impl Window {
     /// - **Web:** Returns the top-left coordinates relative to the viewport.
     /// - **Android / Wayland:** Always returns [`NotSupportedError`].
     #[inline]
-    pub fn outer_position(
-        &self,
-    ) -> Result<PhysicalPosition<i32>, NotSupportedError> {
-        let _span =
-            tracing::debug_span!("winit::Window::outer_position",).entered();
+    pub fn outer_position(&self) -> Result<PhysicalPosition<i32>, NotSupportedError> {
+        let _span = tracing::debug_span!("winit::Window::outer_position",).entered();
 
         self.window.maybe_wait_on_main(|w| w.outer_position())
     }
@@ -756,8 +739,7 @@ impl Window {
         )
         .entered();
 
-        self.window
-            .maybe_queue_on_main(move |w| w.set_outer_position(position))
+        self.window.maybe_queue_on_main(move |w| w.set_outer_position(position))
     }
 
     /// Returns the physical size of the window's client area.
@@ -774,8 +756,7 @@ impl Window {
     /// [`transform`]: https://developer.mozilla.org/en-US/docs/Web/CSS/transform
     #[inline]
     pub fn inner_size(&self) -> PhysicalSize<u32> {
-        let _span =
-            tracing::debug_span!("winit::Window::inner_size",).entered();
+        let _span = tracing::debug_span!("winit::Window::inner_size",).entered();
 
         self.window.maybe_wait_on_main(|w| w.inner_size())
     }
@@ -816,18 +797,14 @@ impl Window {
     /// [`transform`]: https://developer.mozilla.org/en-US/docs/Web/CSS/transform
     #[inline]
     #[must_use]
-    pub fn request_inner_size<S: Into<Size>>(
-        &self,
-        size: S,
-    ) -> Option<PhysicalSize<u32>> {
+    pub fn request_inner_size<S: Into<Size>>(&self, size: S) -> Option<PhysicalSize<u32>> {
         let size = size.into();
         let _span = tracing::debug_span!(
             "winit::Window::request_inner_size",
             size = ?size
         )
         .entered();
-        self.window
-            .maybe_wait_on_main(|w| w.request_inner_size(size))
+        self.window.maybe_wait_on_main(|w| w.request_inner_size(size))
     }
 
     /// Returns the physical size of the entire window.
@@ -843,8 +820,7 @@ impl Window {
     ///   [`Window::inner_size`]._
     #[inline]
     pub fn outer_size(&self) -> PhysicalSize<u32> {
-        let _span =
-            tracing::debug_span!("winit::Window::outer_size",).entered();
+        let _span = tracing::debug_span!("winit::Window::outer_size",).entered();
         self.window.maybe_wait_on_main(|w| w.outer_size())
     }
 
@@ -873,8 +849,7 @@ impl Window {
             min_size = ?min_size
         )
         .entered();
-        self.window
-            .maybe_queue_on_main(move |w| w.set_min_inner_size(min_size))
+        self.window.maybe_queue_on_main(move |w| w.set_min_inner_size(min_size))
     }
 
     /// Sets a maximum dimension size for the window.
@@ -902,8 +877,7 @@ impl Window {
             max_size = ?max_size
         )
         .entered();
-        self.window
-            .maybe_queue_on_main(move |w| w.set_max_inner_size(max_size))
+        self.window.maybe_queue_on_main(move |w| w.set_max_inner_size(max_size))
     }
 
     /// Returns window resize increments if any were set.
@@ -913,8 +887,7 @@ impl Window {
     /// - **iOS / Android / Web / Wayland / Orbital:** Always returns [`None`].
     #[inline]
     pub fn resize_increments(&self) -> Option<PhysicalSize<u32>> {
-        let _span =
-            tracing::debug_span!("winit::Window::resize_increments",).entered();
+        let _span = tracing::debug_span!("winit::Window::resize_increments",).entered();
         self.window.maybe_wait_on_main(|w| w.resize_increments())
     }
 
@@ -937,8 +910,7 @@ impl Window {
             increments = ?increments
         )
         .entered();
-        self.window
-            .maybe_queue_on_main(move |w| w.set_resize_increments(increments))
+        self.window.maybe_queue_on_main(move |w| w.set_resize_increments(increments))
     }
 }
 
@@ -951,8 +923,7 @@ impl Window {
     /// - **iOS / Android:** Unsupported.
     #[inline]
     pub fn set_title(&self, title: &str) {
-        let _span =
-            tracing::debug_span!("winit::Window::set_title", title).entered();
+        let _span = tracing::debug_span!("winit::Window::set_title", title).entered();
         self.window.maybe_wait_on_main(|w| w.set_title(title))
     }
 
@@ -973,11 +944,8 @@ impl Window {
     ///   [`WindowAttributes::with_transparent`].
     #[inline]
     pub fn set_transparent(&self, transparent: bool) {
-        let _span =
-            tracing::debug_span!("winit::Window::set_transparent", transparent)
-                .entered();
-        self.window
-            .maybe_queue_on_main(move |w| w.set_transparent(transparent))
+        let _span = tracing::debug_span!("winit::Window::set_transparent", transparent).entered();
+        self.window.maybe_queue_on_main(move |w| w.set_transparent(transparent))
     }
 
     /// Change the window blur state.
@@ -990,8 +958,7 @@ impl Window {
     /// - **Wayland:** Only works with org_kde_kwin_blur_manager protocol.
     #[inline]
     pub fn set_blur(&self, blur: bool) {
-        let _span =
-            tracing::debug_span!("winit::Window::set_blur", blur).entered();
+        let _span = tracing::debug_span!("winit::Window::set_blur", blur).entered();
         self.window.maybe_queue_on_main(move |w| w.set_blur(blur))
     }
 
@@ -1005,10 +972,8 @@ impl Window {
     /// - **iOS:** Can only be called on the main thread.
     #[inline]
     pub fn set_visible(&self, visible: bool) {
-        let _span = tracing::debug_span!("winit::Window::set_visible", visible)
-            .entered();
-        self.window
-            .maybe_queue_on_main(move |w| w.set_visible(visible))
+        let _span = tracing::debug_span!("winit::Window::set_visible", visible).entered();
+        self.window.maybe_queue_on_main(move |w| w.set_visible(visible))
     }
 
     /// Gets the window's current visibility state.
@@ -1022,8 +987,7 @@ impl Window {
     /// - **Wayland / iOS / Android / Web:** Unsupported.
     #[inline]
     pub fn is_visible(&self) -> Option<bool> {
-        let _span =
-            tracing::debug_span!("winit::Window::is_visible",).entered();
+        let _span = tracing::debug_span!("winit::Window::is_visible",).entered();
         self.window.maybe_wait_on_main(|w| w.is_visible())
     }
 
@@ -1044,11 +1008,8 @@ impl Window {
     /// [`WindowEvent::Resized`]: crate::event::WindowEvent::Resized
     #[inline]
     pub fn set_resizable(&self, resizable: bool) {
-        let _span =
-            tracing::debug_span!("winit::Window::set_resizable", resizable)
-                .entered();
-        self.window
-            .maybe_queue_on_main(move |w| w.set_resizable(resizable))
+        let _span = tracing::debug_span!("winit::Window::set_resizable", resizable).entered();
+        self.window.maybe_queue_on_main(move |w| w.set_resizable(resizable))
     }
 
     /// Gets the window's current resizable state.
@@ -1059,8 +1020,7 @@ impl Window {
     /// - **iOS / Android / Web:** Unsupported.
     #[inline]
     pub fn is_resizable(&self) -> bool {
-        let _span =
-            tracing::debug_span!("winit::Window::is_resizable",).entered();
+        let _span = tracing::debug_span!("winit::Window::is_resizable",).entered();
         self.window.maybe_wait_on_main(|w| w.is_resizable())
     }
 
@@ -1076,8 +1036,7 @@ impl Window {
             buttons = ?buttons
         )
         .entered();
-        self.window
-            .maybe_queue_on_main(move |w| w.set_enabled_buttons(buttons))
+        self.window.maybe_queue_on_main(move |w| w.set_enabled_buttons(buttons))
     }
 
     /// Gets the enabled window buttons.
@@ -1087,8 +1046,7 @@ impl Window {
     /// - **Wayland / X11 / Orbital:** Not implemented. Always returns [`WindowButtons::all`].
     /// - **Web / iOS / Android:** Unsupported. Always returns [`WindowButtons::all`].
     pub fn enabled_buttons(&self) -> WindowButtons {
-        let _span =
-            tracing::debug_span!("winit::Window::enabled_buttons",).entered();
+        let _span = tracing::debug_span!("winit::Window::enabled_buttons",).entered();
         self.window.maybe_wait_on_main(|w| w.enabled_buttons())
     }
 
@@ -1100,11 +1058,8 @@ impl Window {
     /// - **Wayland:** Un-minimize is unsupported.
     #[inline]
     pub fn set_minimized(&self, minimized: bool) {
-        let _span =
-            tracing::debug_span!("winit::Window::set_minimized", minimized)
-                .entered();
-        self.window
-            .maybe_queue_on_main(move |w| w.set_minimized(minimized))
+        let _span = tracing::debug_span!("winit::Window::set_minimized", minimized).entered();
+        self.window.maybe_queue_on_main(move |w| w.set_minimized(minimized))
     }
 
     /// Gets the window's current minimized state.
@@ -1121,8 +1076,7 @@ impl Window {
     /// - **iOS / Android / Web / Orbital:** Unsupported.
     #[inline]
     pub fn is_minimized(&self) -> Option<bool> {
-        let _span =
-            tracing::debug_span!("winit::Window::is_minimized",).entered();
+        let _span = tracing::debug_span!("winit::Window::is_minimized",).entered();
         self.window.maybe_wait_on_main(|w| w.is_minimized())
     }
 
@@ -1133,11 +1087,8 @@ impl Window {
     /// - **iOS / Android / Web:** Unsupported.
     #[inline]
     pub fn set_maximized(&self, maximized: bool) {
-        let _span =
-            tracing::debug_span!("winit::Window::set_maximized", maximized)
-                .entered();
-        self.window
-            .maybe_queue_on_main(move |w| w.set_maximized(maximized))
+        let _span = tracing::debug_span!("winit::Window::set_maximized", maximized).entered();
+        self.window.maybe_queue_on_main(move |w| w.set_maximized(maximized))
     }
 
     /// Gets the window's current maximized state.
@@ -1147,8 +1098,7 @@ impl Window {
     /// - **iOS / Android / Web:** Unsupported.
     #[inline]
     pub fn is_maximized(&self) -> bool {
-        let _span =
-            tracing::debug_span!("winit::Window::is_maximized",).entered();
+        let _span = tracing::debug_span!("winit::Window::is_maximized",).entered();
         self.window.maybe_wait_on_main(|w| w.is_maximized())
     }
 
@@ -1181,9 +1131,7 @@ impl Window {
             fullscreen = ?fullscreen
         )
         .entered();
-        self.window.maybe_queue_on_main(move |w| {
-            w.set_fullscreen(fullscreen.map(|f| f.into()))
-        })
+        self.window.maybe_queue_on_main(move |w| w.set_fullscreen(fullscreen.map(|f| f.into())))
     }
 
     /// Gets the window's current fullscreen state.
@@ -1196,10 +1144,8 @@ impl Window {
     /// - **Web:** Can only return `None` or `Borderless(None)`.
     #[inline]
     pub fn fullscreen(&self) -> Option<Fullscreen> {
-        let _span =
-            tracing::debug_span!("winit::Window::fullscreen",).entered();
-        self.window
-            .maybe_wait_on_main(|w| w.fullscreen().map(|f| f.into()))
+        let _span = tracing::debug_span!("winit::Window::fullscreen",).entered();
+        self.window.maybe_wait_on_main(|w| w.fullscreen().map(|f| f.into()))
     }
 
     /// Turn window decorations on or off.
@@ -1213,11 +1159,8 @@ impl Window {
     /// - **iOS / Android / Web:** No effect.
     #[inline]
     pub fn set_decorations(&self, decorations: bool) {
-        let _span =
-            tracing::debug_span!("winit::Window::set_decorations", decorations)
-                .entered();
-        self.window
-            .maybe_queue_on_main(move |w| w.set_decorations(decorations))
+        let _span = tracing::debug_span!("winit::Window::set_decorations", decorations).entered();
+        self.window.maybe_queue_on_main(move |w| w.set_decorations(decorations))
     }
 
     /// Gets the window's current decorations state.
@@ -1230,8 +1173,7 @@ impl Window {
     /// - **iOS / Android / Web:** Always returns `true`.
     #[inline]
     pub fn is_decorated(&self) -> bool {
-        let _span =
-            tracing::debug_span!("winit::Window::is_decorated",).entered();
+        let _span = tracing::debug_span!("winit::Window::is_decorated",).entered();
         self.window.maybe_wait_on_main(|w| w.is_decorated())
     }
 
@@ -1246,8 +1188,7 @@ impl Window {
             level = ?level
         )
         .entered();
-        self.window
-            .maybe_queue_on_main(move |w| w.set_window_level(level))
+        self.window.maybe_queue_on_main(move |w| w.set_window_level(level))
     }
 
     /// Sets the window icon.
@@ -1266,10 +1207,8 @@ impl Window {
     ///   That said, it's usually in the same ballpark as on Windows.
     #[inline]
     pub fn set_window_icon(&self, window_icon: Option<Icon>) {
-        let _span =
-            tracing::debug_span!("winit::Window::set_window_icon",).entered();
-        self.window
-            .maybe_queue_on_main(move |w| w.set_window_icon(window_icon))
+        let _span = tracing::debug_span!("winit::Window::set_window_icon",).entered();
+        self.window.maybe_queue_on_main(move |w| w.set_window_icon(window_icon))
     }
 
     /// Set the IME cursor editing area, where the `position` is the top left corner of that area
@@ -1307,11 +1246,7 @@ impl Window {
     /// [chinese]: https://support.apple.com/guide/chinese-input-method/use-the-candidate-window-cim12992/104/mac/12.0
     /// [japanese]: https://support.apple.com/guide/japanese-input-method/use-the-candidate-window-jpim10262/6.3/mac/12.0
     #[inline]
-    pub fn set_ime_cursor_area<P: Into<Position>, S: Into<Size>>(
-        &self,
-        position: P,
-        size: S,
-    ) {
+    pub fn set_ime_cursor_area<P: Into<Position>, S: Into<Size>>(&self, position: P, size: S) {
         let position = position.into();
         let size = size.into();
         let _span = tracing::debug_span!(
@@ -1320,8 +1255,7 @@ impl Window {
             size = ?size,
         )
         .entered();
-        self.window
-            .maybe_queue_on_main(move |w| w.set_ime_cursor_area(position, size))
+        self.window.maybe_queue_on_main(move |w| w.set_ime_cursor_area(position, size))
     }
 
     /// Sets whether the window should get IME events
@@ -1348,11 +1282,8 @@ impl Window {
     /// [`KeyboardInput`]: crate::event::WindowEvent::KeyboardInput
     #[inline]
     pub fn set_ime_allowed(&self, allowed: bool) {
-        let _span =
-            tracing::debug_span!("winit::Window::set_ime_allowed", allowed)
-                .entered();
-        self.window
-            .maybe_queue_on_main(move |w| w.set_ime_allowed(allowed))
+        let _span = tracing::debug_span!("winit::Window::set_ime_allowed", allowed).entered();
+        self.window.maybe_queue_on_main(move |w| w.set_ime_allowed(allowed))
     }
 
     /// Sets the IME purpose for the window using [`ImePurpose`].
@@ -1367,8 +1298,7 @@ impl Window {
             purpose = ?purpose
         )
         .entered();
-        self.window
-            .maybe_queue_on_main(move |w| w.set_ime_purpose(purpose))
+        self.window.maybe_queue_on_main(move |w| w.set_ime_purpose(purpose))
     }
 
     /// Brings the window to the front and sets input focus. Has no effect if the window is
@@ -1383,8 +1313,7 @@ impl Window {
     /// - **iOS / Android / Wayland / Orbital:** Unsupported.
     #[inline]
     pub fn focus_window(&self) {
-        let _span =
-            tracing::debug_span!("winit::Window::focus_window",).entered();
+        let _span = tracing::debug_span!("winit::Window::focus_window",).entered();
         self.window.maybe_queue_on_main(|w| w.focus_window())
     }
 
@@ -1413,18 +1342,13 @@ impl Window {
     /// - **X11:** Requests for user attention must be manually cleared.
     /// - **Wayland:** Requires `xdg_activation_v1` protocol, `None` has no effect.
     #[inline]
-    pub fn request_user_attention(
-        &self,
-        request_type: Option<UserAttentionType>,
-    ) {
+    pub fn request_user_attention(&self, request_type: Option<UserAttentionType>) {
         let _span = tracing::debug_span!(
             "winit::Window::request_user_attention",
             request_type = ?request_type
         )
         .entered();
-        self.window.maybe_queue_on_main(move |w| {
-            w.request_user_attention(request_type)
-        })
+        self.window.maybe_queue_on_main(move |w| w.request_user_attention(request_type))
     }
 
     /// Set or override the window theme.
@@ -1472,13 +1396,9 @@ impl Window {
     ///
     /// [`NSWindowSharingNone`]: https://developer.apple.com/documentation/appkit/nswindowsharingtype/nswindowsharingnone
     pub fn set_content_protected(&self, protected: bool) {
-        let _span = tracing::debug_span!(
-            "winit::Window::set_content_protected",
-            protected
-        )
-        .entered();
-        self.window
-            .maybe_queue_on_main(move |w| w.set_content_protected(protected))
+        let _span =
+            tracing::debug_span!("winit::Window::set_content_protected", protected).entered();
+        self.window.maybe_queue_on_main(move |w| w.set_content_protected(protected))
     }
 
     /// Gets the current title of the window.
@@ -1505,10 +1425,8 @@ impl Window {
     #[inline]
     pub fn set_cursor(&self, cursor: impl Into<Cursor>) {
         let cursor = cursor.into();
-        let _span =
-            tracing::debug_span!("winit::Window::set_cursor",).entered();
-        self.window
-            .maybe_queue_on_main(move |w| w.set_cursor(cursor))
+        let _span = tracing::debug_span!("winit::Window::set_cursor",).entered();
+        self.window.maybe_queue_on_main(move |w| w.set_cursor(cursor))
     }
 
     /// Deprecated! Use [`Window::set_cursor()`] instead.
@@ -1537,18 +1455,14 @@ impl Window {
     /// - **Wayland**: Cursor must be in [`CursorGrabMode::Locked`].
     /// - **iOS / Android / Web / Orbital:** Always returns an [`ExternalError::NotSupported`].
     #[inline]
-    pub fn set_cursor_position<P: Into<Position>>(
-        &self,
-        position: P,
-    ) -> Result<(), ExternalError> {
+    pub fn set_cursor_position<P: Into<Position>>(&self, position: P) -> Result<(), ExternalError> {
         let position = position.into();
         let _span = tracing::debug_span!(
             "winit::Window::set_cursor_position",
             position = ?position
         )
         .entered();
-        self.window
-            .maybe_wait_on_main(|w| w.set_cursor_position(position))
+        self.window.maybe_wait_on_main(|w| w.set_cursor_position(position))
     }
 
     /// Set grabbing [mode][CursorGrabMode] on the cursor preventing it from leaving the window.
@@ -1567,10 +1481,7 @@ impl Window {
     /// # }
     /// ```
     #[inline]
-    pub fn set_cursor_grab(
-        &self,
-        mode: CursorGrabMode,
-    ) -> Result<(), ExternalError> {
+    pub fn set_cursor_grab(&self, mode: CursorGrabMode) -> Result<(), ExternalError> {
         let _span = tracing::debug_span!(
             "winit::Window::set_cursor_grab",
             mode = ?mode
@@ -1593,11 +1504,8 @@ impl Window {
     /// - **iOS / Android:** Unsupported.
     #[inline]
     pub fn set_cursor_visible(&self, visible: bool) {
-        let _span =
-            tracing::debug_span!("winit::Window::set_cursor_visible", visible)
-                .entered();
-        self.window
-            .maybe_queue_on_main(move |w| w.set_cursor_visible(visible))
+        let _span = tracing::debug_span!("winit::Window::set_cursor_visible", visible).entered();
+        self.window.maybe_queue_on_main(move |w| w.set_cursor_visible(visible))
     }
 
     /// Moves the window with the left mouse button until the button is released.
@@ -1613,8 +1521,7 @@ impl Window {
     /// - **iOS / Android / Web:** Always returns an [`ExternalError::NotSupported`].
     #[inline]
     pub fn drag_window(&self) -> Result<(), ExternalError> {
-        let _span =
-            tracing::debug_span!("winit::Window::drag_window",).entered();
+        let _span = tracing::debug_span!("winit::Window::drag_window",).entered();
         self.window.maybe_wait_on_main(|w| w.drag_window())
     }
 
@@ -1628,17 +1535,13 @@ impl Window {
     /// - **macOS:** Always returns an [`ExternalError::NotSupported`]
     /// - **iOS / Android / Web:** Always returns an [`ExternalError::NotSupported`].
     #[inline]
-    pub fn drag_resize_window(
-        &self,
-        direction: ResizeDirection,
-    ) -> Result<(), ExternalError> {
+    pub fn drag_resize_window(&self, direction: ResizeDirection) -> Result<(), ExternalError> {
         let _span = tracing::debug_span!(
             "winit::Window::drag_resize_window",
             direction = ?direction
         )
         .entered();
-        self.window
-            .maybe_wait_on_main(|w| w.drag_resize_window(direction))
+        self.window.maybe_wait_on_main(|w| w.drag_resize_window(direction))
     }
 
     /// Show [window menu] at a specified position .
@@ -1657,8 +1560,7 @@ impl Window {
             position = ?position
         )
         .entered();
-        self.window
-            .maybe_queue_on_main(move |w| w.show_window_menu(position))
+        self.window.maybe_queue_on_main(move |w| w.show_window_menu(position))
     }
 
     /// Modifies whether the window catches cursor events.
@@ -1671,15 +1573,9 @@ impl Window {
     ///
     /// - **iOS / Android / Web / Orbital:** Always returns an [`ExternalError::NotSupported`].
     #[inline]
-    pub fn set_cursor_hittest(
-        &self,
-        hittest: bool,
-    ) -> Result<(), ExternalError> {
-        let _span =
-            tracing::debug_span!("winit::Window::set_cursor_hittest", hittest)
-                .entered();
-        self.window
-            .maybe_wait_on_main(|w| w.set_cursor_hittest(hittest))
+    pub fn set_cursor_hittest(&self, hittest: bool) -> Result<(), ExternalError> {
+        let _span = tracing::debug_span!("winit::Window::set_cursor_hittest", hittest).entered();
+        self.window.maybe_wait_on_main(|w| w.set_cursor_hittest(hittest))
     }
 }
 
@@ -1690,11 +1586,8 @@ impl Window {
     /// Returns `None` if current monitor can't be detected.
     #[inline]
     pub fn current_monitor(&self) -> Option<MonitorHandle> {
-        let _span =
-            tracing::debug_span!("winit::Window::current_monitor",).entered();
-        self.window.maybe_wait_on_main(|w| {
-            w.current_monitor().map(|inner| MonitorHandle { inner })
-        })
+        let _span = tracing::debug_span!("winit::Window::current_monitor",).entered();
+        self.window.maybe_wait_on_main(|w| w.current_monitor().map(|inner| MonitorHandle { inner }))
     }
 
     /// Returns the list of all the monitors available on the system.
@@ -1705,12 +1598,9 @@ impl Window {
     /// [`ActiveEventLoop::available_monitors`]: crate::event_loop::ActiveEventLoop::available_monitors
     #[inline]
     pub fn available_monitors(&self) -> impl Iterator<Item = MonitorHandle> {
-        let _span = tracing::debug_span!("winit::Window::available_monitors",)
-            .entered();
+        let _span = tracing::debug_span!("winit::Window::available_monitors",).entered();
         self.window.maybe_wait_on_main(|w| {
-            w.available_monitors()
-                .into_iter()
-                .map(|inner| MonitorHandle { inner })
+            w.available_monitors().into_iter().map(|inner| MonitorHandle { inner })
         })
     }
 
@@ -1727,19 +1617,14 @@ impl Window {
     /// [`ActiveEventLoop::primary_monitor`]: crate::event_loop::ActiveEventLoop::primary_monitor
     #[inline]
     pub fn primary_monitor(&self) -> Option<MonitorHandle> {
-        let _span =
-            tracing::debug_span!("winit::Window::primary_monitor",).entered();
-        self.window.maybe_wait_on_main(|w| {
-            w.primary_monitor().map(|inner| MonitorHandle { inner })
-        })
+        let _span = tracing::debug_span!("winit::Window::primary_monitor",).entered();
+        self.window.maybe_wait_on_main(|w| w.primary_monitor().map(|inner| MonitorHandle { inner }))
     }
 }
 
 #[cfg(feature = "rwh_06")]
 impl rwh_06::HasWindowHandle for Window {
-    fn window_handle(
-        &self,
-    ) -> Result<rwh_06::WindowHandle<'_>, rwh_06::HandleError> {
+    fn window_handle(&self) -> Result<rwh_06::WindowHandle<'_>, rwh_06::HandleError> {
         let raw = self.window.raw_window_handle_rwh_06()?;
 
         // SAFETY: The window handle will never be deallocated while the window is alive,
@@ -1750,9 +1635,7 @@ impl rwh_06::HasWindowHandle for Window {
 
 #[cfg(feature = "rwh_06")]
 impl rwh_06::HasDisplayHandle for Window {
-    fn display_handle(
-        &self,
-    ) -> Result<rwh_06::DisplayHandle<'_>, rwh_06::HandleError> {
+    fn display_handle(&self) -> Result<rwh_06::DisplayHandle<'_>, rwh_06::HandleError> {
         let raw = self.window.raw_display_handle_rwh_06()?;
 
         // SAFETY: The window handle will never be deallocated while the window is alive,
@@ -1775,11 +1658,7 @@ unsafe impl<T> Send for UnsafeSendWrapper<T> {}
 #[cfg(feature = "rwh_05")]
 unsafe impl rwh_05::HasRawWindowHandle for Window {
     fn raw_window_handle(&self) -> rwh_05::RawWindowHandle {
-        self.window
-            .maybe_wait_on_main(|w| {
-                UnsafeSendWrapper(w.raw_window_handle_rwh_05())
-            })
-            .0
+        self.window.maybe_wait_on_main(|w| UnsafeSendWrapper(w.raw_window_handle_rwh_05())).0
     }
 }
 
@@ -1790,22 +1669,14 @@ unsafe impl rwh_05::HasRawDisplayHandle for Window {
     ///
     /// [`EventLoop`]: crate::event_loop::EventLoop
     fn raw_display_handle(&self) -> rwh_05::RawDisplayHandle {
-        self.window
-            .maybe_wait_on_main(|w| {
-                UnsafeSendWrapper(w.raw_display_handle_rwh_05())
-            })
-            .0
+        self.window.maybe_wait_on_main(|w| UnsafeSendWrapper(w.raw_display_handle_rwh_05())).0
     }
 }
 
 #[cfg(feature = "rwh_04")]
 unsafe impl rwh_04::HasRawWindowHandle for Window {
     fn raw_window_handle(&self) -> rwh_04::RawWindowHandle {
-        self.window
-            .maybe_wait_on_main(|w| {
-                UnsafeSendWrapper(w.raw_window_handle_rwh_04())
-            })
-            .0
+        self.window.maybe_wait_on_main(|w| UnsafeSendWrapper(w.raw_window_handle_rwh_04())).0
     }
 }
 

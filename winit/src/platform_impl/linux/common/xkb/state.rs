@@ -24,22 +24,14 @@ pub struct XkbState {
 impl XkbState {
     #[cfg(wayland_platform)]
     pub fn new_wayland(keymap: &XkbKeymap) -> Option<Self> {
-        let state =
-            NonNull::new(unsafe { xkb::xkb_state_new(keymap.as_ptr()) })?;
+        let state = NonNull::new(unsafe { xkb::xkb_state_new(keymap.as_ptr()) })?;
         Some(Self::new_inner(state))
     }
 
     #[cfg(x11_platform)]
-    pub fn new_x11(
-        xcb: *mut xcb_connection_t,
-        keymap: &XkbKeymap,
-    ) -> Option<Self> {
+    pub fn new_x11(xcb: *mut xcb_connection_t, keymap: &XkbKeymap) -> Option<Self> {
         let state = unsafe {
-            xkb::xkb_x11_state_new_from_device(
-                keymap.as_ptr(),
-                xcb,
-                keymap._core_keyboard_id,
-            )
+            xkb::xkb_x11_state_new_from_device(keymap.as_ptr(), xcb, keymap._core_keyboard_id)
         };
         let state = NonNull::new(state)?;
         Some(Self::new_inner(state))
@@ -136,11 +128,9 @@ impl XkbState {
         self.modifiers.ctrl = self.mod_name_is_active(xkb::XKB_MOD_NAME_CTRL);
         self.modifiers.alt = self.mod_name_is_active(xkb::XKB_MOD_NAME_ALT);
         self.modifiers.shift = self.mod_name_is_active(xkb::XKB_MOD_NAME_SHIFT);
-        self.modifiers.caps_lock =
-            self.mod_name_is_active(xkb::XKB_MOD_NAME_CAPS);
+        self.modifiers.caps_lock = self.mod_name_is_active(xkb::XKB_MOD_NAME_CAPS);
         self.modifiers.logo = self.mod_name_is_active(xkb::XKB_MOD_NAME_LOGO);
-        self.modifiers.num_lock =
-            self.mod_name_is_active(xkb::XKB_MOD_NAME_NUM);
+        self.modifiers.num_lock = self.mod_name_is_active(xkb::XKB_MOD_NAME_NUM);
     }
 
     /// Check if the modifier is active within xkb.

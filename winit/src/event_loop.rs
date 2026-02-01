@@ -23,9 +23,7 @@ use crate::error::{EventLoopError, OsError};
 use crate::event::Event;
 use crate::monitor::MonitorHandle;
 use crate::platform_impl;
-use crate::window::{
-    CustomCursor, CustomCursorSource, Theme, Window, WindowAttributes,
-};
+use crate::window::{CustomCursor, CustomCursorSource, Theme, Window, WindowAttributes};
 
 /// Provides a way to retrieve events from the system and from the windows that were registered to
 /// the events loop.
@@ -64,8 +62,7 @@ pub struct ActiveEventLoop {
 /// This can be created using [`EventLoop::new`] or [`EventLoop::with_user_event`].
 #[derive(Default)]
 pub struct EventLoopBuilder<T: 'static> {
-    pub(crate) platform_specific:
-        platform_impl::PlatformSpecificEventLoopAttributes,
+    pub(crate) platform_specific: platform_impl::PlatformSpecificEventLoopAttributes,
     _p: PhantomData<T>,
 }
 
@@ -116,8 +113,7 @@ impl<T> EventLoopBuilder<T> {
     )]
     #[inline]
     pub fn build(&mut self) -> Result<EventLoop<T>, EventLoopError> {
-        let _span =
-            tracing::debug_span!("winit::EventLoopBuilder::build").entered();
+        let _span = tracing::debug_span!("winit::EventLoopBuilder::build").entered();
 
         if EVENT_LOOP_CREATED.swap(true, Ordering::Relaxed) {
             return Err(EventLoopError::RecreationAttempt);
@@ -126,9 +122,7 @@ impl<T> EventLoopBuilder<T> {
         // Certain platforms accept a mutable reference in their API.
         #[allow(clippy::unnecessary_mut_passed)]
         Ok(EventLoop {
-            event_loop: platform_impl::EventLoop::new(
-                &mut self.platform_specific,
-            )?,
+            event_loop: platform_impl::EventLoop::new(&mut self.platform_specific)?,
             _marker: PhantomData,
         })
     }
@@ -219,10 +213,7 @@ impl<T> EventLoop<T> {
     /// Start building a new event loop, with the given type as the user event
     /// type.
     pub fn with_user_event() -> EventLoopBuilder<T> {
-        EventLoopBuilder {
-            platform_specific: Default::default(),
-            _p: PhantomData,
-        }
+        EventLoopBuilder { platform_specific: Default::default(), _p: PhantomData }
     }
 
     /// See [`run_app`].
@@ -270,30 +261,21 @@ impl<T> EventLoop<T> {
     /// [^1]: `EventLoopExtWebSys::spawn_app()` is only available on Web.
     #[inline]
     #[cfg(not(all(web_platform, target_feature = "exception-handling")))]
-    pub fn run_app<A: ApplicationHandler<T>>(
-        self,
-        app: &mut A,
-    ) -> Result<(), EventLoopError> {
-        self.event_loop.run(|event, event_loop| {
-            dispatch_event_for_app(app, event_loop, event)
-        })
+    pub fn run_app<A: ApplicationHandler<T>>(self, app: &mut A) -> Result<(), EventLoopError> {
+        self.event_loop.run(|event, event_loop| dispatch_event_for_app(app, event_loop, event))
     }
 
     /// Creates an [`EventLoopProxy`] that can be used to dispatch user events
     /// to the main event loop, possibly from another thread.
     pub fn create_proxy(&self) -> EventLoopProxy<T> {
-        EventLoopProxy {
-            event_loop_proxy: self.event_loop.create_proxy(),
-        }
+        EventLoopProxy { event_loop_proxy: self.event_loop.create_proxy() }
     }
 
     /// Gets a persistent reference to the underlying platform display.
     ///
     /// See the [`OwnedDisplayHandle`] type for more information.
     pub fn owned_display_handle(&self) -> OwnedDisplayHandle {
-        OwnedDisplayHandle {
-            platform: self.event_loop.window_target().p.owned_display_handle(),
-        }
+        OwnedDisplayHandle { platform: self.event_loop.window_target().p.owned_display_handle() }
     }
 
     /// Change if or when [`DeviceEvent`]s are captured.
@@ -308,18 +290,12 @@ impl<T> EventLoop<T> {
         )
         .entered();
 
-        self.event_loop
-            .window_target()
-            .p
-            .listen_device_events(allowed);
+        self.event_loop.window_target().p.listen_device_events(allowed);
     }
 
     /// Sets the [`ControlFlow`].
     pub fn set_control_flow(&self, control_flow: ControlFlow) {
-        self.event_loop
-            .window_target()
-            .p
-            .set_control_flow(control_flow)
+        self.event_loop.window_target().p.set_control_flow(control_flow)
     }
 
     /// Create a window.
@@ -328,43 +304,28 @@ impl<T> EventLoop<T> {
     /// use [`ActiveEventLoop::create_window`] instead.
     #[deprecated = "use `ActiveEventLoop::create_window` instead"]
     #[inline]
-    pub fn create_window(
-        &self,
-        window_attributes: WindowAttributes,
-    ) -> Result<Window, OsError> {
+    pub fn create_window(&self, window_attributes: WindowAttributes) -> Result<Window, OsError> {
         let _span = tracing::debug_span!(
             "winit::EventLoop::create_window",
             window_attributes = ?window_attributes
         )
         .entered();
 
-        let window = platform_impl::Window::new(
-            &self.event_loop.window_target().p,
-            window_attributes,
-        )?;
+        let window =
+            platform_impl::Window::new(&self.event_loop.window_target().p, window_attributes)?;
         Ok(Window { window })
     }
 
     /// Create custom cursor.
-    pub fn create_custom_cursor(
-        &self,
-        custom_cursor: CustomCursorSource,
-    ) -> CustomCursor {
-        self.event_loop
-            .window_target()
-            .p
-            .create_custom_cursor(custom_cursor)
+    pub fn create_custom_cursor(&self, custom_cursor: CustomCursorSource) -> CustomCursor {
+        self.event_loop.window_target().p.create_custom_cursor(custom_cursor)
     }
 }
 
 #[cfg(feature = "rwh_06")]
 impl<T> rwh_06::HasDisplayHandle for EventLoop<T> {
-    fn display_handle(
-        &self,
-    ) -> Result<rwh_06::DisplayHandle<'_>, rwh_06::HandleError> {
-        rwh_06::HasDisplayHandle::display_handle(
-            self.event_loop.window_target(),
-        )
+    fn display_handle(&self) -> Result<rwh_06::DisplayHandle<'_>, rwh_06::HandleError> {
+        rwh_06::HasDisplayHandle::display_handle(self.event_loop.window_target())
     }
 }
 
@@ -372,9 +333,7 @@ impl<T> rwh_06::HasDisplayHandle for EventLoop<T> {
 unsafe impl<T> rwh_05::HasRawDisplayHandle for EventLoop<T> {
     /// Returns a [`rwh_05::RawDisplayHandle`] for the event loop.
     fn raw_display_handle(&self) -> rwh_05::RawDisplayHandle {
-        rwh_05::HasRawDisplayHandle::raw_display_handle(
-            self.event_loop.window_target(),
-        )
+        rwh_05::HasRawDisplayHandle::raw_display_handle(self.event_loop.window_target())
     }
 }
 
@@ -416,10 +375,7 @@ impl ActiveEventLoop {
     /// - **Web:** The window is created but not inserted into the web page automatically. Please
     ///   see the web platform module for more information.
     #[inline]
-    pub fn create_window(
-        &self,
-        window_attributes: WindowAttributes,
-    ) -> Result<Window, OsError> {
+    pub fn create_window(&self, window_attributes: WindowAttributes) -> Result<Window, OsError> {
         let _span = tracing::debug_span!(
             "winit::ActiveEventLoop::create_window",
             window_attributes = ?window_attributes
@@ -431,14 +387,8 @@ impl ActiveEventLoop {
     }
 
     /// Create custom cursor.
-    pub fn create_custom_cursor(
-        &self,
-        custom_cursor: CustomCursorSource,
-    ) -> CustomCursor {
-        let _span = tracing::debug_span!(
-            "winit::ActiveEventLoop::create_custom_cursor",
-        )
-        .entered();
+    pub fn create_custom_cursor(&self, custom_cursor: CustomCursorSource) -> CustomCursor {
+        let _span = tracing::debug_span!("winit::ActiveEventLoop::create_custom_cursor",).entered();
 
         self.p.create_custom_cursor(custom_cursor)
     }
@@ -446,15 +396,10 @@ impl ActiveEventLoop {
     /// Returns the list of all the monitors available on the system.
     #[inline]
     pub fn available_monitors(&self) -> impl Iterator<Item = MonitorHandle> {
-        let _span =
-            tracing::debug_span!("winit::ActiveEventLoop::available_monitors",)
-                .entered();
+        let _span = tracing::debug_span!("winit::ActiveEventLoop::available_monitors",).entered();
 
         #[allow(clippy::useless_conversion)] // false positive on some platforms
-        self.p
-            .available_monitors()
-            .into_iter()
-            .map(|inner| MonitorHandle { inner })
+        self.p.available_monitors().into_iter().map(|inner| MonitorHandle { inner })
     }
 
     /// Returns the primary monitor of the system.
@@ -466,13 +411,9 @@ impl ActiveEventLoop {
     /// **Wayland / Web:** Always returns `None`.
     #[inline]
     pub fn primary_monitor(&self) -> Option<MonitorHandle> {
-        let _span =
-            tracing::debug_span!("winit::ActiveEventLoop::primary_monitor",)
-                .entered();
+        let _span = tracing::debug_span!("winit::ActiveEventLoop::primary_monitor",).entered();
 
-        self.p
-            .primary_monitor()
-            .map(|inner| MonitorHandle { inner })
+        self.p.primary_monitor().map(|inner| MonitorHandle { inner })
     }
 
     /// Change if or when [`DeviceEvent`]s are captured.
@@ -521,8 +462,7 @@ impl ActiveEventLoop {
     ///
     /// See [`LoopExiting`][Event::LoopExiting].
     pub fn exit(&self) {
-        let _span =
-            tracing::debug_span!("winit::ActiveEventLoop::exit",).entered();
+        let _span = tracing::debug_span!("winit::ActiveEventLoop::exit",).entered();
 
         self.p.exit()
     }
@@ -538,17 +478,13 @@ impl ActiveEventLoop {
     ///
     /// See the [`OwnedDisplayHandle`] type for more information.
     pub fn owned_display_handle(&self) -> OwnedDisplayHandle {
-        OwnedDisplayHandle {
-            platform: self.p.owned_display_handle(),
-        }
+        OwnedDisplayHandle { platform: self.p.owned_display_handle() }
     }
 }
 
 #[cfg(feature = "rwh_06")]
 impl rwh_06::HasDisplayHandle for ActiveEventLoop {
-    fn display_handle(
-        &self,
-    ) -> Result<rwh_06::DisplayHandle<'_>, rwh_06::HandleError> {
+    fn display_handle(&self) -> Result<rwh_06::DisplayHandle<'_>, rwh_06::HandleError> {
         let raw = self.p.raw_display_handle_rwh_06()?;
         // SAFETY: The display will never be deallocated while the event loop is alive.
         Ok(unsafe { rwh_06::DisplayHandle::borrow_raw(raw) })
@@ -577,10 +513,7 @@ unsafe impl rwh_05::HasRawDisplayHandle for ActiveEventLoop {
 /// - A reference-counted pointer to the underlying type.
 #[derive(Clone)]
 pub struct OwnedDisplayHandle {
-    #[cfg_attr(
-        not(any(feature = "rwh_05", feature = "rwh_06")),
-        allow(dead_code)
-    )]
+    #[cfg_attr(not(any(feature = "rwh_05", feature = "rwh_06")), allow(dead_code))]
     platform: platform_impl::OwnedDisplayHandle,
 }
 
@@ -594,9 +527,7 @@ impl fmt::Debug for OwnedDisplayHandle {
 #[cfg(feature = "rwh_06")]
 impl rwh_06::HasDisplayHandle for OwnedDisplayHandle {
     #[inline]
-    fn display_handle(
-        &self,
-    ) -> Result<rwh_06::DisplayHandle<'_>, rwh_06::HandleError> {
+    fn display_handle(&self) -> Result<rwh_06::DisplayHandle<'_>, rwh_06::HandleError> {
         let raw = self.platform.raw_display_handle_rwh_06()?;
 
         // SAFETY: The underlying display handle should be safe.
@@ -621,9 +552,7 @@ pub struct EventLoopProxy<T: 'static> {
 
 impl<T: 'static> Clone for EventLoopProxy<T> {
     fn clone(&self) -> Self {
-        Self {
-            event_loop_proxy: self.event_loop_proxy.clone(),
-        }
+        Self { event_loop_proxy: self.event_loop_proxy.clone() }
     }
 }
 
@@ -636,8 +565,7 @@ impl<T: 'static> EventLoopProxy<T> {
     ///
     /// [`UserEvent(event)`]: Event::UserEvent
     pub fn send_event(&self, event: T) -> Result<(), EventLoopClosed<T>> {
-        let _span = tracing::debug_span!("winit::EventLoopProxy::send_event",)
-            .entered();
+        let _span = tracing::debug_span!("winit::EventLoopProxy::send_event",).entered();
 
         self.event_loop_proxy.send_event(event)
     }
@@ -711,12 +639,8 @@ pub(crate) fn dispatch_event_for_app<T: 'static, A: ApplicationHandler<T>>(
 ) {
     match event {
         Event::NewEvents(cause) => app.new_events(event_loop, cause),
-        Event::WindowEvent { window_id, event } => {
-            app.window_event(event_loop, window_id, event)
-        }
-        Event::DeviceEvent { device_id, event } => {
-            app.device_event(event_loop, device_id, event)
-        }
+        Event::WindowEvent { window_id, event } => app.window_event(event_loop, window_id, event),
+        Event::DeviceEvent { device_id, event } => app.device_event(event_loop, device_id, event),
         Event::UserEvent(event) => app.user_event(event_loop, event),
         Event::Suspended => app.suspended(event_loop),
         Event::Resumed => app.resumed(event_loop),

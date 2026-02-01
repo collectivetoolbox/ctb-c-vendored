@@ -2,9 +2,7 @@
 
 use sctk::reexports::client::globals::{BindError, GlobalList};
 use sctk::reexports::client::protocol::wl_surface::WlSurface;
-use sctk::reexports::client::{
-    Connection, Dispatch, Proxy, QueueHandle, delegate_dispatch,
-};
+use sctk::reexports::client::{delegate_dispatch, Connection, Dispatch, Proxy, QueueHandle};
 use sctk::reexports::protocols::wp::viewporter::client::wp_viewport::WpViewport;
 use sctk::reexports::protocols::wp::viewporter::client::wp_viewporter::WpViewporter;
 
@@ -34,8 +32,7 @@ impl ViewporterState {
         surface: &WlSurface,
         queue_handle: &QueueHandle<WinitState>,
     ) -> WpViewport {
-        self.viewporter
-            .get_viewport(surface, queue_handle, GlobalData)
+        self.viewporter.get_viewport(surface, queue_handle, GlobalData)
     }
 }
 

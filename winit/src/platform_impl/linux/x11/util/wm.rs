@@ -38,12 +38,8 @@ impl XConnection {
     fn get_supported_hints(&self, root: xproto::Window) -> Vec<xproto::Atom> {
         let atoms = self.atoms();
         let supported_atom = atoms[_NET_SUPPORTED];
-        self.get_property(
-            root,
-            supported_atom,
-            xproto::Atom::from(xproto::AtomEnum::ATOM),
-        )
-        .unwrap_or_else(|_| Vec::with_capacity(0))
+        self.get_property(root, supported_atom, xproto::Atom::from(xproto::AtomEnum::ATOM))
+            .unwrap_or_else(|_| Vec::with_capacity(0))
     }
 
     #[allow(clippy::useless_conversion)]
@@ -80,8 +76,7 @@ impl XConnection {
                 xproto::Atom::from(xproto::AtomEnum::WINDOW),
             );
 
-            let wm_check =
-                result.ok().and_then(|wm_check| wm_check.first().cloned());
+            let wm_check = result.ok().and_then(|wm_check| wm_check.first().cloned());
 
             wm_check?
         };
@@ -95,8 +90,7 @@ impl XConnection {
                 xproto::Atom::from(xproto::AtomEnum::WINDOW),
             );
 
-            let wm_check =
-                result.ok().and_then(|wm_check| wm_check.first().cloned());
+            let wm_check = result.ok().and_then(|wm_check| wm_check.first().cloned());
 
             wm_check?
         };
@@ -111,11 +105,8 @@ impl XConnection {
             let atoms = self.atoms();
             let utf8_string_atom = atoms[UTF8_STRING];
 
-            let result = self.get_property(
-                root_window_wm_check.into(),
-                wm_name_atom,
-                utf8_string_atom,
-            );
+            let result =
+                self.get_property(root_window_wm_check.into(), wm_name_atom, utf8_string_atom);
 
             // IceWM requires this. IceWM was also the only WM tested that returns a null-terminated
             // string. For more fun trivia, IceWM is also unique in including version and uname
@@ -124,9 +115,7 @@ impl XConnection {
             // The unofficial 1.4 fork of IceWM still includes the extra details, but properly
             // returns a UTF8 string that isn't null-terminated.
             let no_utf8 = if let Err(ref err) = result {
-                err.is_actual_property_type(xproto::Atom::from(
-                    xproto::AtomEnum::STRING,
-                ))
+                err.is_actual_property_type(xproto::Atom::from(xproto::AtomEnum::STRING))
             } else {
                 false
             };

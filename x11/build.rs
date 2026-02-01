@@ -30,9 +30,7 @@ fn try_main() -> Result<()> {
     println!("cargo:rerun-if-env-changed=CTB_X11_USE_PKG_CONFIG");
     println!("cargo:rerun-if-env-changed=CTB_X11_AUTORECONF_ALL");
 
-    let manifest_dir = PathBuf::from(
-        env::var("CARGO_MANIFEST_DIR").context("CARGO_MANIFEST_DIR not set")?,
-    );
+    let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").context("CARGO_MANIFEST_DIR not set")?);
     let c_src_dir = manifest_dir.join("c_src");
 
     // Allow opting back into the original pkg-config behavior.
@@ -40,8 +38,7 @@ fn try_main() -> Result<()> {
         return probe_with_pkg_config(None);
     }
 
-    let out_dir =
-        PathBuf::from(env::var("OUT_DIR").context("OUT_DIR not set")?);
+    let out_dir = PathBuf::from(env::var("OUT_DIR").context("OUT_DIR not set")?);
     let prefix = out_dir.join("ctb-vendored-x11").join("prefix");
     fs::create_dir_all(&prefix).context("create vendored X11 prefix dir")?;
 
@@ -58,14 +55,8 @@ fn try_main() -> Result<()> {
     env::set_var("PKG_CONFIG_ALLOW_CROSS", "1");
 
     // Also expose the prefix for downstream build scripts if needed.
-    println!(
-        "cargo:rustc-link-search=native={}",
-        prefix.join("lib").display()
-    );
-    println!(
-        "cargo:rustc-link-search=native={}",
-        prefix.join("lib64").display()
-    );
+    println!("cargo:rustc-link-search=native={}", prefix.join("lib").display());
+    println!("cargo:rustc-link-search=native={}", prefix.join("lib64").display());
 
     probe_with_pkg_config(Some(&pkg_config_path))?;
 
@@ -76,8 +67,7 @@ fn try_main() -> Result<()> {
     // which can leave required XCB/X11 helper libraries out of the final link
     // unless we explicitly request them.
     let target = env::var("TARGET").context("TARGET not set")?;
-    let target_features =
-        env::var("CARGO_CFG_TARGET_FEATURE").unwrap_or_default();
+    let target_features = env::var("CARGO_CFG_TARGET_FEATURE").unwrap_or_default();
     let wants_static = target.contains("musl")
         || target_features
             .split(',')
@@ -139,10 +129,7 @@ fn probe_with_pkg_config(pkg_config_path: Option<&str>) -> Result<()> {
     ];
 
     for &(dep, version, feature) in deps.iter() {
-        let var = format!(
-            "CARGO_FEATURE_{}",
-            feature.to_uppercase().replace('-', "_")
-        );
+        let var = format!("CARGO_FEATURE_{}", feature.to_uppercase().replace('-', "_"));
         if env::var_os(var).is_none() {
             continue;
         }
@@ -151,19 +138,14 @@ fn probe_with_pkg_config(pkg_config_path: Option<&str>) -> Result<()> {
         cfg.atleast_version(version);
         // Prefer the vendored prefix when present, but still allow sysroot libs
         // to satisfy transitive deps.
-        cfg.probe(dep).with_context(|| {
-            format!("pkg-config probe failed for {dep} (>= {version})")
-        })?;
+        cfg.probe(dep)
+            .with_context(|| format!("pkg-config probe failed for {dep} (>= {version})"))?;
     }
 
     Ok(())
 }
 
-fn build_vendored_x11(
-    c_src_dir: &Path,
-    out_dir: &Path,
-    prefix: &Path,
-) -> Result<()> {
+fn build_vendored_x11(c_src_dir: &Path, out_dir: &Path, prefix: &Path) -> Result<()> {
     // If these are missing, the user likely hasn't run scripts/download-x11 yet.
     if !c_src_dir.exists() {
         return Err(anyhow!(
@@ -188,9 +170,11 @@ fn build_vendored_x11(
         .join(" ");
 
     let mut base_env = Vec::<(String, String)>::new();
-    base_env
-        .push(("CC".to_string(), tool.path().to_string_lossy().to_string()));
-    base_env.push(("AR".to_string(), build_support::command_to_string(&ar)));
+    base_env.push(("CC".to_string(), tool.path().to_string_lossy().to_string()));
+    base_env.push((
+        "AR".to_string(),
+        build_support::command_to_string(&ar),
+    ));
     base_env.push((
         "RANLIB".to_string(),
         build_support::command_to_string(&ranlib),
@@ -224,34 +208,26 @@ fn build_vendored_x11(
     ));
     // Override pkg-config's built-in default search directories to avoid
     // accidentally picking up host .pc files (common culprit: ICU).
-    base_env
-        .push(("PKG_CONFIG_LIBDIR".to_string(), pkg_config_path_prefix_only));
+    base_env.push(("PKG_CONFIG_LIBDIR".to_string(), pkg_config_path_prefix_only));
 
     // Preserve user-provided flags, but prepend target tool args.
     let user_cflags = env::var("CFLAGS").unwrap_or_default();
-    let combined_cflags =
-        format!("{tool_cflags} {user_cflags}").trim().to_string();
+    let combined_cflags = format!("{tool_cflags} {user_cflags}").trim().to_string();
     base_env.push(("CFLAGS".to_string(), combined_cflags));
 
     let user_cppflags = env::var("CPPFLAGS").unwrap_or_default();
-    let combined_cppflags =
-        format!("-I{} {user_cppflags}", prefix.join("include").display())
-            .trim()
-            .to_string();
+    let combined_cppflags = format!("-I{} {user_cppflags}", prefix.join("include").display())
+        .trim()
+        .to_string();
     base_env.push(("CPPFLAGS".to_string(), combined_cppflags));
 
     let user_ldflags = env::var("LDFLAGS").unwrap_or_default();
-    let combined_ldflags =
-        format!("-L{} {user_ldflags}", prefix.join("lib").display())
-            .trim()
-            .to_string();
+    let combined_ldflags = format!("-L{} {user_ldflags}", prefix.join("lib").display())
+        .trim()
+        .to_string();
     base_env.push(("LDFLAGS".to_string(), combined_ldflags));
 
-    let host_arg = if host != target {
-        Some(target.as_str())
-    } else {
-        None
-    };
+    let host_arg = if host != target { Some(target.as_str()) } else { None };
 
     // Build order matters (proto/tools first).
     build_support::build_autotools(
@@ -379,16 +355,13 @@ fn build_vendored_x11(
     // libxkbcommon uses meson. We'll build it if meson/ninja are available;
     // otherwise, downstream code may still link against a sysroot-provided
     // libxkbcommon.
-    build_support::build_meson_xkbcommon(
-        c_src_dir, out_dir, prefix, &base_env, &target,
-    )?;
+    build_support::build_meson_xkbcommon(c_src_dir, out_dir, prefix, &base_env, &target)?;
 
     // winit links to libxkbcommon/libxkbcommon-x11 directly (via `#[link]`).
     // For fully static builds (common for musl targets), we must ensure the
     // static archives exist in the prefix or the final link will fail with
     // `cannot find -lxkbcommon`.
-    let target_features =
-        env::var("CARGO_CFG_TARGET_FEATURE").unwrap_or_default();
+    let target_features = env::var("CARGO_CFG_TARGET_FEATURE").unwrap_or_default();
     let wants_static = target.contains("musl")
         || target_features
             .split(',')

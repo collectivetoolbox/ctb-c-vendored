@@ -2,9 +2,7 @@ use std::ptr::NonNull;
 
 use block2::RcBlock;
 use objc2::rc::Retained;
-use objc2_foundation::{
-    NSNotification, NSNotificationCenter, NSNotificationName, NSObject,
-};
+use objc2_foundation::{NSNotification, NSNotificationCenter, NSNotificationName, NSObject};
 
 /// Observe the given notification.
 ///

@@ -4,8 +4,7 @@
 
 use std::fmt;
 use std::os::raw::{
-    c_char, c_double, c_int, c_long, c_schar, c_short, c_uchar, c_uint,
-    c_ulong, c_ushort, c_void,
+    c_char, c_double, c_int, c_long, c_schar, c_short, c_uchar, c_uint, c_ulong, c_ushort, c_void,
 };
 use std::slice;
 
@@ -1002,8 +1001,7 @@ pub type XrmOptionDescList = *mut XrmOptionDescRec;
 pub type XConnectionWatchProc =
     Option<unsafe extern "C" fn(*mut Display, XPointer, c_int, Bool, XPointer)>;
 pub type XIMProc = Option<unsafe extern "C" fn(XIM, XPointer, XPointer)>;
-pub type XICProc =
-    Option<unsafe extern "C" fn(XIC, XPointer, XPointer) -> Bool>;
+pub type XICProc = Option<unsafe extern "C" fn(XIC, XPointer, XPointer) -> Bool>;
 
 // C enums
 pub type XICCEncodingStyle = c_int;
@@ -1021,9 +1019,7 @@ enum TestEnum {
 
 #[test]
 fn enum_size_test() {
-    assert!(
-        ::std::mem::size_of::<TestEnum>() == ::std::mem::size_of::<c_int>()
-    );
+    assert!(::std::mem::size_of::<TestEnum>() == ::std::mem::size_of::<c_int>());
 }
 
 //
@@ -1104,47 +1100,29 @@ impl fmt::Debug for XEvent {
                 FocusOut => d.field("focus_change", &self.focus_change),
                 KeymapNotify => d.field("keymap", &self.keymap),
                 Expose => d.field("expose", &self.expose),
-                GraphicsExpose => {
-                    d.field("graphics_expose", &self.graphics_expose)
-                }
+                GraphicsExpose => d.field("graphics_expose", &self.graphics_expose),
                 NoExpose => d.field("no_expose", &self.no_expose),
                 VisibilityNotify => d.field("visibility", &self.visibility),
                 CreateNotify => d.field("create_window", &self.create_window),
-                DestroyNotify => {
-                    d.field("destroy_window", &self.destroy_window)
-                }
+                DestroyNotify => d.field("destroy_window", &self.destroy_window),
                 UnmapNotify => d.field("unmap", &self.unmap),
                 MapNotify => d.field("map", &self.map),
                 MapRequest => d.field("map_request", &self.map_request),
                 ReparentNotify => d.field("reparent", &self.reparent),
                 ConfigureNotify => d.field("configure", &self.configure),
-                ConfigureRequest => {
-                    d.field("configure_request", &self.configure_request)
-                }
+                ConfigureRequest => d.field("configure_request", &self.configure_request),
                 GravityNotify => d.field("gravity", &self.gravity),
-                ResizeRequest => {
-                    d.field("resize_request", &self.resize_request)
-                }
+                ResizeRequest => d.field("resize_request", &self.resize_request),
                 CirculateNotify => d.field("circulate", &self.circulate),
-                CirculateRequest => {
-                    d.field("circulate_request", &self.circulate_request)
-                }
+                CirculateRequest => d.field("circulate_request", &self.circulate_request),
                 PropertyNotify => d.field("property", &self.property),
-                SelectionClear => {
-                    d.field("selection_clear", &self.selection_clear)
-                }
-                SelectionRequest => {
-                    d.field("selection_request", &self.selection_request)
-                }
+                SelectionClear => d.field("selection_clear", &self.selection_clear),
+                SelectionRequest => d.field("selection_request", &self.selection_request),
                 SelectionNotify => d.field("selection", &self.selection),
                 ColormapNotify => d.field("colormap", &self.colormap),
-                ClientMessage => {
-                    d.field("client_message", &self.client_message)
-                }
+                ClientMessage => d.field("client_message", &self.client_message),
                 MappingNotify => d.field("mapping", &self.mapping),
-                GenericEvent => {
-                    d.field("generic_event_cookie", &self.generic_event_cookie)
-                }
+                GenericEvent => d.field("generic_event_cookie", &self.generic_event_cookie),
                 _ => d.field("any", &self.any),
             }
         }
@@ -2757,14 +2735,8 @@ client_message_data_conversions! {
 
 #[test]
 fn client_message_size_test() {
-    assert!(
-        ::std::mem::size_of::<ClientMessageData>()
-            >= ::std::mem::size_of::<[c_char; 20]>()
-    );
-    assert!(
-        ::std::mem::size_of::<ClientMessageData>()
-            >= ::std::mem::size_of::<[c_short; 10]>()
-    );
+    assert!(::std::mem::size_of::<ClientMessageData>() >= ::std::mem::size_of::<[c_char; 20]>());
+    assert!(::std::mem::size_of::<ClientMessageData>() >= ::std::mem::size_of::<[c_short; 10]>());
 }
 
 #[derive(Debug, Copy)]
@@ -2785,20 +2757,10 @@ pub struct ImageFns {
         ) -> *mut XImage,
     >,
     pub destroy_image: Option<unsafe extern "C" fn(*mut XImage) -> c_int>,
-    pub get_pixel:
-        Option<unsafe extern "C" fn(*mut XImage, c_int, c_int) -> c_ulong>,
-    pub put_pixel: Option<
-        unsafe extern "C" fn(*mut XImage, c_int, c_int, c_ulong) -> c_int,
-    >,
-    pub sub_image: Option<
-        unsafe extern "C" fn(
-            *mut XImage,
-            c_int,
-            c_int,
-            c_uint,
-            c_uint,
-        ) -> *mut XImage,
-    >,
+    pub get_pixel: Option<unsafe extern "C" fn(*mut XImage, c_int, c_int) -> c_ulong>,
+    pub put_pixel: Option<unsafe extern "C" fn(*mut XImage, c_int, c_int, c_ulong) -> c_int>,
+    pub sub_image:
+        Option<unsafe extern "C" fn(*mut XImage, c_int, c_int, c_uint, c_uint) -> *mut XImage>,
     pub add_pixel: Option<unsafe extern "C" fn(*mut XImage, c_long) -> c_int>,
 }
 
@@ -3159,8 +3121,7 @@ pub const PResizeInc: c_long = 0x0040;
 pub const PAspect: c_long = 0x0080;
 pub const PBaseSize: c_long = 0x0100;
 pub const PWinGravity: c_long = 0x0200;
-pub const PAllHints: c_long =
-    PPosition | PSize | PMinSize | PMaxSize | PResizeInc | PAspect;
+pub const PAllHints: c_long = PPosition | PSize | PMinSize | PMaxSize | PResizeInc | PAspect;
 
 // Used in ChangeSaveSet
 pub const SetModeInsert: c_int = 0;
@@ -3450,8 +3411,7 @@ pub const XNPreeditStartCallback_0: &[u8] = b"preeditStartCallback\0";
 pub const XNPreeditDoneCallback_0: &[u8] = b"preeditDoneCallback\0";
 pub const XNPreeditDrawCallback_0: &[u8] = b"preeditDrawCallback\0";
 pub const XNPreeditCaretCallback_0: &[u8] = b"preeditCaretCallback\0";
-pub const XNPreeditStateNotifyCallback_0: &[u8] =
-    b"preeditStateNotifyCallback\0";
+pub const XNPreeditStateNotifyCallback_0: &[u8] = b"preeditStateNotifyCallback\0";
 pub const XNPreeditAttributes_0: &[u8] = b"preeditAttributes\0";
 pub const XNStatusStartCallback_0: &[u8] = b"statusStartCallback\0";
 pub const XNStatusDoneCallback_0: &[u8] = b"statusDoneCallback\0";

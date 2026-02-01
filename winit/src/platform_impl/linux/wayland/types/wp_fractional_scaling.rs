@@ -41,17 +41,12 @@ impl FractionalScalingManager {
         surface: &WlSurface,
         queue_handle: &QueueHandle<WinitState>,
     ) -> WpFractionalScaleV1 {
-        let data = FractionalScaling {
-            surface: surface.clone(),
-        };
-        self.manager
-            .get_fractional_scale(surface, queue_handle, data)
+        let data = FractionalScaling { surface: surface.clone() };
+        self.manager.get_fractional_scale(surface, queue_handle, data)
     }
 }
 
-impl Dispatch<WpFractionalScaleManagerV1, GlobalData, WinitState>
-    for FractionalScalingManager
-{
+impl Dispatch<WpFractionalScaleManagerV1, GlobalData, WinitState> for FractionalScalingManager {
     fn event(
         _: &mut WinitState,
         _: &WpFractionalScaleManagerV1,
@@ -64,9 +59,7 @@ impl Dispatch<WpFractionalScaleManagerV1, GlobalData, WinitState>
     }
 }
 
-impl Dispatch<WpFractionalScaleV1, FractionalScaling, WinitState>
-    for FractionalScalingManager
-{
+impl Dispatch<WpFractionalScaleV1, FractionalScaling, WinitState> for FractionalScalingManager {
     fn event(
         state: &mut WinitState,
         _: &WpFractionalScaleV1,
@@ -76,11 +69,7 @@ impl Dispatch<WpFractionalScaleV1, FractionalScaling, WinitState>
         _: &QueueHandle<WinitState>,
     ) {
         if let FractionalScalingEvent::PreferredScale { scale } = event {
-            state.scale_factor_changed(
-                &data.surface,
-                scale as f64 / SCALE_DENOMINATOR,
-                false,
-            );
+            state.scale_factor_changed(&data.surface, scale as f64 / SCALE_DENOMINATOR, false);
         }
     }
 }

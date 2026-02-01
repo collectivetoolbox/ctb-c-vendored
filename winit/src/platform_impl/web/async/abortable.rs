@@ -2,8 +2,8 @@ use std::error::Error;
 use std::fmt::{self, Display, Formatter};
 use std::future::Future;
 use std::pin::Pin;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::task::{Context, Poll};
 
 use pin_project::pin_project;
@@ -19,20 +19,14 @@ pub struct Abortable<F: Future> {
 
 impl<F: Future> Abortable<F> {
     pub fn new(handle: AbortHandle, future: F) -> Self {
-        Self {
-            future,
-            shared: handle.0,
-        }
+        Self { future, shared: handle.0 }
     }
 }
 
 impl<F: Future> Future for Abortable<F> {
     type Output = Result<F::Output, Aborted>;
 
-    fn poll(
-        mut self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-    ) -> Poll<Self::Output> {
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         if self.shared.aborted.load(Ordering::Relaxed) {
             return Poll::Ready(Err(Aborted));
         }
@@ -62,10 +56,7 @@ pub struct AbortHandle(Arc<Shared>);
 
 impl AbortHandle {
     pub fn new() -> Self {
-        Self(Arc::new(Shared {
-            waker: AtomicWaker::new(),
-            aborted: AtomicBool::new(false),
-        }))
+        Self(Arc::new(Shared { waker: AtomicWaker::new(), aborted: AtomicBool::new(false) }))
     }
 
     pub fn abort(&self) {

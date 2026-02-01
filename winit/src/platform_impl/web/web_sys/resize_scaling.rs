@@ -1,11 +1,10 @@
 use js_sys::{Array, Object};
 use tracing::warn;
-use wasm_bindgen::prelude::{Closure, wasm_bindgen};
+use wasm_bindgen::prelude::{wasm_bindgen, Closure};
 use wasm_bindgen::{JsCast, JsValue};
 use web_sys::{
-    Document, HtmlCanvasElement, MediaQueryList, ResizeObserver,
-    ResizeObserverBoxOptions, ResizeObserverEntry, ResizeObserverOptions,
-    ResizeObserverSize, Window,
+    Document, HtmlCanvasElement, MediaQueryList, ResizeObserver, ResizeObserverBoxOptions,
+    ResizeObserverEntry, ResizeObserverOptions, ResizeObserverSize, Window,
 };
 
 use crate::dpi::{LogicalSize, PhysicalSize};
@@ -98,8 +97,7 @@ impl ResizeScaleInternal {
                     }
                 }
             });
-            let observer =
-                Self::create_observer(&canvas, observer_closure.as_ref());
+            let observer = Self::create_observer(&canvas, observer_closure.as_ref());
 
             Self {
                 window,
@@ -135,10 +133,7 @@ impl ResizeScaleInternal {
         mql
     }
 
-    fn create_observer(
-        canvas: &HtmlCanvasElement,
-        closure: &JsValue,
-    ) -> ResizeObserver {
+    fn create_observer(canvas: &HtmlCanvasElement, closure: &JsValue) -> ResizeObserver {
         let observer = ResizeObserver::new(closure.as_ref().unchecked_ref())
             .expect("Failed to create `ResizeObserver`");
 
@@ -155,9 +150,7 @@ impl ResizeScaleInternal {
     }
 
     fn notify(&self) {
-        if !self.document.contains(Some(&self.canvas))
-            || self.style.get("display") == "none"
-        {
+        if !self.document.contains(Some(&self.canvas)) || self.style.get("display") == "none" {
             let size = PhysicalSize::new(0, 0);
 
             if self.notify_scale.replace(false) {
@@ -184,28 +177,14 @@ impl ResizeScaleInternal {
         );
 
         if self.style.get("box-sizing") == "border-box" {
-            size.width -=
-                backend::style_size_property(&self.style, "border-left-width")
-                    + backend::style_size_property(
-                        &self.style,
-                        "border-right-width",
-                    )
-                    + backend::style_size_property(&self.style, "padding-left")
-                    + backend::style_size_property(
-                        &self.style,
-                        "padding-right",
-                    );
-            size.height -=
-                backend::style_size_property(&self.style, "border-top-width")
-                    + backend::style_size_property(
-                        &self.style,
-                        "border-bottom-width",
-                    )
-                    + backend::style_size_property(&self.style, "padding-top")
-                    + backend::style_size_property(
-                        &self.style,
-                        "padding-bottom",
-                    );
+            size.width -= backend::style_size_property(&self.style, "border-left-width")
+                + backend::style_size_property(&self.style, "border-right-width")
+                + backend::style_size_property(&self.style, "padding-left")
+                + backend::style_size_property(&self.style, "padding-right");
+            size.height -= backend::style_size_property(&self.style, "border-top-width")
+                + backend::style_size_property(&self.style, "border-bottom-width")
+                + backend::style_size_property(&self.style, "padding-top")
+                + backend::style_size_property(&self.style, "padding-bottom");
         }
 
         let size = size.to_physical(backend::scale_factor(&self.window));
@@ -256,10 +235,8 @@ impl ResizeScaleInternal {
                 .to_physical(backend::scale_factor(&self.window));
         }
 
-        let entry: ResizeObserverSize = entry
-            .device_pixel_content_box_size()
-            .get(0)
-            .unchecked_into();
+        let entry: ResizeObserverSize =
+            entry.device_pixel_content_box_size().get(0).unchecked_into();
 
         let writing_mode = self.style.get("writing-mode");
 
@@ -273,30 +250,22 @@ impl ResizeScaleInternal {
 
         let horizontal = match writing_mode.as_str() {
             _ if writing_mode.starts_with("horizontal") => true,
-            _ if writing_mode.starts_with("vertical")
-                | writing_mode.starts_with("sideways") =>
-            {
+            _ if writing_mode.starts_with("vertical") | writing_mode.starts_with("sideways") => {
                 false
-            }
+            },
             // deprecated values
             "lr" | "lr-tb" | "rl" => true,
             "tb" | "tb-lr" | "tb-rl" => false,
             _ => {
                 warn!("unrecognized `writing-mode`, assuming horizontal");
                 true
-            }
+            },
         };
 
         if horizontal {
-            PhysicalSize::new(
-                entry.inline_size() as u32,
-                entry.block_size() as u32,
-            )
+            PhysicalSize::new(entry.inline_size() as u32, entry.block_size() as u32)
         } else {
-            PhysicalSize::new(
-                entry.block_size() as u32,
-                entry.inline_size() as u32,
-            )
+            PhysicalSize::new(entry.block_size() as u32, entry.inline_size() as u32)
         }
     }
 }

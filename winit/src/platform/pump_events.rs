@@ -118,11 +118,7 @@ pub trait EventLoopExtPumpEvents {
     ///
     /// [`pump_app_events`]: Self::pump_app_events
     #[deprecated = "use EventLoopExtPumpEvents::pump_app_events"]
-    fn pump_events<F>(
-        &mut self,
-        timeout: Option<Duration>,
-        event_handler: F,
-    ) -> PumpStatus
+    fn pump_events<F>(&mut self, timeout: Option<Duration>, event_handler: F) -> PumpStatus
     where
         F: FnMut(Event<Self::UserEvent>, &ActiveEventLoop);
 }
@@ -130,11 +126,7 @@ pub trait EventLoopExtPumpEvents {
 impl<T> EventLoopExtPumpEvents for EventLoop<T> {
     type UserEvent = T;
 
-    fn pump_events<F>(
-        &mut self,
-        timeout: Option<Duration>,
-        event_handler: F,
-    ) -> PumpStatus
+    fn pump_events<F>(&mut self, timeout: Option<Duration>, event_handler: F) -> PumpStatus
     where
         F: FnMut(Event<Self::UserEvent>, &ActiveEventLoop),
     {

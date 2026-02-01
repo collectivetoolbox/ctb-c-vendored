@@ -4,9 +4,7 @@ use std::sync::mpsc::{self, Receiver, Sender};
 use crate::error::EventLoopError;
 use crate::event::Event;
 use crate::event_loop::ActiveEventLoop as RootActiveEventLoop;
-use crate::platform::web::{
-    ActiveEventLoopExtWebSys, PollStrategy, WaitUntilStrategy,
-};
+use crate::platform::web::{ActiveEventLoopExtWebSys, PollStrategy, WaitUntilStrategy};
 
 use super::{backend, device, window};
 
@@ -28,29 +26,17 @@ pub struct EventLoop<T: 'static> {
 pub(crate) struct PlatformSpecificEventLoopAttributes {}
 
 impl<T> EventLoop<T> {
-    pub(crate) fn new(
-        _: &PlatformSpecificEventLoopAttributes,
-    ) -> Result<Self, EventLoopError> {
+    pub(crate) fn new(_: &PlatformSpecificEventLoopAttributes) -> Result<Self, EventLoopError> {
         let (user_event_sender, user_event_receiver) = mpsc::channel();
-        let elw = RootActiveEventLoop {
-            p: ActiveEventLoop::new(),
-            _marker: PhantomData,
-        };
-        Ok(EventLoop {
-            elw,
-            user_event_sender,
-            user_event_receiver,
-        })
+        let elw = RootActiveEventLoop { p: ActiveEventLoop::new(), _marker: PhantomData };
+        Ok(EventLoop { elw, user_event_sender, user_event_receiver })
     }
 
     pub fn run<F>(self, mut event_handler: F) -> !
     where
         F: FnMut(Event<T>, &RootActiveEventLoop),
     {
-        let target = RootActiveEventLoop {
-            p: self.elw.p.clone(),
-            _marker: PhantomData,
-        };
+        let target = RootActiveEventLoop { p: self.elw.p.clone(), _marker: PhantomData };
 
         // SAFETY: Don't use `move` to make sure we leak the `event_handler` and `target`.
         let handler: Box<dyn FnMut(Event<()>)> = Box::new(|event| {
@@ -69,10 +55,9 @@ impl<T> EventLoop<T> {
         // because this function will never return and all resources not cleaned up by the point we
         // `throw` will leak, making this actually `'static`.
         let handler = unsafe {
-            std::mem::transmute::<
-                Box<dyn FnMut(Event<()>)>,
-                Box<dyn FnMut(Event<()>) + 'static>,
-            >(handler)
+            std::mem::transmute::<Box<dyn FnMut(Event<()>)>, Box<dyn FnMut(Event<()>) + 'static>>(
+                handler,
+            )
         };
         self.elw.p.run(handler, false);
 
@@ -89,10 +74,7 @@ impl<T> EventLoop<T> {
     where
         F: 'static + FnMut(Event<T>, &RootActiveEventLoop),
     {
-        let target = RootActiveEventLoop {
-            p: self.elw.p.clone(),
-            _marker: PhantomData,
-        };
+        let target = RootActiveEventLoop { p: self.elw.p.clone(), _marker: PhantomData };
 
         self.elw.p.run(
             Box::new(move |event| {

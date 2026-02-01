@@ -4,13 +4,11 @@ use std::sync::OnceLock;
 
 use objc2::rc::Retained;
 use objc2::runtime::Sel;
-use objc2::{ClassType, msg_send, msg_send_id, sel};
-use objc2_app_kit::{
-    NSBitmapImageRep, NSCursor, NSDeviceRGBColorSpace, NSImage,
-};
+use objc2::{msg_send, msg_send_id, sel, ClassType};
+use objc2_app_kit::{NSBitmapImageRep, NSCursor, NSDeviceRGBColorSpace, NSImage};
 use objc2_foundation::{
-    NSData, NSDictionary, NSNumber, NSObject, NSObjectProtocol, NSPoint,
-    NSSize, NSString, ns_string,
+    ns_string, NSData, NSDictionary, NSNumber, NSObject, NSObjectProtocol, NSPoint, NSSize,
+    NSString,
 };
 
 use crate::cursor::{CursorImage, OnlyCursorImageSource};
@@ -49,21 +47,15 @@ pub(crate) fn cursor_from_image(cursor: &CursorImage) -> Retained<NSCursor> {
             32,
         ).unwrap()
     };
-    let bitmap_data = unsafe {
-        slice::from_raw_parts_mut(bitmap.bitmapData(), cursor.rgba.len())
-    };
+    let bitmap_data = unsafe { slice::from_raw_parts_mut(bitmap.bitmapData(), cursor.rgba.len()) };
     bitmap_data.copy_from_slice(&cursor.rgba);
 
     let image = unsafe {
-        NSImage::initWithSize(
-            NSImage::alloc(),
-            NSSize::new(width.into(), height.into()),
-        )
+        NSImage::initWithSize(NSImage::alloc(), NSSize::new(width.into(), height.into()))
     };
     unsafe { image.addRepresentation(&bitmap) };
 
-    let hotspot =
-        NSPoint::new(cursor.hotspot_x as f64, cursor.hotspot_y as f64);
+    let hotspot = NSPoint::new(cursor.hotspot_x as f64, cursor.hotspot_y as f64);
 
     NSCursor::initWithImage_hotSpot(NSCursor::alloc(), &image, hotspot)
 }
@@ -75,8 +67,7 @@ pub(crate) fn default_cursor() -> Retained<NSCursor> {
 unsafe fn try_cursor_from_selector(sel: Sel) -> Option<Retained<NSCursor>> {
     let cls = NSCursor::class();
     if msg_send![cls, respondsToSelector: sel] {
-        let cursor: Retained<NSCursor> =
-            unsafe { msg_send_id![cls, performSelector: sel] };
+        let cursor: Retained<NSCursor> = unsafe { msg_send_id![cls, performSelector: sel] };
         Some(cursor)
     } else {
         tracing::warn!("cursor `{sel}` appears to be invalid");
@@ -132,14 +123,11 @@ unsafe fn load_webkit_cursor(name: &NSString) -> Retained<NSCursor> {
     );
     let cursor_path = root.stringByAppendingPathComponent(name);
 
-    let pdf_path =
-        cursor_path.stringByAppendingPathComponent(ns_string!("cursor.pdf"));
-    let image =
-        NSImage::initByReferencingFile(NSImage::alloc(), &pdf_path).unwrap();
+    let pdf_path = cursor_path.stringByAppendingPathComponent(ns_string!("cursor.pdf"));
+    let image = NSImage::initByReferencingFile(NSImage::alloc(), &pdf_path).unwrap();
 
     // TODO: Handle PLists better
-    let info_path =
-        cursor_path.stringByAppendingPathComponent(ns_string!("info.plist"));
+    let info_path = cursor_path.stringByAppendingPathComponent(ns_string!("info.plist"));
     let info: Retained<NSDictionary<NSObject, NSObject>> = unsafe {
         msg_send_id![
             <NSDictionary<NSObject, NSObject>>::class(),
@@ -180,11 +168,10 @@ pub(crate) fn invisible_cursor() -> Retained<NSCursor> {
     // You can reproduce this via ImageMagick.
     // $ convert -size 16x16 xc:none cursor.gif
     static CURSOR_BYTES: &[u8] = &[
-        0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x10, 0x00, 0x10, 0x00, 0xf0, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x21, 0xf9, 0x04, 0x01, 0x00,
-        0x00, 0x00, 0x00, 0x2c, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x10, 0x00,
-        0x00, 0x02, 0x0e, 0x84, 0x8f, 0xa9, 0xcb, 0xed, 0x0f, 0xa3, 0x9c, 0xb4,
-        0xda, 0x8b, 0xb3, 0x3e, 0x05, 0x00, 0x3b,
+        0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x10, 0x00, 0x10, 0x00, 0xf0, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x21, 0xf9, 0x04, 0x01, 0x00, 0x00, 0x00, 0x00, 0x2c, 0x00, 0x00,
+        0x00, 0x00, 0x10, 0x00, 0x10, 0x00, 0x00, 0x02, 0x0e, 0x84, 0x8f, 0xa9, 0xcb, 0xed, 0x0f,
+        0xa3, 0x9c, 0xb4, 0xda, 0x8b, 0xb3, 0x3e, 0x05, 0x00, 0x3b,
     ];
 
     fn new_invisible() -> Retained<NSCursor> {
@@ -197,10 +184,7 @@ pub(crate) fn invisible_cursor() -> Retained<NSCursor> {
 
     // Cache this for efficiency
     static CURSOR: OnceLock<CustomCursor> = OnceLock::new();
-    CURSOR
-        .get_or_init(|| CustomCursor(new_invisible()))
-        .0
-        .clone()
+    CURSOR.get_or_init(|| CustomCursor(new_invisible())).0.clone()
 }
 
 pub(crate) fn cursor_from_icon(icon: CursorIcon) -> Retained<NSCursor> {
@@ -213,21 +197,15 @@ pub(crate) fn cursor_from_icon(icon: CursorIcon) -> Retained<NSCursor> {
         CursorIcon::VerticalText => NSCursor::IBeamCursorForVerticalLayout(),
         CursorIcon::Copy => NSCursor::dragCopyCursor(),
         CursorIcon::Alias => NSCursor::dragLinkCursor(),
-        CursorIcon::NotAllowed | CursorIcon::NoDrop => {
-            NSCursor::operationNotAllowedCursor()
-        }
+        CursorIcon::NotAllowed | CursorIcon::NoDrop => NSCursor::operationNotAllowedCursor(),
         CursorIcon::ContextMenu => NSCursor::contextualMenuCursor(),
         CursorIcon::Crosshair => NSCursor::crosshairCursor(),
         CursorIcon::EResize => NSCursor::resizeRightCursor(),
         CursorIcon::NResize => NSCursor::resizeUpCursor(),
         CursorIcon::WResize => NSCursor::resizeLeftCursor(),
         CursorIcon::SResize => NSCursor::resizeDownCursor(),
-        CursorIcon::EwResize | CursorIcon::ColResize => {
-            NSCursor::resizeLeftRightCursor()
-        }
-        CursorIcon::NsResize | CursorIcon::RowResize => {
-            NSCursor::resizeUpDownCursor()
-        }
+        CursorIcon::EwResize | CursorIcon::ColResize => NSCursor::resizeLeftRightCursor(),
+        CursorIcon::NsResize | CursorIcon::RowResize => NSCursor::resizeUpDownCursor(),
         CursorIcon::Help => _helpCursor(),
         CursorIcon::ZoomIn => _zoomInCursor(),
         CursorIcon::ZoomOut => _zoomOutCursor(),

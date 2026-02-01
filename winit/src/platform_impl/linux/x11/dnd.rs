@@ -9,7 +9,7 @@ use x11rb::protocol::xproto::{self, ConnectionExt};
 
 use super::atoms::AtomName::None as DndNone;
 use super::atoms::*;
-use super::{CookieResultExt, X11Error, XConnection, util};
+use super::{util, CookieResultExt, X11Error, XConnection};
 
 #[derive(Debug, Clone, Copy)]
 pub enum DndState {
@@ -51,13 +51,7 @@ pub struct Dnd {
 
 impl Dnd {
     pub fn new(xconn: Arc<XConnection>) -> Result<Self, X11Error> {
-        Ok(Dnd {
-            xconn,
-            version: None,
-            type_list: None,
-            source_window: None,
-            result: None,
-        })
+        Ok(Dnd { xconn, version: None, type_list: None, source_window: None, result: None })
     }
 
     pub fn reset(&mut self) {
@@ -79,13 +73,13 @@ impl Dnd {
             DndState::Rejected => (0, atoms[DndNone]),
         };
         self.xconn
-            .send_client_msg(
-                target_window,
-                target_window,
-                atoms[XdndStatus] as _,
-                None,
-                [this_window, accepted, 0, 0, action as _],
-            )?
+            .send_client_msg(target_window, target_window, atoms[XdndStatus] as _, None, [
+                this_window,
+                accepted,
+                0,
+                0,
+                action as _,
+            ])?
             .ignore_error();
 
         Ok(())
@@ -103,13 +97,13 @@ impl Dnd {
             DndState::Rejected => (0, atoms[DndNone]),
         };
         self.xconn
-            .send_client_msg(
-                target_window,
-                target_window,
-                atoms[XdndFinished] as _,
-                None,
-                [this_window, accepted, action as _, 0, 0],
-            )?
+            .send_client_msg(target_window, target_window, atoms[XdndFinished] as _, None, [
+                this_window,
+                accepted,
+                action as _,
+                0,
+                0,
+            ])?
             .ignore_error();
 
         Ok(())
@@ -127,11 +121,7 @@ impl Dnd {
         )
     }
 
-    pub unsafe fn convert_selection(
-        &self,
-        window: xproto::Window,
-        time: xproto::Timestamp,
-    ) {
+    pub unsafe fn convert_selection(&self, window: xproto::Window, time: xproto::Timestamp) {
         let atoms = self.xconn.atoms();
         self.xconn
             .xcb_connection()
@@ -150,17 +140,10 @@ impl Dnd {
         window: xproto::Window,
     ) -> Result<Vec<c_uchar>, util::GetPropertyError> {
         let atoms = self.xconn.atoms();
-        self.xconn.get_property(
-            window,
-            atoms[XdndSelection],
-            atoms[TextUriList],
-        )
+        self.xconn.get_property(window, atoms[XdndSelection], atoms[TextUriList])
     }
 
-    pub fn parse_data(
-        &self,
-        data: &mut [c_uchar],
-    ) -> Result<Vec<PathBuf>, DndDataParseError> {
+    pub fn parse_data(&self, data: &mut [c_uchar]) -> Result<Vec<PathBuf>, DndDataParseError> {
         if !data.is_empty() {
             let mut path_list = Vec::new();
             let decoded = percent_decode(data).decode_utf8()?.into_owned();
@@ -172,16 +155,12 @@ impl Dnd {
                     if !path_str.starts_with('/') {
                         // A hostname is specified
                         // Supporting this case is beyond the scope of my mental health
-                        return Err(DndDataParseError::HostnameSpecified(
-                            path_str,
-                        ));
+                        return Err(DndDataParseError::HostnameSpecified(path_str));
                     }
                     path_str
                 } else {
                     // Only the file protocol is supported
-                    return Err(DndDataParseError::UnexpectedProtocol(
-                        uri.to_owned(),
-                    ));
+                    return Err(DndDataParseError::UnexpectedProtocol(uri.to_owned()));
                 };
 
                 let path = Path::new(&path_str).canonicalize()?;

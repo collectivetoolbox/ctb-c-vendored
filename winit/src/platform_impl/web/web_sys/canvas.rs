@@ -4,11 +4,11 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
 use smol_str::SmolStr;
-use wasm_bindgen::JsCast;
 use wasm_bindgen::closure::Closure;
+use wasm_bindgen::JsCast;
 use web_sys::{
-    CssStyleDeclaration, Document, Event, FocusEvent, HtmlCanvasElement,
-    KeyboardEvent, PointerEvent, WheelEvent,
+    CssStyleDeclaration, Document, Event, FocusEvent, HtmlCanvasElement, KeyboardEvent,
+    PointerEvent, WheelEvent,
 };
 
 use crate::dpi::{LogicalPosition, PhysicalPosition, PhysicalSize};
@@ -18,15 +18,15 @@ use crate::keyboard::{Key, KeyLocation, ModifiersState, PhysicalKey};
 use crate::platform_impl::OsError;
 use crate::window::{WindowAttributes, WindowId as RootWindowId};
 
-use super::super::WindowId;
 use super::super::cursor::CursorHandler;
 use super::super::main_thread::MainThreadMarker;
+use super::super::WindowId;
 use super::animation_frame::AnimationFrameHandler;
 use super::event_handle::EventListenerHandle;
 use super::intersection_handle::IntersectionObserverHandle;
 use super::media_query_handle::MediaQueryListHandle;
 use super::pointer::PointerHandler;
-use super::{ButtonsState, ResizeScaleHandle, event, fullscreen};
+use super::{event, fullscreen, ButtonsState, ResizeScaleHandle};
 
 #[allow(dead_code)]
 pub struct Canvas {
@@ -85,11 +85,7 @@ impl Canvas {
             Some(canvas) => canvas,
             None => document
                 .create_element("canvas")
-                .map_err(|_| {
-                    os_error!(OsError(
-                        "Failed to create canvas element".to_owned()
-                    ))
-                })?
+                .map_err(|_| os_error!(OsError("Failed to create canvas element".to_owned())))?
                 .unchecked_into(),
         };
 
@@ -107,15 +103,14 @@ impl Canvas {
         // document's source order.
         // https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/tabindex
         if attr.platform_specific.focusable {
-            canvas.set_attribute("tabindex", "0").map_err(|_| {
-                os_error!(OsError("Failed to set a tabindex".to_owned()))
-            })?;
+            canvas
+                .set_attribute("tabindex", "0")
+                .map_err(|_| os_error!(OsError("Failed to set a tabindex".to_owned())))?;
         }
 
         let style = Style::new(&window, &canvas);
 
-        let cursor =
-            CursorHandler::new(main_thread, canvas.clone(), style.clone());
+        let cursor = CursorHandler::new(main_thread, canvas.clone(), style.clone());
 
         let common = Common {
             window: window.clone(),
@@ -128,43 +123,22 @@ impl Canvas {
 
         if let Some(size) = attr.inner_size {
             let size = size.to_logical(super::scale_factor(&common.window));
-            super::set_canvas_size(
-                &common.document,
-                &common.raw,
-                &common.style,
-                size,
-            );
+            super::set_canvas_size(&common.document, &common.raw, &common.style, size);
         }
 
         if let Some(size) = attr.min_inner_size {
             let size = size.to_logical(super::scale_factor(&common.window));
-            super::set_canvas_min_size(
-                &common.document,
-                &common.raw,
-                &common.style,
-                Some(size),
-            );
+            super::set_canvas_min_size(&common.document, &common.raw, &common.style, Some(size));
         }
 
         if let Some(size) = attr.max_inner_size {
             let size = size.to_logical(super::scale_factor(&common.window));
-            super::set_canvas_max_size(
-                &common.document,
-                &common.raw,
-                &common.style,
-                Some(size),
-            );
+            super::set_canvas_max_size(&common.document, &common.raw, &common.style, Some(size));
         }
 
         if let Some(position) = attr.position {
-            let position =
-                position.to_logical(super::scale_factor(&common.window));
-            super::set_canvas_position(
-                &common.document,
-                &common.raw,
-                &common.style,
-                position,
-            );
+            let position = position.to_logical(super::scale_factor(&common.window));
+            super::set_canvas_position(&common.document, &common.raw, &common.style, position);
         }
 
         if attr.fullscreen.is_some() {
@@ -179,9 +153,7 @@ impl Canvas {
             common,
             id,
             has_focus: Rc::new(Cell::new(false)),
-            prevent_default: Rc::new(Cell::new(
-                attr.platform_specific.prevent_default,
-            )),
+            prevent_default: Rc::new(Cell::new(attr.platform_specific.prevent_default)),
             is_intersecting: None,
             on_touch_start: None,
             on_blur: None,
@@ -213,27 +185,18 @@ impl Canvas {
         self.common
             .raw
             .set_attribute(attribute, value)
-            .unwrap_or_else(|err| {
-                panic!("error: {err:?}\nSet attribute: {attribute}")
-            })
+            .unwrap_or_else(|err| panic!("error: {err:?}\nSet attribute: {attribute}"))
     }
 
     pub fn position(&self) -> LogicalPosition<f64> {
         let bounds = self.common.raw.get_bounding_client_rect();
-        let mut position = LogicalPosition {
-            x: bounds.x(),
-            y: bounds.y(),
-        };
+        let mut position = LogicalPosition { x: bounds.x(), y: bounds.y() };
 
-        if self.document().contains(Some(self.raw()))
-            && self.style().get("display") != "none"
-        {
-            position.x +=
-                super::style_size_property(self.style(), "border-left-width")
-                    + super::style_size_property(self.style(), "padding-left");
-            position.y +=
-                super::style_size_property(self.style(), "border-top-width")
-                    + super::style_size_property(self.style(), "padding-top");
+        if self.document().contains(Some(self.raw())) && self.style().get("display") != "none" {
+            position.x += super::style_size_property(self.style(), "border-left-width")
+                + super::style_size_property(self.style(), "padding-left");
+            position.y += super::style_size_property(self.style(), "border-top-width")
+                + super::style_size_property(self.style(), "padding-top");
         }
 
         position
@@ -281,50 +244,38 @@ impl Canvas {
 
     pub fn on_touch_start(&mut self) {
         let prevent_default = Rc::clone(&self.prevent_default);
-        self.on_touch_start =
-            Some(self.common.add_event("touchstart", move |event: Event| {
-                if prevent_default.get() {
-                    event.prevent_default();
-                }
-            }));
+        self.on_touch_start = Some(self.common.add_event("touchstart", move |event: Event| {
+            if prevent_default.get() {
+                event.prevent_default();
+            }
+        }));
     }
 
     pub fn on_blur<F>(&mut self, mut handler: F)
     where
         F: 'static + FnMut(),
     {
-        self.on_blur =
-            Some(self.common.add_event("blur", move |_: FocusEvent| {
-                handler();
-            }));
+        self.on_blur = Some(self.common.add_event("blur", move |_: FocusEvent| {
+            handler();
+        }));
     }
 
     pub fn on_focus<F>(&mut self, mut handler: F)
     where
         F: 'static + FnMut(),
     {
-        self.on_focus =
-            Some(self.common.add_event("focus", move |_: FocusEvent| {
-                handler();
-            }));
+        self.on_focus = Some(self.common.add_event("focus", move |_: FocusEvent| {
+            handler();
+        }));
     }
 
     pub fn on_keyboard_release<F>(&mut self, mut handler: F)
     where
-        F: 'static
-            + FnMut(
-                PhysicalKey,
-                Key,
-                Option<SmolStr>,
-                KeyLocation,
-                bool,
-                ModifiersState,
-            ),
+        F: 'static + FnMut(PhysicalKey, Key, Option<SmolStr>, KeyLocation, bool, ModifiersState),
     {
         let prevent_default = Rc::clone(&self.prevent_default);
-        self.on_keyboard_release = Some(self.common.add_event(
-            "keyup",
-            move |event: KeyboardEvent| {
+        self.on_keyboard_release =
+            Some(self.common.add_event("keyup", move |event: KeyboardEvent| {
                 if prevent_default.get() {
                     event.prevent_default();
                 }
@@ -338,26 +289,16 @@ impl Canvas {
                     event.repeat(),
                     modifiers,
                 );
-            },
-        ));
+            }));
     }
 
     pub fn on_keyboard_press<F>(&mut self, mut handler: F)
     where
-        F: 'static
-            + FnMut(
-                PhysicalKey,
-                Key,
-                Option<SmolStr>,
-                KeyLocation,
-                bool,
-                ModifiersState,
-            ),
+        F: 'static + FnMut(PhysicalKey, Key, Option<SmolStr>, KeyLocation, bool, ModifiersState),
     {
         let prevent_default = Rc::clone(&self.prevent_default);
-        self.on_keyboard_press = Some(self.common.add_event(
-            "keydown",
-            move |event: KeyboardEvent| {
+        self.on_keyboard_press =
+            Some(self.common.add_event("keydown", move |event: KeyboardEvent| {
                 if prevent_default.get() {
                     event.prevent_default();
                 }
@@ -371,8 +312,7 @@ impl Canvas {
                     event.repeat(),
                     modifiers,
                 );
-            },
-        ));
+            }));
     }
 
     pub fn on_cursor_leave<F>(&mut self, handler: F)
@@ -391,21 +331,15 @@ impl Canvas {
 
     pub fn on_mouse_release<M, T>(&mut self, mouse_handler: M, touch_handler: T)
     where
-        M: 'static
-            + FnMut(ModifiersState, i32, PhysicalPosition<f64>, MouseButton),
+        M: 'static + FnMut(ModifiersState, i32, PhysicalPosition<f64>, MouseButton),
         T: 'static + FnMut(ModifiersState, i32, PhysicalPosition<f64>, Force),
     {
-        self.pointer_handler.on_mouse_release(
-            &self.common,
-            mouse_handler,
-            touch_handler,
-        )
+        self.pointer_handler.on_mouse_release(&self.common, mouse_handler, touch_handler)
     }
 
     pub fn on_mouse_press<M, T>(&mut self, mouse_handler: M, touch_handler: T)
     where
-        M: 'static
-            + FnMut(ModifiersState, i32, PhysicalPosition<f64>, MouseButton),
+        M: 'static + FnMut(ModifiersState, i32, PhysicalPosition<f64>, MouseButton),
         T: 'static + FnMut(ModifiersState, i32, PhysicalPosition<f64>, Force),
     {
         self.pointer_handler.on_mouse_press(
@@ -416,32 +350,12 @@ impl Canvas {
         )
     }
 
-    pub fn on_cursor_move<M, T, B>(
-        &mut self,
-        mouse_handler: M,
-        touch_handler: T,
-        button_handler: B,
-    ) where
-        M: 'static
-            + FnMut(
-                ModifiersState,
-                i32,
-                &mut dyn Iterator<Item = PhysicalPosition<f64>>,
-            ),
+    pub fn on_cursor_move<M, T, B>(&mut self, mouse_handler: M, touch_handler: T, button_handler: B)
+    where
+        M: 'static + FnMut(ModifiersState, i32, &mut dyn Iterator<Item = PhysicalPosition<f64>>),
         T: 'static
-            + FnMut(
-                ModifiersState,
-                i32,
-                &mut dyn Iterator<Item = (PhysicalPosition<f64>, Force)>,
-            ),
-        B: 'static
-            + FnMut(
-                ModifiersState,
-                i32,
-                PhysicalPosition<f64>,
-                ButtonsState,
-                MouseButton,
-            ),
+            + FnMut(ModifiersState, i32, &mut dyn Iterator<Item = (PhysicalPosition<f64>, Force)>),
+        B: 'static + FnMut(ModifiersState, i32, PhysicalPosition<f64>, ButtonsState, MouseButton),
     {
         self.pointer_handler.on_cursor_move(
             &self.common,
@@ -465,18 +379,16 @@ impl Canvas {
     {
         let window = self.common.window.clone();
         let prevent_default = Rc::clone(&self.prevent_default);
-        self.on_mouse_wheel =
-            Some(self.common.add_event("wheel", move |event: WheelEvent| {
-                if prevent_default.get() {
-                    event.prevent_default();
-                }
+        self.on_mouse_wheel = Some(self.common.add_event("wheel", move |event: WheelEvent| {
+            if prevent_default.get() {
+                event.prevent_default();
+            }
 
-                if let Some(delta) = event::mouse_scroll_delta(&window, &event)
-                {
-                    let modifiers = event::mouse_modifiers(&event);
-                    handler(0, delta, modifiers);
-                }
-            }));
+            if let Some(delta) = event::mouse_scroll_delta(&window, &event) {
+                let modifiers = event::mouse_modifiers(&event);
+                handler(0, delta, modifiers);
+            }
+        }));
     }
 
     pub fn on_dark_mode<F>(&mut self, mut handler: F)
@@ -490,11 +402,8 @@ impl Canvas {
         ));
     }
 
-    pub(crate) fn on_resize_scale<S, R>(
-        &mut self,
-        scale_handler: S,
-        size_handler: R,
-    ) where
+    pub(crate) fn on_resize_scale<S, R>(&mut self, scale_handler: S, size_handler: R)
+    where
         S: 'static + Fn(PhysicalSize<u32>, f64),
         R: 'static + Fn(PhysicalSize<u32>),
     {
@@ -512,8 +421,7 @@ impl Canvas {
     where
         F: 'static + FnMut(bool),
     {
-        self.on_intersect =
-            Some(IntersectionObserverHandle::new(self.raw(), handler));
+        self.on_intersect = Some(IntersectionObserverHandle::new(self.raw(), handler));
     }
 
     pub(crate) fn on_animation_frame<F>(&mut self, f: F)
@@ -525,14 +433,12 @@ impl Canvas {
 
     pub(crate) fn on_context_menu(&mut self) {
         let prevent_default = Rc::clone(&self.prevent_default);
-        self.on_context_menu = Some(self.common.add_event(
-            "contextmenu",
-            move |event: PointerEvent| {
+        self.on_context_menu =
+            Some(self.common.add_event("contextmenu", move |event: PointerEvent| {
                 if prevent_default.get() {
                     event.prevent_default();
                 }
-            },
-        ));
+            }));
     }
 
     pub fn request_fullscreen(&self) {
@@ -566,9 +472,7 @@ impl Canvas {
                 window_id: RootWindowId(self.id),
                 event: crate::event::WindowEvent::ScaleFactorChanged {
                     scale_factor: scale,
-                    inner_size_writer: InnerSizeWriter::new(Arc::downgrade(
-                        &new_size,
-                    )),
+                    inner_size_writer: InnerSizeWriter::new(Arc::downgrade(&new_size)),
                 },
             });
 
@@ -580,12 +484,7 @@ impl Canvas {
             // Then we resize the canvas to the new size, a new
             // `Resized` event will be sent by the `ResizeObserver`:
             let new_size = new_size.to_logical(scale);
-            super::set_canvas_size(
-                self.document(),
-                self.raw(),
-                self.style(),
-                new_size,
-            );
+            super::set_canvas_size(self.document(), self.raw(), self.style(), new_size);
 
             // Set the size might not trigger the event because the calculation is inaccurate.
             self.on_resize_scale
@@ -629,11 +528,7 @@ impl Common {
         E: 'static + AsRef<web_sys::Event> + wasm_bindgen::convert::FromWasmAbi,
         F: 'static + FnMut(E),
     {
-        EventListenerHandle::new(
-            self.raw.deref().clone(),
-            event_name,
-            Closure::new(handler),
-        )
+        EventListenerHandle::new(self.raw.deref().clone(), event_name, Closure::new(handler))
     }
 
     pub fn raw(&self) -> &HtmlCanvasElement {
@@ -657,20 +552,14 @@ impl Style {
     }
 
     pub(crate) fn get(&self, property: &str) -> String {
-        self.read
-            .get_property_value(property)
-            .expect("Invalid property")
+        self.read.get_property_value(property).expect("Invalid property")
     }
 
     pub(crate) fn remove(&self, property: &str) {
-        self.write
-            .remove_property(property)
-            .expect("Property is read only");
+        self.write.remove_property(property).expect("Property is read only");
     }
 
     pub(crate) fn set(&self, property: &str, value: &str) {
-        self.write
-            .set_property(property, value)
-            .expect("Property is read only");
+        self.write.set_property(property, value).expect("Property is read only");
     }
 }

@@ -7,9 +7,7 @@ use std::mem;
 
 use objc2::runtime::{Imp, Sel};
 use objc2::sel;
-use objc2_app_kit::{
-    NSApplication, NSEvent, NSEventModifierFlags, NSEventType,
-};
+use objc2_app_kit::{NSApplication, NSEvent, NSEventModifierFlags, NSEventType};
 use objc2_foundation::MainThreadMarker;
 
 use super::app_state::ApplicationDelegate;
@@ -34,8 +32,7 @@ extern "C" fn send_event(app: &NSApplication, sel: Sel, event: &NSEvent) {
     let event_type = unsafe { event.r#type() };
     let modifier_flags = unsafe { event.modifierFlags() };
     if event_type == NSEventType::KeyUp
-        && modifier_flags
-            .contains(NSEventModifierFlags::NSEventModifierFlagCommand)
+        && modifier_flags.contains(NSEventModifierFlags::NSEventModifierFlagCommand)
     {
         if let Some(key_window) = app.keyWindow() {
             key_window.sendEvent(event);
@@ -49,8 +46,7 @@ extern "C" fn send_event(app: &NSApplication, sel: Sel, event: &NSEvent) {
     maybe_dispatch_device_event(&delegate, event);
 
     let _ = mtm;
-    let original =
-        unsafe { ORIGINAL.get().expect("no existing sendEvent: handler set") };
+    let original = unsafe { ORIGINAL.get().expect("no existing sendEvent: handler set") };
     original(app, sel, event)
 }
 
@@ -74,9 +70,8 @@ pub(crate) fn override_send_event(global_app: &NSApplication) {
     let mtm = MainThreadMarker::from(global_app);
     let class = global_app.class();
 
-    let method = class
-        .instance_method(sel!(sendEvent:))
-        .expect("NSApplication must have sendEvent: method");
+    let method =
+        class.instance_method(sel!(sendEvent:)).expect("NSApplication must have sendEvent: method");
 
     // SAFETY: Converting our `sendEvent:` implementation to an IMP.
     let overridden = unsafe { mem::transmute::<SendEvent, Imp>(send_event) };
@@ -105,10 +100,7 @@ pub(crate) fn override_send_event(global_app: &NSApplication) {
     unsafe { ORIGINAL.set(Some(original)) };
 }
 
-fn maybe_dispatch_device_event(
-    delegate: &ApplicationDelegate,
-    event: &NSEvent,
-) {
+fn maybe_dispatch_device_event(delegate: &ApplicationDelegate, event: &NSEvent) {
     let event_type = unsafe { event.r#type() };
     #[allow(non_upper_case_globals)]
     match event_type {
@@ -120,17 +112,11 @@ fn maybe_dispatch_device_event(
             let delta_y = unsafe { event.deltaY() } as f64;
 
             if delta_x != 0.0 {
-                delegate.maybe_queue_device_event(DeviceEvent::Motion {
-                    axis: 0,
-                    value: delta_x,
-                });
+                delegate.maybe_queue_device_event(DeviceEvent::Motion { axis: 0, value: delta_x });
             }
 
             if delta_y != 0.0 {
-                delegate.maybe_queue_device_event(DeviceEvent::Motion {
-                    axis: 1,
-                    value: delta_y,
-                })
+                delegate.maybe_queue_device_event(DeviceEvent::Motion { axis: 1, value: delta_y })
             }
 
             if delta_x != 0.0 || delta_y != 0.0 {
@@ -138,23 +124,19 @@ fn maybe_dispatch_device_event(
                     delta: (delta_x, delta_y),
                 });
             }
-        }
-        NSEventType::LeftMouseDown
-        | NSEventType::RightMouseDown
-        | NSEventType::OtherMouseDown => {
+        },
+        NSEventType::LeftMouseDown | NSEventType::RightMouseDown | NSEventType::OtherMouseDown => {
             delegate.maybe_queue_device_event(DeviceEvent::Button {
                 button: unsafe { event.buttonNumber() } as u32,
                 state: ElementState::Pressed,
             });
-        }
-        NSEventType::LeftMouseUp
-        | NSEventType::RightMouseUp
-        | NSEventType::OtherMouseUp => {
+        },
+        NSEventType::LeftMouseUp | NSEventType::RightMouseUp | NSEventType::OtherMouseUp => {
             delegate.maybe_queue_device_event(DeviceEvent::Button {
                 button: unsafe { event.buttonNumber() } as u32,
                 state: ElementState::Released,
             });
-        }
+        },
         _ => (),
     }
 }
@@ -162,18 +144,14 @@ fn maybe_dispatch_device_event(
 #[cfg(test)]
 mod tests {
     use objc2::rc::Retained;
-    use objc2::{
-        ClassType, DeclaredClass, declare_class, msg_send_id, mutability,
-    };
+    use objc2::{declare_class, msg_send_id, mutability, ClassType, DeclaredClass};
 
     use super::*;
 
     #[test]
     fn test_override() {
         // FIXME(madsmtm): Ensure this always runs (maybe use cargo-nextest or `--test-threads=1`?)
-        let Some(mtm) = MainThreadMarker::new() else {
-            return;
-        };
+        let Some(mtm) = MainThreadMarker::new() else { return };
 
         // Create a new application, without making it the shared application.
         let app = unsafe { NSApplication::new(mtm) };
@@ -190,9 +168,7 @@ mod tests {
 
     #[test]
     fn test_custom_class() {
-        let Some(_mtm) = MainThreadMarker::new() else {
-            return;
-        };
+        let Some(_mtm) = MainThreadMarker::new() else { return };
 
         declare_class!(
             struct TestApplication;
@@ -213,8 +189,7 @@ mod tests {
             }
         );
 
-        let app: Retained<TestApplication> =
-            unsafe { msg_send_id![TestApplication::class(), new] };
+        let app: Retained<TestApplication> = unsafe { msg_send_id![TestApplication::class(), new] };
         override_send_event(&app);
     }
 }

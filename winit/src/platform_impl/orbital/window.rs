@@ -8,8 +8,7 @@ use crate::window::ImePurpose;
 use crate::{error, window};
 
 use super::{
-    ActiveEventLoop, MonitorHandle, OsError, RedoxSocket, TimeSocket, WindowId,
-    WindowProperties,
+    ActiveEventLoop, MonitorHandle, OsError, RedoxSocket, TimeSocket, WindowId, WindowProperties,
 };
 
 // These values match the values uses in the `window_new` function in orbital:
@@ -80,11 +79,11 @@ impl Window {
         match attrs.window_level {
             window::WindowLevel::AlwaysOnBottom => {
                 flag_str.push(ORBITAL_FLAG_BACK);
-            }
-            window::WindowLevel::Normal => {}
+            },
+            window::WindowLevel::Normal => {},
             window::WindowLevel::AlwaysOnTop => {
                 flag_str.push(ORBITAL_FLAG_FRONT);
-            }
+            },
         }
 
         // TODO: window_icon
@@ -127,47 +126,34 @@ impl Window {
         })
     }
 
-    pub(crate) fn maybe_queue_on_main(
-        &self,
-        f: impl FnOnce(&Self) + Send + 'static,
-    ) {
+    pub(crate) fn maybe_queue_on_main(&self, f: impl FnOnce(&Self) + Send + 'static) {
         f(self)
     }
 
-    pub(crate) fn maybe_wait_on_main<R: Send>(
-        &self,
-        f: impl FnOnce(&Self) -> R + Send,
-    ) -> R {
+    pub(crate) fn maybe_wait_on_main<R: Send>(&self, f: impl FnOnce(&Self) -> R + Send) -> R {
         f(self)
     }
 
     fn get_flag(&self, flag: char) -> Result<bool, error::ExternalError> {
         let mut buf: [u8; 4096] = [0; 4096];
-        let path = self.window_socket.fpath(&mut buf).map_err(|err| {
-            error::ExternalError::Os(os_error!(OsError::new(err)))
-        })?;
+        let path = self
+            .window_socket
+            .fpath(&mut buf)
+            .map_err(|err| error::ExternalError::Os(os_error!(OsError::new(err))))?;
         let properties = WindowProperties::new(path);
         Ok(properties.flags.contains(flag))
     }
 
-    fn set_flag(
-        &self,
-        flag: char,
-        value: bool,
-    ) -> Result<(), error::ExternalError> {
+    fn set_flag(&self, flag: char, value: bool) -> Result<(), error::ExternalError> {
         self.window_socket
             .write(format!("F,{flag},{}", if value { 1 } else { 0 }).as_bytes())
-            .map_err(|err| {
-                error::ExternalError::Os(os_error!(OsError::new(err)))
-            })?;
+            .map_err(|err| error::ExternalError::Os(os_error!(OsError::new(err))))?;
         Ok(())
     }
 
     #[inline]
     pub fn id(&self) -> WindowId {
-        WindowId {
-            fd: self.window_socket.fd as u64,
-        }
+        WindowId { fd: self.window_socket.fd as u64 }
     }
 
     #[inline]
@@ -212,22 +198,15 @@ impl Window {
     }
 
     #[inline]
-    pub fn inner_position(
-        &self,
-    ) -> Result<PhysicalPosition<i32>, error::NotSupportedError> {
+    pub fn inner_position(&self) -> Result<PhysicalPosition<i32>, error::NotSupportedError> {
         let mut buf: [u8; 4096] = [0; 4096];
-        let path = self
-            .window_socket
-            .fpath(&mut buf)
-            .expect("failed to read properties");
+        let path = self.window_socket.fpath(&mut buf).expect("failed to read properties");
         let properties = WindowProperties::new(path);
         Ok((properties.x, properties.y).into())
     }
 
     #[inline]
-    pub fn outer_position(
-        &self,
-    ) -> Result<PhysicalPosition<i32>, error::NotSupportedError> {
+    pub fn outer_position(&self) -> Result<PhysicalPosition<i32>, error::NotSupportedError> {
         // TODO: adjust for window decorations
         self.inner_position()
     }
@@ -235,31 +214,22 @@ impl Window {
     #[inline]
     pub fn set_outer_position(&self, position: Position) {
         // TODO: adjust for window decorations
-        let (x, y): (i32, i32) =
-            position.to_physical::<i32>(self.scale_factor()).into();
-        self.window_socket
-            .write(format!("P,{x},{y}").as_bytes())
-            .expect("failed to set position");
+        let (x, y): (i32, i32) = position.to_physical::<i32>(self.scale_factor()).into();
+        self.window_socket.write(format!("P,{x},{y}").as_bytes()).expect("failed to set position");
     }
 
     #[inline]
     pub fn inner_size(&self) -> PhysicalSize<u32> {
         let mut buf: [u8; 4096] = [0; 4096];
-        let path = self
-            .window_socket
-            .fpath(&mut buf)
-            .expect("failed to read properties");
+        let path = self.window_socket.fpath(&mut buf).expect("failed to read properties");
         let properties = WindowProperties::new(path);
         (properties.w, properties.h).into()
     }
 
     #[inline]
     pub fn request_inner_size(&self, size: Size) -> Option<PhysicalSize<u32>> {
-        let (w, h): (u32, u32) =
-            size.to_physical::<u32>(self.scale_factor()).into();
-        self.window_socket
-            .write(format!("S,{w},{h}").as_bytes())
-            .expect("failed to set size");
+        let (w, h): (u32, u32) = size.to_physical::<u32>(self.scale_factor()).into();
+        self.window_socket.write(format!("S,{w},{h}").as_bytes()).expect("failed to set size");
         None
     }
 
@@ -278,19 +248,14 @@ impl Window {
     #[inline]
     pub fn title(&self) -> String {
         let mut buf: [u8; 4096] = [0; 4096];
-        let path = self
-            .window_socket
-            .fpath(&mut buf)
-            .expect("failed to read properties");
+        let path = self.window_socket.fpath(&mut buf).expect("failed to read properties");
         let properties = WindowProperties::new(path);
         properties.title.to_string()
     }
 
     #[inline]
     pub fn set_title(&self, title: &str) {
-        self.window_socket
-            .write(format!("T,{title}").as_bytes())
-            .expect("failed to set title");
+        self.window_socket.write(format!("T,{title}").as_bytes()).expect("failed to set title");
     }
 
     #[inline]
@@ -370,14 +335,14 @@ impl Window {
         match level {
             window::WindowLevel::AlwaysOnBottom => {
                 let _ = self.set_flag(ORBITAL_FLAG_BACK, true);
-            }
+            },
             window::WindowLevel::Normal => {
                 let _ = self.set_flag(ORBITAL_FLAG_BACK, false);
                 let _ = self.set_flag(ORBITAL_FLAG_FRONT, false);
-            }
+            },
             window::WindowLevel::AlwaysOnTop => {
                 let _ = self.set_flag(ORBITAL_FLAG_FRONT, true);
-            }
+            },
         }
     }
 
@@ -397,23 +362,14 @@ impl Window {
     pub fn focus_window(&self) {}
 
     #[inline]
-    pub fn request_user_attention(
-        &self,
-        _request_type: Option<window::UserAttentionType>,
-    ) {
-    }
+    pub fn request_user_attention(&self, _request_type: Option<window::UserAttentionType>) {}
 
     #[inline]
     pub fn set_cursor(&self, _: Cursor) {}
 
     #[inline]
-    pub fn set_cursor_position(
-        &self,
-        _: Position,
-    ) -> Result<(), error::ExternalError> {
-        Err(error::ExternalError::NotSupported(
-            error::NotSupportedError::new(),
-        ))
+    pub fn set_cursor_position(&self, _: Position) -> Result<(), error::ExternalError> {
+        Err(error::ExternalError::NotSupported(error::NotSupportedError::new()))
     }
 
     #[inline]
@@ -428,29 +384,23 @@ impl Window {
         };
         self.window_socket
             .write(format!("M,G,{}", if grab { 1 } else { 0 }).as_bytes())
-            .map_err(|err| {
-                error::ExternalError::Os(os_error!(OsError::new(err)))
-            })?;
+            .map_err(|err| error::ExternalError::Os(os_error!(OsError::new(err))))?;
         self.window_socket
             .write(format!("M,R,{}", if relative { 1 } else { 0 }).as_bytes())
-            .map_err(|err| {
-                error::ExternalError::Os(os_error!(OsError::new(err)))
-            })?;
+            .map_err(|err| error::ExternalError::Os(os_error!(OsError::new(err))))?;
         Ok(())
     }
 
     #[inline]
     pub fn set_cursor_visible(&self, visible: bool) {
-        let _ = self
-            .window_socket
-            .write(format!("M,C,{}", if visible { 1 } else { 0 }).as_bytes());
+        let _ = self.window_socket.write(format!("M,C,{}", if visible { 1 } else { 0 }).as_bytes());
     }
 
     #[inline]
     pub fn drag_window(&self) -> Result<(), error::ExternalError> {
-        self.window_socket.write(b"D").map_err(|err| {
-            error::ExternalError::Os(os_error!(OsError::new(err)))
-        })?;
+        self.window_socket
+            .write(b"D")
+            .map_err(|err| error::ExternalError::Os(os_error!(OsError::new(err))))?;
         Ok(())
     }
 
@@ -471,9 +421,7 @@ impl Window {
         };
         self.window_socket
             .write(format!("D,{arg}").as_bytes())
-            .map_err(|err| {
-                error::ExternalError::Os(os_error!(OsError::new(err)))
-            })?;
+            .map_err(|err| error::ExternalError::Os(os_error!(OsError::new(err))))?;
         Ok(())
     }
 
@@ -481,13 +429,8 @@ impl Window {
     pub fn show_window_menu(&self, _position: Position) {}
 
     #[inline]
-    pub fn set_cursor_hittest(
-        &self,
-        _hittest: bool,
-    ) -> Result<(), error::ExternalError> {
-        Err(error::ExternalError::NotSupported(
-            error::NotSupportedError::new(),
-        ))
+    pub fn set_cursor_hittest(&self, _hittest: bool) -> Result<(), error::ExternalError> {
+        Err(error::ExternalError::NotSupported(error::NotSupportedError::new()))
     }
 
     #[cfg(feature = "rwh_04")]
@@ -514,13 +457,10 @@ impl Window {
 
     #[cfg(feature = "rwh_06")]
     #[inline]
-    pub fn raw_window_handle_rwh_06(
-        &self,
-    ) -> Result<rwh_06::RawWindowHandle, rwh_06::HandleError> {
+    pub fn raw_window_handle_rwh_06(&self) -> Result<rwh_06::RawWindowHandle, rwh_06::HandleError> {
         let handle = rwh_06::OrbitalWindowHandle::new({
             let window = self.window_socket.fd as *mut _;
-            std::ptr::NonNull::new(window)
-                .expect("orbital fd should never be null")
+            std::ptr::NonNull::new(window).expect("orbital fd should never be null")
         });
         Ok(rwh_06::RawWindowHandle::Orbital(handle))
     }
@@ -530,9 +470,7 @@ impl Window {
     pub fn raw_display_handle_rwh_06(
         &self,
     ) -> Result<rwh_06::RawDisplayHandle, rwh_06::HandleError> {
-        Ok(rwh_06::RawDisplayHandle::Orbital(
-            rwh_06::OrbitalDisplayHandle::new(),
-        ))
+        Ok(rwh_06::RawDisplayHandle::Orbital(rwh_06::OrbitalDisplayHandle::new()))
     }
 
     #[inline]

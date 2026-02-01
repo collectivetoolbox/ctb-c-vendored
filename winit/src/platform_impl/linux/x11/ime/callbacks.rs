@@ -3,10 +3,10 @@ use std::os::raw::c_char;
 use std::ptr;
 use std::sync::Arc;
 
-use super::{XConnection, XError, ffi};
+use super::{ffi, XConnection, XError};
 
 use super::context::{ImeContext, ImeContextCreationError};
-use super::inner::{ImeInner, close_im};
+use super::inner::{close_im, ImeInner};
 use super::input_method::PotentialInputMethods;
 
 pub(crate) unsafe fn xim_set_callback(
@@ -92,8 +92,7 @@ unsafe fn replace_im(inner: *mut ImeInner) -> Result<(), ReplaceImError> {
     let xconn = unsafe { &(*inner).xconn };
 
     let (new_im, is_fallback) = {
-        let new_im =
-            unsafe { (*inner).potential_input_methods.open_im(xconn, None) };
+        let new_im = unsafe { (*inner).potential_input_methods.open_im(xconn, None) };
         let is_fallback = new_im.is_fallback();
         (
             new_im.ok().ok_or_else(|| {
@@ -121,10 +120,8 @@ unsafe fn replace_im(inner: *mut ImeInner) -> Result<(), ReplaceImError> {
         let spot = old_context.as_ref().map(|old_context| old_context.ic_spot);
 
         // Check if the IME was allowed on that context.
-        let is_allowed = old_context
-            .as_ref()
-            .map(|old_context| old_context.is_allowed())
-            .unwrap_or_default();
+        let is_allowed =
+            old_context.as_ref().map(|old_context| old_context.is_allowed()).unwrap_or_default();
 
         let new_context = {
             let result = unsafe {
@@ -202,7 +199,7 @@ pub unsafe extern "C" fn xim_destroy_callback(
                 Err(err) => {
                     // We have no usable input methods!
                     panic!("Failed to open fallback input method: {err:?}");
-                }
+                },
             }
         }
     }

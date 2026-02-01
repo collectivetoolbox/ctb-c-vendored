@@ -43,9 +43,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             window_id: WindowId,
             event: WindowEvent,
         ) {
-            if event == WindowEvent::Destroyed
-                && self.window_id == Some(window_id)
-            {
+            if event == WindowEvent::Destroyed && self.window_id == Some(window_id) {
                 println!(
                     "--------------------------------------------------------- Window {} Destroyed",
                     self.idx
@@ -69,10 +67,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     );
                     fill::cleanup_window(window);
                     self.window = None;
-                }
+                },
                 WindowEvent::RedrawRequested => {
                     fill::fill_window(window);
-                }
+                },
                 _ => (),
             }
         }
@@ -82,34 +80,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut event_loop = EventLoop::new().unwrap();
 
-    let mut app = App {
-        idx: 1,
-        ..Default::default()
-    };
+    let mut app = App { idx: 1, ..Default::default() };
     event_loop.run_app_on_demand(&mut app)?;
 
-    println!(
-        "--------------------------------------------------------- Finished first loop"
-    );
-    println!(
-        "--------------------------------------------------------- Waiting 5 seconds"
-    );
+    println!("--------------------------------------------------------- Finished first loop");
+    println!("--------------------------------------------------------- Waiting 5 seconds");
     std::thread::sleep(Duration::from_secs(5));
 
     app.idx += 1;
     event_loop.run_app_on_demand(&mut app)?;
-    println!(
-        "--------------------------------------------------------- Finished second loop"
-    );
+    println!("--------------------------------------------------------- Finished second loop");
     Ok(())
 }
 
-#[cfg(not(any(
-    windows_platform,
-    macos_platform,
-    x11_platform,
-    wayland_platform,
-)))]
+#[cfg(not(any(windows_platform, macos_platform, x11_platform, wayland_platform,)))]
 fn main() {
     println!("This example is not supported on this platform");
 }

@@ -113,8 +113,7 @@ pub const PRESENT_MAJOR: c_int = 1;
 pub const PRESENT_MINOR: c_int = 2;
 
 pub const PRESENT_REVISION: c_int = 0;
-pub const PRESENT_VERSION: c_int =
-    PRESENT_MAJOR * 10000 + PRESENT_MINOR * 100 + PRESENT_REVISION;
+pub const PRESENT_VERSION: c_int = PRESENT_MAJOR * 10000 + PRESENT_MINOR * 100 + PRESENT_REVISION;
 
 pub const PresentNumberErrors: c_int = 0;
 pub const PresentNumberEvents: c_int = 0;

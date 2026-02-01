@@ -57,26 +57,21 @@ impl NotSupportedError {
 
 impl OsError {
     #[allow(dead_code)]
-    pub(crate) fn new(
-        line: u32,
-        file: &'static str,
-        error: platform_impl::OsError,
-    ) -> OsError {
+    pub(crate) fn new(line: u32, file: &'static str, error: platform_impl::OsError) -> OsError {
         OsError { line, file, error }
     }
 }
 
 #[allow(unused_macros)]
 macro_rules! os_error {
-    ($error:expr) => {{ crate::error::OsError::new(line!(), file!(), $error) }};
+    ($error:expr) => {{
+        crate::error::OsError::new(line!(), file!(), $error)
+    }};
 }
 
 impl fmt::Display for OsError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        f.pad(&format!(
-            "os error at {}:{}: {}",
-            self.file, self.line, self.error
-        ))
+        f.pad(&format!("os error at {}:{}: {}", self.file, self.line, self.error))
     }
 }
 
@@ -105,14 +100,10 @@ impl fmt::Display for NotSupportedError {
 impl fmt::Display for EventLoopError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         match self {
-            EventLoopError::RecreationAttempt => {
-                write!(f, "EventLoop can't be recreated")
-            }
+            EventLoopError::RecreationAttempt => write!(f, "EventLoop can't be recreated"),
             EventLoopError::NotSupported(e) => e.fmt(f),
             EventLoopError::Os(e) => e.fmt(f),
-            EventLoopError::ExitFailure(status) => {
-                write!(f, "Exit Failure: {status}")
-            }
+            EventLoopError::ExitFailure(status) => write!(f, "Exit Failure: {status}"),
         }
     }
 }
@@ -130,11 +121,7 @@ mod tests {
     // Eat attributes for testing
     #[test]
     fn ensure_fmt_does_not_panic() {
-        let _ = format!(
-            "{:?}, {}",
-            NotSupportedError::new(),
-            NotSupportedError::new().clone()
-        );
+        let _ = format!("{:?}, {}", NotSupportedError::new(), NotSupportedError::new().clone());
         let _ = format!(
             "{:?}, {}",
             ExternalError::NotSupported(NotSupportedError::new()),

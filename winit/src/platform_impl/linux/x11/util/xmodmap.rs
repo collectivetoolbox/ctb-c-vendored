@@ -46,10 +46,7 @@ impl ModifierKeymap {
         let keys_per_mod = keymap.max_keypermod as usize;
 
         let keys = unsafe {
-            slice::from_raw_parts(
-                keymap.modifiermap as *const _,
-                keys_per_mod * NUM_MODS,
-            )
+            slice::from_raw_parts(keymap.modifiermap as *const _, keys_per_mod * NUM_MODS)
         };
         self.modifiers.clear();
         for key in keys {
