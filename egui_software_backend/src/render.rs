@@ -49,6 +49,20 @@ pub fn draw_egui_mesh<const SUBPIX_BITS: i32>(
         )
     }
 
+    // Fallback for 32-bit and any other std-enabled targets without runtime SIMD dispatch.
+    #[cfg(all(feature = "std", not(any(target_arch = "x86_64", target_arch = "aarch64"))))]
+    draw_egui_mesh_impl::<SUBPIX_BITS, false>(
+        textures,
+        buffer,
+        clip_rect,
+        mesh,
+        vert_offset,
+        allow_raster_opt,
+        convert_tris_to_rects,
+        #[cfg(all(feature = "raster_stats", not(feature = "rayon")))]
+        stats,
+    );
+
     #[cfg(not(feature = "std"))]
     draw_egui_mesh_impl::<SUBPIX_BITS, false>(
         textures,
