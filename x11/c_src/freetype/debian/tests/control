@@ -1,3 +1,0 @@
-Tests: libfreetype-dev
-Depends: build-essential, pkgconf, libfreetype-dev
-Restrictions: allow-stderr, superficial

@@ -1,7 +1,0 @@
-Tests: smoke
-Depends: libicu-dev, pkgconf
-Restrictions: allow-stderr
-
-Tests: build-test
-Depends: build-essential, libicu-dev, pkgconf
-Restrictions: allow-stderr
