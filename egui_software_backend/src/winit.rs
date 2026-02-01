@@ -9,7 +9,6 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::mem;
 use std::num::NonZeroU32;
-use std::ops::Deref as _;
 use std::rc::Rc;
 use std::string::String;
 use std::sync::Arc;
@@ -470,7 +469,7 @@ impl<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp>
                     SoftwareBackendAppError::soft_buffer("softbuffer::Surface::resize"),
                 )?;
 
-                let mut raw_input = self.egui_winit.take_egui_input(&*self.window);
+                let mut raw_input = self.egui_winit.take_egui_input(&self.window);
 
                 raw_input
                     .events
@@ -692,7 +691,7 @@ impl<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp>
 
                 //Makes the clipboard work.
                 self.egui_winit
-                    .handle_platform_output(&*self.window, full_output.platform_output);
+                    .handle_platform_output(&self.window, full_output.platform_output);
 
                 let clipped_primitives = self
                     .egui_context
@@ -735,7 +734,7 @@ impl<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp>
             _ => {
                 let response = self
                     .egui_winit
-                    .on_window_event(&*self.window, &window_event);
+                    .on_window_event(&self.window, &window_event);
 
                 if response.repaint {
                     // Redraw when egui says it's necessary (e.g., mouse move, key press):

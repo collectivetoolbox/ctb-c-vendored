@@ -263,7 +263,7 @@ impl EguiSoftwareRender {
             self.cached_primitives.clear();
         }
 
-        for (_hash, prim) in &mut self.cached_primitives {
+        for prim in self.cached_primitives.values_mut() {
             prim.seen_this_frame = false;
         }
 
@@ -741,7 +741,7 @@ impl EguiSoftwareRender {
             )
             .collect::<Vec<_>>();
 
-        for update in updates.into_iter() { match update {
+        for update in updates { match update {
             CacheUpdate::CacheReuse(cache_reuse) => {
                 if let Some(cached_primitive) = self.cached_primitives.get_mut(&cache_reuse.hash) {
                     cached_primitive.seen_this_frame = cache_reuse.seen_this_frame;
@@ -756,7 +756,7 @@ impl EguiSoftwareRender {
                 self.cached_primitives.insert(hash, prim);
             }
             CacheUpdate::None => (),
-        }; }
+        } }
 
         #[cfg(feature = "raster_stats")]
         {
