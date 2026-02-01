@@ -153,7 +153,9 @@ impl<W: Borrow<Window>> std::ops::Deref for AnyThread<W> {
 
 #[cfg(feature = "rwh_06")]
 impl<W: Borrow<Window>> rwh_06::HasWindowHandle for AnyThread<W> {
-    fn window_handle(&self) -> Result<rwh_06::WindowHandle<'_>, rwh_06::HandleError> {
+    fn window_handle(
+        &self,
+    ) -> Result<rwh_06::WindowHandle<'_>, rwh_06::HandleError> {
         // SAFETY: The top level user has asserted this is only used safely.
         unsafe { self.get_ref().window_handle_any_thread() }
     }
@@ -394,7 +396,8 @@ impl WindowExtWindows for Window {
         // The windows docs don't mention NONE as a valid options but it works in practice and is
         // useful to circumvent the Windows option "Show accent color on title bars and
         // window borders"
-        self.window.set_title_background_color(color.unwrap_or(Color::NONE))
+        self.window
+            .set_title_background_color(color.unwrap_or(Color::NONE))
     }
 
     #[inline]
@@ -479,7 +482,10 @@ pub trait WindowAttributesExtWindows {
         windows_platform,
         doc = "[`CreateMenu`]: windows_sys::Win32::UI::WindowsAndMessaging::CreateMenu"
     )]
-    #[cfg_attr(not(windows_platform), doc = "[`CreateMenu`]: #only-available-on-windows")]
+    #[cfg_attr(
+        not(windows_platform),
+        doc = "[`CreateMenu`]: #only-available-on-windows"
+    )]
     fn with_menu(self, menu: HMENU) -> Self;
 
     /// This sets `ICON_BIG`. A good ceiling here is 256x256.
@@ -600,13 +606,15 @@ impl WindowAttributesExtWindows for WindowAttributes {
 
     #[inline]
     fn with_border_color(mut self, color: Option<Color>) -> Self {
-        self.platform_specific.border_color = Some(color.unwrap_or(Color::NONE));
+        self.platform_specific.border_color =
+            Some(color.unwrap_or(Color::NONE));
         self
     }
 
     #[inline]
     fn with_title_background_color(mut self, color: Option<Color>) -> Self {
-        self.platform_specific.title_background_color = Some(color.unwrap_or(Color::NONE));
+        self.platform_specific.title_background_color =
+            Some(color.unwrap_or(Color::NONE));
         self
     }
 
@@ -679,8 +687,10 @@ pub trait IconExtWindows: Sized {
     ///
     /// In cases where the specified size does not exist in the file, Windows may perform scaling
     /// to get an icon of the desired size.
-    fn from_path<P: AsRef<Path>>(path: P, size: Option<PhysicalSize<u32>>)
-        -> Result<Self, BadIcon>;
+    fn from_path<P: AsRef<Path>>(
+        path: P,
+        size: Option<PhysicalSize<u32>>,
+    ) -> Result<Self, BadIcon>;
 
     /// Create an icon from a resource embedded in this executable or library by its ordinal id.
     ///
@@ -694,7 +704,10 @@ pub trait IconExtWindows: Sized {
     ///
     /// In cases where the specified size does not exist in the file, Windows may perform scaling
     /// to get an icon of the desired size.
-    fn from_resource(ordinal: u16, size: Option<PhysicalSize<u32>>) -> Result<Self, BadIcon>;
+    fn from_resource(
+        ordinal: u16,
+        size: Option<PhysicalSize<u32>>,
+    ) -> Result<Self, BadIcon>;
 
     /// Create an icon from a resource embedded in this executable or library by its name.
     ///
@@ -743,7 +756,10 @@ pub trait IconExtWindows: Sized {
     /// assert!(Icon::from_resource_name("0", None).is_ok());
     /// assert!(Icon::from_resource(0, None).is_err());
     /// ```
-    fn from_resource_name(name: &str, size: Option<PhysicalSize<u32>>) -> Result<Self, BadIcon>;
+    fn from_resource_name(
+        name: &str,
+        size: Option<PhysicalSize<u32>>,
+    ) -> Result<Self, BadIcon>;
 }
 
 impl IconExtWindows for Icon {
@@ -755,13 +771,21 @@ impl IconExtWindows for Icon {
         Ok(Icon { inner: win_icon })
     }
 
-    fn from_resource(ordinal: u16, size: Option<PhysicalSize<u32>>) -> Result<Self, BadIcon> {
-        let win_icon = crate::platform_impl::WinIcon::from_resource(ordinal, size)?;
+    fn from_resource(
+        ordinal: u16,
+        size: Option<PhysicalSize<u32>>,
+    ) -> Result<Self, BadIcon> {
+        let win_icon =
+            crate::platform_impl::WinIcon::from_resource(ordinal, size)?;
         Ok(Icon { inner: win_icon })
     }
 
-    fn from_resource_name(name: &str, size: Option<PhysicalSize<u32>>) -> Result<Self, BadIcon> {
-        let win_icon = crate::platform_impl::WinIcon::from_resource_name(name, size)?;
+    fn from_resource_name(
+        name: &str,
+        size: Option<PhysicalSize<u32>>,
+    ) -> Result<Self, BadIcon> {
+        let win_icon =
+            crate::platform_impl::WinIcon::from_resource_name(name, size)?;
         Ok(Icon { inner: win_icon })
     }
 }

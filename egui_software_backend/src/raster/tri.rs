@@ -22,7 +22,10 @@ pub fn draw_tri<const SUBPIX_BITS: i32>(
     #[constify] simd: bool,
 ) {
     let Some((ss_min, ss_max, sp_inv_area, mut stepper)) =
-        SingleStepper::from_ss_tri_backface_cull::<SUBPIX_BITS>(draw.clip_bounds, &draw.ss_tri)
+        SingleStepper::from_ss_tri_backface_cull::<SUBPIX_BITS>(
+            draw.clip_bounds,
+            &draw.ss_tri,
+        )
     else {
         return;
     };
@@ -52,7 +55,8 @@ pub fn draw_tri<const SUBPIX_BITS: i32>(
             vert_uv_stepper.row_start();
         }
 
-        if let Some((start, end)) = calc_row_span(&stepper, max_cols, &step_rcp) {
+        if let Some((start, end)) = calc_row_span(&stepper, max_cols, &step_rcp)
+        {
             if vert_col_vary {
                 vert_col_stepper.attr += vert_col_stepper.step_x * start as f32;
             }
@@ -70,7 +74,8 @@ pub fn draw_tri<const SUBPIX_BITS: i32>(
                     #[cfg(target_arch = "x86_64")]
                     use crate::color_sse41::*;
 
-                    let dst = buffer.get_mut_span(ss_start, ss_end, ss_y as usize);
+                    let dst =
+                        buffer.get_mut_span(ss_start, ss_end, ss_y as usize);
                     if vert_col_vary {
                         #[cfg(target_arch = "x86_64")]
                         unsafe {

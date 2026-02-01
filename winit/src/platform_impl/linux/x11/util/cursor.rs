@@ -12,7 +12,11 @@ use super::super::ActiveEventLoop;
 use super::*;
 
 impl XConnection {
-    pub fn set_cursor_icon(&self, window: xproto::Window, cursor: Option<CursorIcon>) {
+    pub fn set_cursor_icon(
+        &self,
+        window: xproto::Window,
+        cursor: Option<CursorIcon>,
+    ) {
         let cursor = *self
             .cursor_cache
             .lock()
@@ -20,11 +24,17 @@ impl XConnection {
             .entry(cursor)
             .or_insert_with(|| self.get_cursor(cursor));
 
-        self.update_cursor(window, cursor).expect("Failed to set cursor");
+        self.update_cursor(window, cursor)
+            .expect("Failed to set cursor");
     }
 
-    pub(crate) fn set_custom_cursor(&self, window: xproto::Window, cursor: &CustomCursor) {
-        self.update_cursor(window, cursor.inner.cursor).expect("Failed to set cursor");
+    pub(crate) fn set_custom_cursor(
+        &self,
+        window: xproto::Window,
+        cursor: &CustomCursor,
+    ) {
+        self.update_cursor(window, cursor.inner.cursor)
+            .expect("Failed to set cursor");
     }
 
     fn create_empty_cursor(&self) -> ffi::Cursor {
@@ -65,10 +75,15 @@ impl XConnection {
         };
 
         let mut xcursor = 0;
-        for &name in iter::once(&cursor.name()).chain(cursor.alt_names().iter()) {
+        for &name in iter::once(&cursor.name()).chain(cursor.alt_names().iter())
+        {
             let name = CString::new(name).unwrap();
-            xcursor =
-                unsafe { ffi::XcursorLibraryLoadCursor(self.display, name.as_ptr() as *const c_char) };
+            xcursor = unsafe {
+                ffi::XcursorLibraryLoadCursor(
+                    self.display,
+                    name.as_ptr() as *const c_char,
+                )
+            };
 
             if xcursor != 0 {
                 break;
@@ -78,11 +93,16 @@ impl XConnection {
         xcursor
     }
 
-    fn update_cursor(&self, window: xproto::Window, cursor: ffi::Cursor) -> Result<(), X11Error> {
+    fn update_cursor(
+        &self,
+        window: xproto::Window,
+        cursor: ffi::Cursor,
+    ) -> Result<(), X11Error> {
         self.xcb_connection()
             .change_window_attributes(
                 window,
-                &xproto::ChangeWindowAttributesAux::new().cursor(cursor as xproto::Cursor),
+                &xproto::ChangeWindowAttributesAux::new()
+                    .cursor(cursor as xproto::Cursor),
             )?
             .ignore_error();
 
@@ -133,17 +153,28 @@ impl CustomCursor {
             (*ximage).yhot = cursor.0.hotspot_y as u32;
             (*ximage).delay = 0;
 
-            let dst = slice::from_raw_parts_mut((*ximage).pixels, cursor.0.rgba.len() / 4);
-            for (dst, chunk) in dst.iter_mut().zip(cursor.0.rgba.chunks_exact(4)) {
+            let dst = slice::from_raw_parts_mut(
+                (*ximage).pixels,
+                cursor.0.rgba.len() / 4,
+            );
+            for (dst, chunk) in
+                dst.iter_mut().zip(cursor.0.rgba.chunks_exact(4))
+            {
                 *dst = (chunk[0] as u32) << 16
                     | (chunk[1] as u32) << 8
                     | (chunk[2] as u32)
                     | (chunk[3] as u32) << 24;
             }
 
-            let cursor = ffi::XcursorImageLoadCursor(event_loop.xconn.display, ximage);
+            let cursor =
+                ffi::XcursorImageLoadCursor(event_loop.xconn.display, ximage);
             ffi::XcursorImageDestroy(ximage);
-            Self { inner: Arc::new(CustomCursorInner { xconn: event_loop.xconn.clone(), cursor }) }
+            Self {
+                inner: Arc::new(CustomCursorInner {
+                    xconn: event_loop.xconn.clone(),
+                    cursor,
+                }),
+            }
         }
     }
 }

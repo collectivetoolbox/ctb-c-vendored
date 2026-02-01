@@ -1,5 +1,5 @@
-use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
+use wasm_bindgen::prelude::Closure;
 use web_sys::EventTarget;
 
 pub struct EventListenerHandle<T: ?Sized> {
@@ -9,15 +9,26 @@ pub struct EventListenerHandle<T: ?Sized> {
 }
 
 impl<T: ?Sized> EventListenerHandle<T> {
-    pub fn new<U>(target: U, event_type: &'static str, listener: Closure<T>) -> Self
+    pub fn new<U>(
+        target: U,
+        event_type: &'static str,
+        listener: Closure<T>,
+    ) -> Self
     where
         U: Into<EventTarget>,
     {
         let target = target.into();
         target
-            .add_event_listener_with_callback(event_type, listener.as_ref().unchecked_ref())
+            .add_event_listener_with_callback(
+                event_type,
+                listener.as_ref().unchecked_ref(),
+            )
             .expect("Failed to add event listener");
-        EventListenerHandle { target, event_type, listener }
+        EventListenerHandle {
+            target,
+            event_type,
+            listener,
+        }
     }
 }
 
@@ -30,7 +41,11 @@ impl<T: ?Sized> Drop for EventListenerHandle<T> {
             )
             .unwrap_or_else(|e| {
                 web_sys::console::error_2(
-                    &format!("Error removing event listener {}", self.event_type).into(),
+                    &format!(
+                        "Error removing event listener {}",
+                        self.event_type
+                    )
+                    .into(),
                     &e,
                 )
             });

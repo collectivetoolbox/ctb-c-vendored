@@ -34,7 +34,8 @@ fn main() {
 
         let extension_name = CString::new("RECORD").unwrap();
 
-        let extension = xlib::XInitExtension(dpy_control, extension_name.as_ptr());
+        let extension =
+            xlib::XInitExtension(dpy_control, extension_name.as_ptr());
         if extension.is_null() {
             panic!("Error init X Record Extension");
         }
@@ -42,14 +43,19 @@ fn main() {
         // Get version
         let mut version_major: c_int = 0;
         let mut version_minor: c_int = 0;
-        xrecord::XRecordQueryVersion(dpy_control, &mut version_major, &mut version_minor);
+        xrecord::XRecordQueryVersion(
+            dpy_control,
+            &mut version_major,
+            &mut version_minor,
+        );
         println!(
             "RECORD extension version {}.{}",
             version_major, version_minor
         );
 
         // Prepare record range
-        let mut record_range: xrecord::XRecordRange = *xrecord::XRecordAllocRange();
+        let mut record_range: xrecord::XRecordRange =
+            *xrecord::XRecordAllocRange();
         record_range.device_events.first = xlib::KeyPress as u8;
         record_range.device_events.last = xlib::MotionNotify as u8;
 
@@ -68,15 +74,22 @@ fn main() {
         }
 
         // Run
-        let result =
-            xrecord::XRecordEnableContext(dpy_data, context, Some(record_callback), &mut 0);
+        let result = xrecord::XRecordEnableContext(
+            dpy_data,
+            context,
+            Some(record_callback),
+            &mut 0,
+        );
         if result == 0 {
             panic!("Cound not enable the Record context!\n");
         }
     }
 }
 
-unsafe extern "C" fn record_callback(_: *mut i8, raw_data: *mut xrecord::XRecordInterceptData) {
+unsafe extern "C" fn record_callback(
+    _: *mut i8,
+    raw_data: *mut xrecord::XRecordInterceptData,
+) {
     EVENT_COUNT += 1;
     let data = &*raw_data;
 

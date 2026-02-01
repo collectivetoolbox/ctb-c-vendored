@@ -40,7 +40,9 @@ impl PhysicalKeyExtScancode for PhysicalKey {
 impl PhysicalKeyExtScancode for KeyCode {
     #[inline]
     fn to_scancode(self) -> Option<u32> {
-        <PhysicalKey as PhysicalKeyExtScancode>::to_scancode(PhysicalKey::Code(self))
+        <PhysicalKey as PhysicalKeyExtScancode>::to_scancode(PhysicalKey::Code(
+            self,
+        ))
     }
 
     #[inline]

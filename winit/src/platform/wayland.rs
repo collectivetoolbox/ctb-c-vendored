@@ -64,7 +64,8 @@ pub trait EventLoopBuilderExtWayland {
 impl<T> EventLoopBuilderExtWayland for EventLoopBuilder<T> {
     #[inline]
     fn with_wayland(&mut self) -> &mut Self {
-        self.platform_specific.forced_backend = Some(crate::platform_impl::Backend::Wayland);
+        self.platform_specific.forced_backend =
+            Some(crate::platform_impl::Backend::Wayland);
         self
     }
 
@@ -91,7 +92,9 @@ impl WindowExtWayland for Window {
             #[cfg(x11_platform)]
             crate::platform_impl::Window::X(_) => None,
             #[cfg(wayland_platform)]
-            crate::platform_impl::Window::Wayland(window) => window.xdg_toplevel(),
+            crate::platform_impl::Window::Wayland(window) => {
+                window.xdg_toplevel()
+            }
         }
     }
 }
@@ -105,14 +108,25 @@ pub trait WindowAttributesExtWayland {
     ///
     /// For details about application ID conventions, see the
     /// [Desktop Entry Spec](https://specifications.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html#desktop-file-id)
-    fn with_name(self, general: impl Into<String>, instance: impl Into<String>) -> Self;
+    fn with_name(
+        self,
+        general: impl Into<String>,
+        instance: impl Into<String>,
+    ) -> Self;
 }
 
 impl WindowAttributesExtWayland for WindowAttributes {
     #[inline]
-    fn with_name(mut self, general: impl Into<String>, instance: impl Into<String>) -> Self {
+    fn with_name(
+        mut self,
+        general: impl Into<String>,
+        instance: impl Into<String>,
+    ) -> Self {
         self.platform_specific.name =
-            Some(crate::platform_impl::ApplicationName::new(general.into(), instance.into()));
+            Some(crate::platform_impl::ApplicationName::new(
+                general.into(),
+                instance.into(),
+            ));
         self
     }
 }

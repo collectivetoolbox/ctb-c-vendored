@@ -1,7 +1,7 @@
 //! Handling of xdg activation, which is used for user attention requests.
 
-use std::sync::atomic::AtomicBool;
 use std::sync::Weak;
+use std::sync::atomic::AtomicBool;
 
 use sctk::reexports::client::globals::{BindError, GlobalList};
 use sctk::reexports::client::protocol::wl_surface::WlSurface;
@@ -14,8 +14,8 @@ use sctk::reexports::protocols::xdg::activation::v1::client::xdg_activation_v1::
 use sctk::globals::GlobalData;
 
 use crate::event_loop::AsyncRequestSerial;
-use crate::platform_impl::wayland::state::WinitState;
 use crate::platform_impl::WindowId;
+use crate::platform_impl::wayland::state::WinitState;
 use crate::window::ActivationToken;
 
 pub struct XdgActivationState {
@@ -48,7 +48,9 @@ impl Dispatch<XdgActivationV1, GlobalData, WinitState> for XdgActivationState {
     }
 }
 
-impl Dispatch<XdgActivationTokenV1, XdgActivationTokenData, WinitState> for XdgActivationState {
+impl Dispatch<XdgActivationTokenV1, XdgActivationTokenData, WinitState>
+    for XdgActivationState
+{
     fn event(
         state: &mut WinitState,
         proxy: &XdgActivationTokenV1,
@@ -73,9 +75,10 @@ impl Dispatch<XdgActivationTokenV1, XdgActivationTokenData, WinitState> for XdgA
                 global.activate(token, surface);
                 // Mark that no request attention is in process.
                 if let Some(attention_requested) = fence.upgrade() {
-                    attention_requested.store(false, std::sync::atomic::Ordering::Relaxed);
+                    attention_requested
+                        .store(false, std::sync::atomic::Ordering::Relaxed);
                 }
-            },
+            }
             XdgActivationTokenData::Obtain((window_id, serial)) => {
                 state.events_sink.push_window_event(
                     crate::event::WindowEvent::ActivationTokenDone {
@@ -84,7 +87,7 @@ impl Dispatch<XdgActivationTokenV1, XdgActivationTokenData, WinitState> for XdgA
                     },
                     *window_id,
                 );
-            },
+            }
         }
 
         proxy.destroy();

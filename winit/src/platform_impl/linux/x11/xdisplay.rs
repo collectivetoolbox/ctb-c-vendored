@@ -55,11 +55,17 @@ pub struct XConnection {
 unsafe impl Send for XConnection {}
 unsafe impl Sync for XConnection {}
 
-pub type XErrorHandler =
-    Option<unsafe extern "C" fn(*mut ffi::Display, *mut ffi::XErrorEvent) -> std::os::raw::c_int>;
+pub type XErrorHandler = Option<
+    unsafe extern "C" fn(
+        *mut ffi::Display,
+        *mut ffi::XErrorEvent,
+    ) -> std::os::raw::c_int,
+>;
 
 impl XConnection {
-    pub fn new(error_handler: XErrorHandler) -> Result<XConnection, XNotSupported> {
+    pub fn new(
+        error_handler: XErrorHandler,
+    ) -> Result<XConnection, XNotSupported> {
         unsafe { ffi::XInitThreads() };
         unsafe { ffi::XSetErrorHandler(error_handler) };
 
@@ -75,14 +81,21 @@ impl XConnection {
         // Open the x11rb XCB connection.
         let xcb = {
             // Get a pointer to the underlying XCB connection
-            let xcb_connection = unsafe { ffi::XGetXCBConnection(display as *mut ffi::Display) };
+            let xcb_connection =
+                unsafe { ffi::XGetXCBConnection(display as *mut ffi::Display) };
             assert!(!xcb_connection.is_null());
 
             // Wrap the XCB connection in an x11rb XCB connection
-            let conn =
-                unsafe { XCBConnection::from_raw_xcb_connection(xcb_connection.cast(), false) };
+            let conn = unsafe {
+                XCBConnection::from_raw_xcb_connection(
+                    xcb_connection.cast(),
+                    false,
+                )
+            };
 
-            conn.map_err(|e| XNotSupported::XcbConversionError(Arc::new(WrapConnectError(e))))?
+            conn.map_err(|e| {
+                XNotSupported::XcbConversionError(Arc::new(WrapConnectError(e)))
+            })?
         };
 
         // Get the default screen.
@@ -101,7 +114,9 @@ impl XConnection {
 
         let xsettings_screen = Self::new_xsettings_screen(&xcb, default_screen);
         if xsettings_screen.is_none() {
-            tracing::warn!("error setting XSETTINGS; Xft options won't reload automatically")
+            tracing::warn!(
+                "error setting XSETTINGS; Xft options won't reload automatically"
+            )
         }
 
         // Fetch atoms.
@@ -120,15 +135,24 @@ impl XConnection {
             monitor_handles: Mutex::new(None),
             database: RwLock::new(database),
             cursor_cache: Default::default(),
-            randr_version: (randr_version.major_version, randr_version.minor_version),
+            randr_version: (
+                randr_version.major_version,
+                randr_version.minor_version,
+            ),
             xsettings_screen,
         })
     }
 
-    fn new_xsettings_screen(xcb: &XCBConnection, default_screen: usize) -> Option<xproto::Atom> {
+    fn new_xsettings_screen(
+        xcb: &XCBConnection,
+        default_screen: usize,
+    ) -> Option<xproto::Atom> {
         // Fetch the _XSETTINGS_S[screen number] atom.
         let xsettings_screen = xcb
-            .intern_atom(false, format!("_XSETTINGS_S{default_screen}").as_bytes())
+            .intern_atom(
+                false,
+                format!("_XSETTINGS_S{default_screen}").as_bytes(),
+            )
             .ok()?
             .reply()
             .ok()?
@@ -137,7 +161,12 @@ impl XConnection {
         // Get PropertyNotify events from the XSETTINGS window.
         // TODO: The XSETTINGS window here can change. In the future, listen for DestroyNotify on
         // this window in order to accommodate for a changed window here.
-        let selector_window = xcb.get_selection_owner(xsettings_screen).ok()?.reply().ok()?.owner;
+        let selector_window = xcb
+            .get_selection_owner(xsettings_screen)
+            .ok()?
+            .reply()
+            .ok()?
+            .owner;
 
         xcb.change_window_attributes(
             selector_window,
@@ -170,7 +199,9 @@ impl XConnection {
     /// Get the underlying XCB connection.
     #[inline]
     pub fn xcb_connection(&self) -> &XCBConnection {
-        self.xcb.as_ref().expect("xcb_connection somehow called after drop?")
+        self.xcb
+            .as_ref()
+            .expect("xcb_connection somehow called after drop?")
     }
 
     /// Get the list of atoms.
@@ -200,7 +231,8 @@ impl XConnection {
     /// Reload the resource database.
     #[inline]
     pub fn reload_database(&self) -> Result<(), super::X11Error> {
-        let database = resource_manager::new_from_default(self.xcb_connection())?;
+        let database =
+            resource_manager::new_from_default(self.xcb_connection())?;
         *self.database.write().unwrap_or_else(|e| e.into_inner()) = database;
         Ok(())
     }
@@ -217,7 +249,9 @@ impl XConnection {
         // Store the timestamp in the slot if it's greater than the last one.
         let mut last_timestamp = self.timestamp.load(Ordering::Relaxed);
         loop {
-            let wrapping_sub = |a: xproto::Timestamp, b: xproto::Timestamp| (a as i32) - (b as i32);
+            let wrapping_sub = |a: xproto::Timestamp, b: xproto::Timestamp| {
+                (a as i32) - (b as i32)
+            };
 
             if wrapping_sub(timestamp, last_timestamp) <= 0 {
                 break;
@@ -268,11 +302,17 @@ pub struct XError {
 impl Error for XError {}
 
 impl fmt::Display for XError {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+    fn fmt(
+        &self,
+        formatter: &mut fmt::Formatter<'_>,
+    ) -> Result<(), fmt::Error> {
         write!(
             formatter,
             "X error: {} (code: {}, request code: {}, minor code: {})",
-            self.description, self.error_code, self.request_code, self.minor_code
+            self.description,
+            self.error_code,
+            self.request_code,
+            self.minor_code
         )
     }
 }
@@ -290,8 +330,12 @@ pub enum XNotSupported {
 impl XNotSupported {
     fn description(&self) -> &'static str {
         match self {
-            XNotSupported::XOpenDisplayFailed => "Failed to open connection to X server",
-            XNotSupported::XcbConversionError(_) => "Failed to convert Xlib connection to XCB",
+            XNotSupported::XOpenDisplayFailed => {
+                "Failed to open connection to X server"
+            }
+            XNotSupported::XcbConversionError(_) => {
+                "Failed to convert Xlib connection to XCB"
+            }
         }
     }
 }
@@ -307,7 +351,10 @@ impl Error for XNotSupported {
 }
 
 impl fmt::Display for XNotSupported {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+    fn fmt(
+        &self,
+        formatter: &mut fmt::Formatter<'_>,
+    ) -> Result<(), fmt::Error> {
         formatter.write_str(self.description())
     }
 }

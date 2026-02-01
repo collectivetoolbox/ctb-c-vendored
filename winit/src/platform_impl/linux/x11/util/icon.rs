@@ -1,7 +1,7 @@
 #![allow(clippy::assertions_on_constants)]
 
 use super::*;
-use crate::icon::{Pixel, RgbaIcon, PIXEL_SIZE};
+use crate::icon::{PIXEL_SIZE, Pixel, RgbaIcon};
 
 impl Pixel {
     pub fn to_packed_argb(&self) -> Cardinal {

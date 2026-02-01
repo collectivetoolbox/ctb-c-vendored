@@ -1,7 +1,7 @@
 #![allow(clippy::unnecessary_cast)]
 
-use objc2::rc::{autoreleasepool, Retained};
-use objc2::{declare_class, mutability, ClassType, DeclaredClass};
+use objc2::rc::{Retained, autoreleasepool};
+use objc2::{ClassType, DeclaredClass, declare_class, mutability};
 use objc2_app_kit::{NSResponder, NSWindow};
 use objc2_foundation::{MainThreadBound, MainThreadMarker, NSObject};
 
@@ -18,7 +18,8 @@ pub(crate) struct Window {
 
 impl Drop for Window {
     fn drop(&mut self) {
-        self.window.get_on_main(|window| autoreleasepool(|_| window.close()))
+        self.window
+            .get_on_main(|window| autoreleasepool(|_| window.close()))
     }
 }
 
@@ -37,7 +38,10 @@ impl Window {
         })
     }
 
-    pub(crate) fn maybe_queue_on_main(&self, f: impl FnOnce(&WindowDelegate) + Send + 'static) {
+    pub(crate) fn maybe_queue_on_main(
+        &self,
+        f: impl FnOnce(&WindowDelegate) + Send + 'static,
+    ) {
         // For now, don't actually do queuing, since it may be less predictable
         self.maybe_wait_on_main(f)
     }
@@ -66,7 +70,9 @@ impl Window {
     pub(crate) fn raw_display_handle_rwh_06(
         &self,
     ) -> Result<rwh_06::RawDisplayHandle, rwh_06::HandleError> {
-        Ok(rwh_06::RawDisplayHandle::AppKit(rwh_06::AppKitDisplayHandle::new()))
+        Ok(rwh_06::RawDisplayHandle::AppKit(
+            rwh_06::AppKitDisplayHandle::new(),
+        ))
     }
 }
 

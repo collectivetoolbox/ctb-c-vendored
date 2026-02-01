@@ -109,7 +109,11 @@ pub trait WindowAttributesExtWebSys {
     /// In any case, the canvas won't be automatically inserted into the web page.
     ///
     /// [`None`] by default.
-    #[cfg_attr(not(web_platform), doc = "", doc = "[`HtmlCanvasElement`]: #only-available-on-wasm")]
+    #[cfg_attr(
+        not(web_platform),
+        doc = "",
+        doc = "[`HtmlCanvasElement`]: #only-available-on-wasm"
+    )]
     fn with_canvas(self, canvas: Option<HtmlCanvasElement>) -> Self;
 
     /// Sets whether `event.preventDefault()` should be called on events on the
@@ -223,7 +227,10 @@ pub trait EventLoopExtWebSys {
 impl<T> EventLoopExtWebSys for EventLoop<T> {
     type UserEvent = T;
 
-    fn spawn_app<A: ApplicationHandler<Self::UserEvent> + 'static>(self, mut app: A) {
+    fn spawn_app<A: ApplicationHandler<Self::UserEvent> + 'static>(
+        self,
+        mut app: A,
+    ) {
         self.event_loop.spawn(move |event, event_loop| {
             event_loop::dispatch_event_for_app(&mut app, event_loop, event)
         });
@@ -284,12 +291,18 @@ pub trait ActiveEventLoopExtWebSys {
 
     /// Async version of [`ActiveEventLoop::create_custom_cursor()`] which waits until the
     /// cursor has completely finished loading.
-    fn create_custom_cursor_async(&self, source: CustomCursorSource) -> CustomCursorFuture;
+    fn create_custom_cursor_async(
+        &self,
+        source: CustomCursorSource,
+    ) -> CustomCursorFuture;
 }
 
 impl ActiveEventLoopExtWebSys for ActiveEventLoop {
     #[inline]
-    fn create_custom_cursor_async(&self, source: CustomCursorSource) -> CustomCursorFuture {
+    fn create_custom_cursor_async(
+        &self,
+        source: CustomCursorSource,
+    ) -> CustomCursorFuture {
         self.p.create_custom_cursor_async(source)
     }
 
@@ -372,7 +385,11 @@ pub trait CustomCursorExtWebSys {
     /// but browser support for image formats is inconsistent. Using [PNG] is recommended.
     ///
     /// [PNG]: https://en.wikipedia.org/wiki/PNG
-    fn from_url(url: String, hotspot_x: u16, hotspot_y: u16) -> CustomCursorSource;
+    fn from_url(
+        url: String,
+        hotspot_x: u16,
+        hotspot_y: u16,
+    ) -> CustomCursorSource;
 
     /// Crates a new animated cursor from multiple [`CustomCursor`]s.
     /// Supplied `cursors` can't be empty or other animations.
@@ -387,8 +404,18 @@ impl CustomCursorExtWebSys for CustomCursor {
         self.inner.animation
     }
 
-    fn from_url(url: String, hotspot_x: u16, hotspot_y: u16) -> CustomCursorSource {
-        CustomCursorSource { inner: PlatformCustomCursorSource::Url { url, hotspot_x, hotspot_y } }
+    fn from_url(
+        url: String,
+        hotspot_x: u16,
+        hotspot_y: u16,
+    ) -> CustomCursorSource {
+        CustomCursorSource {
+            inner: PlatformCustomCursorSource::Url {
+                url,
+                hotspot_x,
+                hotspot_y,
+            },
+        }
     }
 
     fn from_animation(
@@ -438,8 +465,13 @@ pub struct CustomCursorFuture(pub(crate) PlatformCustomCursorFuture);
 impl Future for CustomCursorFuture {
     type Output = Result<CustomCursor, CustomCursorError>;
 
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        Pin::new(&mut self.0).poll(cx).map_ok(|cursor| CustomCursor { inner: cursor })
+    fn poll(
+        mut self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+    ) -> Poll<Self::Output> {
+        Pin::new(&mut self.0)
+            .poll(cx)
+            .map_ok(|cursor| CustomCursor { inner: cursor })
     }
 }
 
@@ -456,8 +488,11 @@ impl Display for CustomCursorError {
             Self::Blob => write!(f, "failed to create `Blob`"),
             Self::Decode(error) => write!(f, "failed to decode image: {error}"),
             Self::Animation => {
-                write!(f, "found `CustomCursor` that is an animation when building an animation")
-            },
+                write!(
+                    f,
+                    "found `CustomCursor` that is an animation when building an animation"
+                )
+            }
         }
     }
 }

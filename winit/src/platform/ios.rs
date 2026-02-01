@@ -137,7 +137,10 @@ pub trait WindowExtIOS {
     /// [`-[UIViewController setNeedsUpdateOfScreenEdgesDeferringSystemGestures]`](https://developer.apple.com/documentation/uikit/uiviewcontroller/2887507-setneedsupdateofscreenedgesdefer?language=objc).
     ///
     /// This only has an effect on iOS 11.0+.
-    fn set_preferred_screen_edges_deferring_system_gestures(&self, edges: ScreenEdge);
+    fn set_preferred_screen_edges_deferring_system_gestures(
+        &self,
+        edges: ScreenEdge,
+    );
 
     /// Sets whether the [`Window`] prefers the status bar hidden.
     ///
@@ -197,21 +200,29 @@ pub trait WindowExtIOS {
 impl WindowExtIOS for Window {
     #[inline]
     fn set_scale_factor(&self, scale_factor: f64) {
-        self.window.maybe_queue_on_main(move |w| w.set_scale_factor(scale_factor))
+        self.window
+            .maybe_queue_on_main(move |w| w.set_scale_factor(scale_factor))
     }
 
     #[inline]
     fn set_valid_orientations(&self, valid_orientations: ValidOrientations) {
-        self.window.maybe_queue_on_main(move |w| w.set_valid_orientations(valid_orientations))
+        self.window.maybe_queue_on_main(move |w| {
+            w.set_valid_orientations(valid_orientations)
+        })
     }
 
     #[inline]
     fn set_prefers_home_indicator_hidden(&self, hidden: bool) {
-        self.window.maybe_queue_on_main(move |w| w.set_prefers_home_indicator_hidden(hidden))
+        self.window.maybe_queue_on_main(move |w| {
+            w.set_prefers_home_indicator_hidden(hidden)
+        })
     }
 
     #[inline]
-    fn set_preferred_screen_edges_deferring_system_gestures(&self, edges: ScreenEdge) {
+    fn set_preferred_screen_edges_deferring_system_gestures(
+        &self,
+        edges: ScreenEdge,
+    ) {
         self.window.maybe_queue_on_main(move |w| {
             w.set_preferred_screen_edges_deferring_system_gestures(edges)
         })
@@ -219,17 +230,23 @@ impl WindowExtIOS for Window {
 
     #[inline]
     fn set_prefers_status_bar_hidden(&self, hidden: bool) {
-        self.window.maybe_queue_on_main(move |w| w.set_prefers_status_bar_hidden(hidden))
+        self.window.maybe_queue_on_main(move |w| {
+            w.set_prefers_status_bar_hidden(hidden)
+        })
     }
 
     #[inline]
     fn set_preferred_status_bar_style(&self, status_bar_style: StatusBarStyle) {
-        self.window.maybe_queue_on_main(move |w| w.set_preferred_status_bar_style(status_bar_style))
+        self.window.maybe_queue_on_main(move |w| {
+            w.set_preferred_status_bar_style(status_bar_style)
+        })
     }
 
     #[inline]
     fn recognize_pinch_gesture(&self, should_recognize: bool) {
-        self.window.maybe_queue_on_main(move |w| w.recognize_pinch_gesture(should_recognize));
+        self.window.maybe_queue_on_main(move |w| {
+            w.recognize_pinch_gesture(should_recognize)
+        });
     }
 
     #[inline]
@@ -250,12 +267,16 @@ impl WindowExtIOS for Window {
 
     #[inline]
     fn recognize_doubletap_gesture(&self, should_recognize: bool) {
-        self.window.maybe_queue_on_main(move |w| w.recognize_doubletap_gesture(should_recognize));
+        self.window.maybe_queue_on_main(move |w| {
+            w.recognize_doubletap_gesture(should_recognize)
+        });
     }
 
     #[inline]
     fn recognize_rotation_gesture(&self, should_recognize: bool) {
-        self.window.maybe_queue_on_main(move |w| w.recognize_rotation_gesture(should_recognize));
+        self.window.maybe_queue_on_main(move |w| {
+            w.recognize_rotation_gesture(should_recognize)
+        });
     }
 }
 
@@ -276,7 +297,10 @@ pub trait WindowAttributesExtIOS {
     ///
     /// This sets the initial value returned by
     /// [`-[UIViewController supportedInterfaceOrientations]`](https://developer.apple.com/documentation/uikit/uiviewcontroller/1621435-supportedinterfaceorientations?language=objc).
-    fn with_valid_orientations(self, valid_orientations: ValidOrientations) -> Self;
+    fn with_valid_orientations(
+        self,
+        valid_orientations: ValidOrientations,
+    ) -> Self;
 
     /// Sets whether the [`Window`] prefers the home indicator hidden.
     ///
@@ -295,7 +319,10 @@ pub trait WindowAttributesExtIOS {
     /// [`-[UIViewController preferredScreenEdgesDeferringSystemGestures]`](https://developer.apple.com/documentation/uikit/uiviewcontroller/2887512-preferredscreenedgesdeferringsys?language=objc).
     ///
     /// This only has an effect on iOS 11.0+.
-    fn with_preferred_screen_edges_deferring_system_gestures(self, edges: ScreenEdge) -> Self;
+    fn with_preferred_screen_edges_deferring_system_gestures(
+        self,
+        edges: ScreenEdge,
+    ) -> Self;
 
     /// Sets whether the [`Window`] prefers the status bar hidden.
     ///
@@ -311,7 +338,10 @@ pub trait WindowAttributesExtIOS {
     ///
     /// This sets the initial value returned by
     /// [`-[UIViewController preferredStatusBarStyle]`](https://developer.apple.com/documentation/uikit/uiviewcontroller/1621416-preferredstatusbarstyle?language=objc),
-    fn with_preferred_status_bar_style(self, status_bar_style: StatusBarStyle) -> Self;
+    fn with_preferred_status_bar_style(
+        self,
+        status_bar_style: StatusBarStyle,
+    ) -> Self;
 }
 
 impl WindowAttributesExtIOS for WindowAttributes {
@@ -322,7 +352,10 @@ impl WindowAttributesExtIOS for WindowAttributes {
     }
 
     #[inline]
-    fn with_valid_orientations(mut self, valid_orientations: ValidOrientations) -> Self {
+    fn with_valid_orientations(
+        mut self,
+        valid_orientations: ValidOrientations,
+    ) -> Self {
         self.platform_specific.valid_orientations = valid_orientations;
         self
     }
@@ -334,8 +367,12 @@ impl WindowAttributesExtIOS for WindowAttributes {
     }
 
     #[inline]
-    fn with_preferred_screen_edges_deferring_system_gestures(mut self, edges: ScreenEdge) -> Self {
-        self.platform_specific.preferred_screen_edges_deferring_system_gestures = edges;
+    fn with_preferred_screen_edges_deferring_system_gestures(
+        mut self,
+        edges: ScreenEdge,
+    ) -> Self {
+        self.platform_specific
+            .preferred_screen_edges_deferring_system_gestures = edges;
         self
     }
 
@@ -346,7 +383,10 @@ impl WindowAttributesExtIOS for WindowAttributes {
     }
 
     #[inline]
-    fn with_preferred_status_bar_style(mut self, status_bar_style: StatusBarStyle) -> Self {
+    fn with_preferred_status_bar_style(
+        mut self,
+        status_bar_style: StatusBarStyle,
+    ) -> Self {
         self.platform_specific.preferred_status_bar_style = status_bar_style;
         self
     }
@@ -369,13 +409,16 @@ impl MonitorHandleExtIOS for MonitorHandle {
     #[inline]
     fn ui_screen(&self) -> *mut c_void {
         // SAFETY: The marker is only used to get the pointer of the screen
-        let mtm = unsafe { objc2_foundation::MainThreadMarker::new_unchecked() };
+        let mtm =
+            unsafe { objc2_foundation::MainThreadMarker::new_unchecked() };
         objc2::rc::Retained::as_ptr(self.inner.ui_screen(mtm)) as *mut c_void
     }
 
     #[inline]
     fn preferred_video_mode(&self) -> VideoModeHandle {
-        VideoModeHandle { video_mode: self.inner.preferred_video_mode() }
+        VideoModeHandle {
+            video_mode: self.inner.preferred_video_mode(),
+        }
     }
 }
 

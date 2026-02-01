@@ -4,33 +4,43 @@ use std::sync::Once;
 
 use windows_sys::Win32::Foundation::{HWND, S_OK};
 use windows_sys::Win32::Graphics::Gdi::{
-    GetDC, GetDeviceCaps, MonitorFromWindow, HMONITOR, LOGPIXELSX, MONITOR_DEFAULTTONEAREST,
+    GetDC, GetDeviceCaps, HMONITOR, LOGPIXELSX, MONITOR_DEFAULTTONEAREST,
+    MonitorFromWindow,
 };
 use windows_sys::Win32::UI::HiDpi::{
-    DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2,
-    MDT_EFFECTIVE_DPI, PROCESS_PER_MONITOR_DPI_AWARE,
+    DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE,
+    DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2, MDT_EFFECTIVE_DPI,
+    PROCESS_PER_MONITOR_DPI_AWARE,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::IsProcessDPIAware;
 
 use crate::platform_impl::platform::util::{
-    ENABLE_NON_CLIENT_DPI_SCALING, GET_DPI_FOR_MONITOR, GET_DPI_FOR_WINDOW, SET_PROCESS_DPI_AWARE,
-    SET_PROCESS_DPI_AWARENESS, SET_PROCESS_DPI_AWARENESS_CONTEXT,
+    ENABLE_NON_CLIENT_DPI_SCALING, GET_DPI_FOR_MONITOR, GET_DPI_FOR_WINDOW,
+    SET_PROCESS_DPI_AWARE, SET_PROCESS_DPI_AWARENESS,
+    SET_PROCESS_DPI_AWARENESS_CONTEXT,
 };
 
 pub fn become_dpi_aware() {
     static ENABLE_DPI_AWARENESS: Once = Once::new();
     ENABLE_DPI_AWARENESS.call_once(|| {
         unsafe {
-            if let Some(SetProcessDpiAwarenessContext) = *SET_PROCESS_DPI_AWARENESS_CONTEXT {
+            if let Some(SetProcessDpiAwarenessContext) =
+                *SET_PROCESS_DPI_AWARENESS_CONTEXT
+            {
                 // We are on Windows 10 Anniversary Update (1607) or later.
-                if SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)
-                    == false.into()
+                if SetProcessDpiAwarenessContext(
+                    DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2,
+                ) == false.into()
                 {
                     // V2 only works with Windows 10 Creators Update (1703). Try using the older
                     // V1 if we can't set V2.
-                    SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE);
+                    SetProcessDpiAwarenessContext(
+                        DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE,
+                    );
                 }
-            } else if let Some(SetProcessDpiAwareness) = *SET_PROCESS_DPI_AWARENESS {
+            } else if let Some(SetProcessDpiAwareness) =
+                *SET_PROCESS_DPI_AWARENESS
+            {
                 // We are on Windows 8.1 or later.
                 SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
             } else if let Some(SetProcessDPIAware) = *SET_PROCESS_DPI_AWARE {
@@ -43,7 +53,8 @@ pub fn become_dpi_aware() {
 
 pub fn enable_non_client_dpi_scaling(hwnd: HWND) {
     unsafe {
-        if let Some(EnableNonClientDpiScaling) = *ENABLE_NON_CLIENT_DPI_SCALING {
+        if let Some(EnableNonClientDpiScaling) = *ENABLE_NON_CLIENT_DPI_SCALING
+        {
             EnableNonClientDpiScaling(hwnd);
         }
     }
@@ -55,7 +66,13 @@ pub fn get_monitor_dpi(hmonitor: HMONITOR) -> Option<u32> {
             // We are on Windows 8.1 or later.
             let mut dpi_x = 0;
             let mut dpi_y = 0;
-            if GetDpiForMonitor(hmonitor, MDT_EFFECTIVE_DPI, &mut dpi_x, &mut dpi_y) == S_OK {
+            if GetDpiForMonitor(
+                hmonitor,
+                MDT_EFFECTIVE_DPI,
+                &mut dpi_x,
+                &mut dpi_y,
+            ) == S_OK
+            {
                 // MSDN says that "the values of *dpiX and *dpiY are identical. You only need to
                 // record one of the values to determine the DPI and respond appropriately".
                 // https://msdn.microsoft.com/en-us/library/windows/desktop/dn280510(v=vs.85).aspx
@@ -84,14 +101,18 @@ pub unsafe fn hwnd_dpi(hwnd: HWND) -> u32 {
         }
     } else if let Some(GetDpiForMonitor) = *GET_DPI_FOR_MONITOR {
         // We are on Windows 8.1 or later.
-        let monitor = unsafe { MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST) };
+        let monitor =
+            unsafe { MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST) };
         if monitor == 0 {
             return BASE_DPI;
         }
 
         let mut dpi_x = 0;
         let mut dpi_y = 0;
-        if unsafe { GetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, &mut dpi_x, &mut dpi_y) } == S_OK {
+        if unsafe {
+            GetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, &mut dpi_x, &mut dpi_y)
+        } == S_OK
+        {
             dpi_x
         } else {
             BASE_DPI

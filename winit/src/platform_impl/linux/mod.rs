@@ -18,9 +18,12 @@ use smol_str::SmolStr;
 #[cfg(x11_platform)]
 use self::x11::{X11Error, XConnection, XError, XNotSupported};
 use crate::dpi::{PhysicalPosition, PhysicalSize, Position, Size};
-use crate::error::{EventLoopError, ExternalError, NotSupportedError, OsError as RootOsError};
+use crate::error::{
+    EventLoopError, ExternalError, NotSupportedError, OsError as RootOsError,
+};
 use crate::event_loop::{
-    ActiveEventLoop as RootELW, AsyncRequestSerial, ControlFlow, DeviceEvents, EventLoopClosed,
+    ActiveEventLoop as RootELW, AsyncRequestSerial, ControlFlow, DeviceEvents,
+    EventLoopClosed,
 };
 use crate::icon::Icon;
 use crate::keyboard::Key;
@@ -28,11 +31,14 @@ use crate::platform::pump_events::PumpStatus;
 #[cfg(x11_platform)]
 use crate::platform::x11::{WindowType as XWindowType, XlibErrorHook};
 use crate::window::{
-    ActivationToken, Cursor, CursorGrabMode, CustomCursor, CustomCursorSource, ImePurpose,
-    ResizeDirection, Theme, UserAttentionType, WindowAttributes, WindowButtons, WindowLevel,
+    ActivationToken, Cursor, CursorGrabMode, CustomCursor, CustomCursorSource,
+    ImePurpose, ResizeDirection, Theme, UserAttentionType, WindowAttributes,
+    WindowButtons, WindowLevel,
 };
 
-pub(crate) use self::common::xkb::{physicalkey_to_scancode, scancode_to_physicalkey};
+pub(crate) use self::common::xkb::{
+    physicalkey_to_scancode, scancode_to_physicalkey,
+};
 pub(crate) use crate::cursor::OnlyCursorImageSource as PlatformCustomCursorSource;
 pub(crate) use crate::icon::RgbaIcon as PlatformIcon;
 pub(crate) use crate::platform_impl::Fullscreen;
@@ -110,8 +116,11 @@ impl Default for PlatformSpecificWindowAttributes {
 }
 
 #[cfg(x11_platform)]
-pub(crate) static X11_BACKEND: Lazy<Mutex<Result<Arc<XConnection>, XNotSupported>>> =
-    Lazy::new(|| Mutex::new(XConnection::new(Some(x_error_callback)).map(Arc::new)));
+pub(crate) static X11_BACKEND: Lazy<
+    Mutex<Result<Arc<XConnection>, XNotSupported>>,
+> = Lazy::new(|| {
+    Mutex::new(XConnection::new(Some(x_error_callback)).map(Arc::new))
+});
 
 #[derive(Debug, Clone)]
 pub enum OsError {
@@ -251,7 +260,9 @@ impl MonitorHandle {
     }
 
     #[inline]
-    pub fn video_modes(&self) -> Box<dyn Iterator<Item = VideoModeHandle> + '_> {
+    pub fn video_modes(
+        &self,
+    ) -> Box<dyn Iterator<Item = VideoModeHandle> + '_> {
         x11_or_wayland!(match self; MonitorHandle(m) => Box::new(m.video_modes()))
     }
 }
@@ -295,20 +306,27 @@ impl Window {
         match *window_target {
             #[cfg(wayland_platform)]
             ActiveEventLoop::Wayland(ref window_target) => {
-                wayland::Window::new(window_target, attribs).map(Window::Wayland)
-            },
+                wayland::Window::new(window_target, attribs)
+                    .map(Window::Wayland)
+            }
             #[cfg(x11_platform)]
             ActiveEventLoop::X(ref window_target) => {
                 x11::Window::new(window_target, attribs).map(Window::X)
-            },
+            }
         }
     }
 
-    pub(crate) fn maybe_queue_on_main(&self, f: impl FnOnce(&Self) + Send + 'static) {
+    pub(crate) fn maybe_queue_on_main(
+        &self,
+        f: impl FnOnce(&Self) + Send + 'static,
+    ) {
         f(self)
     }
 
-    pub(crate) fn maybe_wait_on_main<R: Send>(&self, f: impl FnOnce(&Self) -> R + Send) -> R {
+    pub(crate) fn maybe_wait_on_main<R: Send>(
+        &self,
+        f: impl FnOnce(&Self) -> R + Send,
+    ) -> R {
         f(self)
     }
 
@@ -343,12 +361,16 @@ impl Window {
     }
 
     #[inline]
-    pub fn outer_position(&self) -> Result<PhysicalPosition<i32>, NotSupportedError> {
+    pub fn outer_position(
+        &self,
+    ) -> Result<PhysicalPosition<i32>, NotSupportedError> {
         x11_or_wayland!(match self; Window(w) => w.outer_position())
     }
 
     #[inline]
-    pub fn inner_position(&self) -> Result<PhysicalPosition<i32>, NotSupportedError> {
+    pub fn inner_position(
+        &self,
+    ) -> Result<PhysicalPosition<i32>, NotSupportedError> {
         x11_or_wayland!(match self; Window(w) => w.inner_position())
     }
 
@@ -373,7 +395,9 @@ impl Window {
     }
 
     #[inline]
-    pub(crate) fn request_activation_token(&self) -> Result<AsyncRequestSerial, NotSupportedError> {
+    pub(crate) fn request_activation_token(
+        &self,
+    ) -> Result<AsyncRequestSerial, NotSupportedError> {
         x11_or_wayland!(match self; Window(w) => w.request_activation_token())
     }
 
@@ -423,7 +447,10 @@ impl Window {
     }
 
     #[inline]
-    pub fn set_cursor_grab(&self, mode: CursorGrabMode) -> Result<(), ExternalError> {
+    pub fn set_cursor_grab(
+        &self,
+        mode: CursorGrabMode,
+    ) -> Result<(), ExternalError> {
         x11_or_wayland!(match self; Window(window) => window.set_cursor_grab(mode))
     }
 
@@ -438,7 +465,10 @@ impl Window {
     }
 
     #[inline]
-    pub fn drag_resize_window(&self, direction: ResizeDirection) -> Result<(), ExternalError> {
+    pub fn drag_resize_window(
+        &self,
+        direction: ResizeDirection,
+    ) -> Result<(), ExternalError> {
         x11_or_wayland!(match self; Window(window) => window.drag_resize_window(direction))
     }
 
@@ -448,7 +478,10 @@ impl Window {
     }
 
     #[inline]
-    pub fn set_cursor_hittest(&self, hittest: bool) -> Result<(), ExternalError> {
+    pub fn set_cursor_hittest(
+        &self,
+        hittest: bool,
+    ) -> Result<(), ExternalError> {
         x11_or_wayland!(match self; Window(w) => w.set_cursor_hittest(hittest))
     }
 
@@ -458,7 +491,10 @@ impl Window {
     }
 
     #[inline]
-    pub fn set_cursor_position(&self, position: Position) -> Result<(), ExternalError> {
+    pub fn set_cursor_position(
+        &self,
+        position: Position,
+    ) -> Result<(), ExternalError> {
         x11_or_wayland!(match self; Window(w) => w.set_cursor_position(position))
     }
 
@@ -537,7 +573,10 @@ impl Window {
         x11_or_wayland!(match self; Window(w) => w.focus_window())
     }
 
-    pub fn request_user_attention(&self, request_type: Option<UserAttentionType>) {
+    pub fn request_user_attention(
+        &self,
+        request_type: Option<UserAttentionType>,
+    ) {
         x11_or_wayland!(match self; Window(w) => w.request_user_attention(request_type))
     }
 
@@ -553,26 +592,34 @@ impl Window {
 
     #[inline]
     pub fn current_monitor(&self) -> Option<MonitorHandle> {
-        Some(x11_or_wayland!(match self; Window(w) => w.current_monitor()?; as MonitorHandle))
+        Some(
+            x11_or_wayland!(match self; Window(w) => w.current_monitor()?; as MonitorHandle),
+        )
     }
 
     #[inline]
     pub fn available_monitors(&self) -> VecDeque<MonitorHandle> {
         match self {
             #[cfg(x11_platform)]
-            Window::X(window) => {
-                window.available_monitors().into_iter().map(MonitorHandle::X).collect()
-            },
+            Window::X(window) => window
+                .available_monitors()
+                .into_iter()
+                .map(MonitorHandle::X)
+                .collect(),
             #[cfg(wayland_platform)]
-            Window::Wayland(window) => {
-                window.available_monitors().into_iter().map(MonitorHandle::Wayland).collect()
-            },
+            Window::Wayland(window) => window
+                .available_monitors()
+                .into_iter()
+                .map(MonitorHandle::Wayland)
+                .collect(),
         }
     }
 
     #[inline]
     pub fn primary_monitor(&self) -> Option<MonitorHandle> {
-        Some(x11_or_wayland!(match self; Window(w) => w.primary_monitor()?; as MonitorHandle))
+        Some(
+            x11_or_wayland!(match self; Window(w) => w.primary_monitor()?; as MonitorHandle),
+        )
     }
 
     #[cfg(feature = "rwh_04")]
@@ -595,7 +642,9 @@ impl Window {
 
     #[cfg(feature = "rwh_06")]
     #[inline]
-    pub fn raw_window_handle_rwh_06(&self) -> Result<rwh_06::RawWindowHandle, rwh_06::HandleError> {
+    pub fn raw_window_handle_rwh_06(
+        &self,
+    ) -> Result<rwh_06::RawWindowHandle, rwh_06::HandleError> {
         x11_or_wayland!(match self; Window(window) => window.raw_window_handle_rwh_06())
     }
 
@@ -647,7 +696,8 @@ pub(crate) enum PlatformCustomCursor {
 
 /// Hooks for X11 errors.
 #[cfg(x11_platform)]
-pub(crate) static XLIB_ERROR_HOOKS: Mutex<Vec<XlibErrorHook>> = Mutex::new(Vec::new());
+pub(crate) static XLIB_ERROR_HOOKS: Mutex<Vec<XlibErrorHook>> =
+    Mutex::new(Vec::new());
 
 #[cfg(x11_platform)]
 unsafe extern "C" fn x_error_callback(
@@ -664,7 +714,8 @@ unsafe extern "C" fn x_error_callback(
 
         // `assume_init` is safe here because the array consists of `MaybeUninit` values,
         // which do not require initialization.
-        let mut buf: [MaybeUninit<c_char>; 1024] = unsafe { MaybeUninit::uninit().assume_init() };
+        let mut buf: [MaybeUninit<c_char>; 1024] =
+            unsafe { MaybeUninit::uninit().assume_init() };
         unsafe {
             use crate::platform_impl::x11::ffi;
 
@@ -676,7 +727,8 @@ unsafe extern "C" fn x_error_callback(
             )
         };
         let description =
-            unsafe { CStr::from_ptr(buf.as_ptr() as *const c_char) }.to_string_lossy();
+            unsafe { CStr::from_ptr(buf.as_ptr() as *const c_char) }
+                .to_string_lossy();
 
         let error = unsafe {
             XError {
@@ -743,7 +795,9 @@ impl<T: 'static> EventLoop<T> {
                 .or_else(|| env::var("WAYLAND_SOCKET").ok())
                 .filter(|var| !var.is_empty())
                 .is_some(),
-            env::var("DISPLAY").map(|var| !var.is_empty()).unwrap_or(false),
+            env::var("DISPLAY")
+                .map(|var| !var.is_empty())
+                .unwrap_or(false),
         ) {
             // User is forcing a backend.
             (Some(backend), ..) => backend,
@@ -765,7 +819,7 @@ impl<T: 'static> EventLoop<T> {
                     "neither WAYLAND_DISPLAY nor WAYLAND_SOCKET nor DISPLAY is set."
                 };
                 return Err(EventLoopError::Os(os_error!(OsError::Misc(msg))));
-            },
+            }
         };
 
         // Create the display based on the backend.
@@ -784,11 +838,17 @@ impl<T: 'static> EventLoop<T> {
 
     #[cfg(x11_platform)]
     fn new_x11_any_thread() -> Result<EventLoop<T>, EventLoopError> {
-        let xconn = match X11_BACKEND.lock().unwrap_or_else(|e| e.into_inner()).as_ref() {
+        let xconn = match X11_BACKEND
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .as_ref()
+        {
             Ok(xconn) => xconn.clone(),
             Err(err) => {
-                return Err(EventLoopError::Os(os_error!(OsError::XNotSupported(err.clone()))))
-            },
+                return Err(EventLoopError::Os(os_error!(
+                    OsError::XNotSupported(err.clone())
+                )));
+            }
         };
 
         Ok(EventLoop::X(x11::EventLoop::new(xconn)))
@@ -815,14 +875,21 @@ impl<T: 'static> EventLoop<T> {
         self.run_on_demand(callback)
     }
 
-    pub fn run_on_demand<F>(&mut self, callback: F) -> Result<(), EventLoopError>
+    pub fn run_on_demand<F>(
+        &mut self,
+        callback: F,
+    ) -> Result<(), EventLoopError>
     where
         F: FnMut(crate::event::Event<T>, &RootELW),
     {
         x11_or_wayland!(match self; EventLoop(evlp) => evlp.run_on_demand(callback))
     }
 
-    pub fn pump_events<F>(&mut self, timeout: Option<Duration>, callback: F) -> PumpStatus
+    pub fn pump_events<F>(
+        &mut self,
+        timeout: Option<Duration>,
+        callback: F,
+    ) -> PumpStatus
     where
         F: FnMut(crate::event::Event<T>, &RootELW),
     {
@@ -871,7 +938,10 @@ impl ActiveEventLoop {
         }
     }
 
-    pub fn create_custom_cursor(&self, cursor: CustomCursorSource) -> CustomCursor {
+    pub fn create_custom_cursor(
+        &self,
+        cursor: CustomCursorSource,
+    ) -> CustomCursor {
         x11_or_wayland!(match self; ActiveEventLoop(evlp) => evlp.create_custom_cursor(cursor))
     }
 
@@ -879,13 +949,14 @@ impl ActiveEventLoop {
     pub fn available_monitors(&self) -> VecDeque<MonitorHandle> {
         match *self {
             #[cfg(wayland_platform)]
-            ActiveEventLoop::Wayland(ref evlp) => {
-                evlp.available_monitors().map(MonitorHandle::Wayland).collect()
-            },
+            ActiveEventLoop::Wayland(ref evlp) => evlp
+                .available_monitors()
+                .map(MonitorHandle::Wayland)
+                .collect(),
             #[cfg(x11_platform)]
             ActiveEventLoop::X(ref evlp) => {
                 evlp.available_monitors().map(MonitorHandle::X).collect()
-            },
+            }
         }
     }
 
@@ -945,7 +1016,9 @@ impl ActiveEventLoop {
             #[cfg(x11_platform)]
             Self::X(conn) => OwnedDisplayHandle::X(conn.x_connection().clone()),
             #[cfg(wayland_platform)]
-            Self::Wayland(conn) => OwnedDisplayHandle::Wayland(conn.connection.clone()),
+            Self::Wayland(conn) => {
+                OwnedDisplayHandle::Wayland(conn.connection.clone())
+            }
         }
     }
 
@@ -980,14 +1053,15 @@ impl OwnedDisplayHandle {
                 xlib_handle.display = xconn.display.cast();
                 xlib_handle.screen = xconn.default_screen_index() as _;
                 xlib_handle.into()
-            },
+            }
 
             #[cfg(wayland_platform)]
             Self::Wayland(conn) => {
                 let mut wayland_handle = rwh_05::WaylandDisplayHandle::empty();
-                wayland_handle.display = std::ptr::NonNull::from(conn).cast().as_ptr();
+                wayland_handle.display =
+                    std::ptr::NonNull::from(conn).cast().as_ptr();
                 wayland_handle.into()
-            },
+            }
         }
     }
 
@@ -1007,12 +1081,10 @@ impl OwnedDisplayHandle {
             .into()),
 
             #[cfg(wayland_platform)]
-            Self::Wayland(conn) => {
-                Ok(rwh_06::WaylandDisplayHandle::new(
-                    NonNull::from(conn).cast(),
-                )
-                .into())
-            },
+            Self::Wayland(conn) => Ok(rwh_06::WaylandDisplayHandle::new(
+                NonNull::from(conn).cast(),
+            )
+            .into()),
         }
     }
 }
@@ -1021,7 +1093,9 @@ impl OwnedDisplayHandle {
 /// equates to an infinite timeout, not a zero timeout (so can't just use
 /// `Option::min`)
 fn min_timeout(a: Option<Duration>, b: Option<Duration>) -> Option<Duration> {
-    a.map_or(b, |a_timeout| b.map_or(Some(a_timeout), |b_timeout| Some(a_timeout.min(b_timeout))))
+    a.map_or(b, |a_timeout| {
+        b.map_or(Some(a_timeout), |b_timeout| Some(a_timeout.min(b_timeout)))
+    })
 }
 
 #[cfg(target_os = "linux")]
@@ -1029,7 +1103,11 @@ fn is_main_thread() -> bool {
     rustix::thread::gettid() == rustix::process::getpid()
 }
 
-#[cfg(any(target_os = "dragonfly", target_os = "freebsd", target_os = "openbsd"))]
+#[cfg(any(
+    target_os = "dragonfly",
+    target_os = "freebsd",
+    target_os = "openbsd"
+))]
 fn is_main_thread() -> bool {
     use libc::pthread_main_np;
 

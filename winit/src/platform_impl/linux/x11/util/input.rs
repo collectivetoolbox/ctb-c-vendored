@@ -20,10 +20,13 @@ impl XConnection {
         mask: xinput::XIEventMask,
     ) -> Result<VoidCookie<'_>, X11Error> {
         self.xcb_connection()
-            .xinput_xi_select_events(window, &[xinput::EventMask {
-                deviceid: device_id,
-                mask: vec![mask],
-            }])
+            .xinput_xi_select_events(
+                window,
+                &[xinput::EventMask {
+                    deviceid: device_id,
+                    mask: vec![mask],
+                }],
+            )
             .map_err(Into::into)
     }
 
@@ -33,13 +36,17 @@ impl XConnection {
         mask: xkb::EventType,
     ) -> Result<bool, X11Error> {
         let mask = u16::from(mask) as _;
-        let status = unsafe { ffi::XkbSelectEvents(self.display, device_id as _, mask, mask) };
+        let status = unsafe {
+            ffi::XkbSelectEvents(self.display, device_id as _, mask, mask)
+        };
 
         if status == ffi::True {
             self.flush_requests()?;
             Ok(true)
         } else {
-            tracing::error!("Could not select XKB events: The XKB extension is not initialized!");
+            tracing::error!(
+                "Could not select XKB events: The XKB extension is not initialized!"
+            );
             Ok(false)
         }
     }
@@ -77,7 +84,11 @@ impl XConnection {
         (keysym, status, count)
     }
 
-    pub fn lookup_utf8(&self, ic: ffi::XIC, key_event: &mut ffi::XKeyEvent) -> String {
+    pub fn lookup_utf8(
+        &self,
+        ic: ffi::XIC,
+        key_event: &mut ffi::XKeyEvent,
+    ) -> String {
         // `assume_init` is safe here because the array consists of `MaybeUninit` values,
         // which do not require initialization.
         let mut buffer: [MaybeUninit<u8>; TEXT_BUFFER_SIZE] =
@@ -85,19 +96,32 @@ impl XConnection {
         // If the buffer overflows, we'll make a new one on the heap.
         let mut vec;
 
-        let (_, status, count) =
-            self.lookup_utf8_inner(ic, key_event, buffer.as_mut_ptr() as *mut u8, buffer.len());
+        let (_, status, count) = self.lookup_utf8_inner(
+            ic,
+            key_event,
+            buffer.as_mut_ptr() as *mut u8,
+            buffer.len(),
+        );
 
         let bytes = if status == ffi::XBufferOverflow {
             vec = Vec::with_capacity(count as usize);
-            let (_, _, new_count) =
-                self.lookup_utf8_inner(ic, key_event, vec.as_mut_ptr(), vec.capacity());
+            let (_, _, new_count) = self.lookup_utf8_inner(
+                ic,
+                key_event,
+                vec.as_mut_ptr(),
+                vec.capacity(),
+            );
             debug_assert_eq!(count, new_count);
 
             unsafe { vec.set_len(count as usize) };
             &vec[..count as usize]
         } else {
-            unsafe { slice::from_raw_parts(buffer.as_ptr() as *const u8, count as usize) }
+            unsafe {
+                slice::from_raw_parts(
+                    buffer.as_ptr() as *const u8,
+                    count as usize,
+                )
+            }
         };
 
         str::from_utf8(bytes).unwrap_or("").to_string()

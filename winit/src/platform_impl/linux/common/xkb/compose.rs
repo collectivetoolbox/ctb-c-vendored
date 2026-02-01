@@ -6,11 +6,12 @@ use std::ops::Deref;
 use std::os::unix::ffi::OsStringExt;
 use std::ptr::NonNull;
 
-use super::{ffi as xkb, XkbContext};
+use super::{XkbContext, ffi as xkb};
 use smol_str::SmolStr;
 use xkb::{
-    xkb_compose_compile_flags, xkb_compose_feed_result, xkb_compose_state, xkb_compose_state_flags,
-    xkb_compose_status, xkb_compose_table, xkb_keysym_t,
+    xkb_compose_compile_flags, xkb_compose_feed_result, xkb_compose_state,
+    xkb_compose_state_flags, xkb_compose_status, xkb_compose_table,
+    xkb_keysym_t,
 };
 
 #[derive(Debug)]
@@ -77,7 +78,10 @@ pub struct XkbComposeState {
 }
 
 impl XkbComposeState {
-    pub fn get_string(&mut self, scratch_buffer: &mut Vec<u8>) -> Option<SmolStr> {
+    pub fn get_string(
+        &mut self,
+        scratch_buffer: &mut Vec<u8>,
+    ) -> Option<SmolStr> {
         super::make_string_with(scratch_buffer, |ptr, len| unsafe {
             xkb::xkb_compose_state_get_utf8(self.state.as_ptr(), ptr, len)
         })
@@ -85,12 +89,15 @@ impl XkbComposeState {
 
     #[inline]
     pub fn feed(&mut self, keysym: xkb_keysym_t) -> ComposeStatus {
-        let feed_result = unsafe { xkb::xkb_compose_state_feed(self.state.as_ptr(), keysym) };
+        let feed_result =
+            unsafe { xkb::xkb_compose_state_feed(self.state.as_ptr(), keysym) };
         match feed_result {
-            xkb_compose_feed_result::XKB_COMPOSE_FEED_IGNORED => ComposeStatus::Ignored,
+            xkb_compose_feed_result::XKB_COMPOSE_FEED_IGNORED => {
+                ComposeStatus::Ignored
+            }
             xkb_compose_feed_result::XKB_COMPOSE_FEED_ACCEPTED => {
                 ComposeStatus::Accepted(self.status())
-            },
+            }
         }
     }
 

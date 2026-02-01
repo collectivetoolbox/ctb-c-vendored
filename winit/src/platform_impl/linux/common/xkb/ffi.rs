@@ -108,7 +108,11 @@ pub enum xkb_compose_feed_result {
 
 #[link(name = "xkbcommon")]
 unsafe extern "C" {
-    pub fn xkb_keysym_to_utf8(keysym: xkb_keysym_t, buffer: *mut c_char, size: usize) -> c_int;
+    pub fn xkb_keysym_to_utf8(
+        keysym: xkb_keysym_t,
+        buffer: *mut c_char,
+        size: usize,
+    ) -> c_int;
 
     pub fn xkb_context_new(flags: xkb_context_flags) -> *mut xkb_context;
     pub fn xkb_context_unref(context: *mut xkb_context);
@@ -126,15 +130,35 @@ unsafe extern "C" {
         level: u32,
         syms_out: *mut *const xkb_keysym_t,
     ) -> c_int;
-    pub fn xkb_keymap_key_repeats(keymap: *mut xkb_keymap, key: xkb_keycode_t) -> c_int;
-    pub fn xkb_keymap_mod_get_index(keymap: *mut xkb_keymap, name: *const c_char) -> xkb_mod_index_t;
+    pub fn xkb_keymap_key_repeats(
+        keymap: *mut xkb_keymap,
+        key: xkb_keycode_t,
+    ) -> c_int;
+    pub fn xkb_keymap_mod_get_index(
+        keymap: *mut xkb_keymap,
+        name: *const c_char,
+    ) -> xkb_mod_index_t;
     pub fn xkb_keymap_unref(keymap: *mut xkb_keymap);
 
     pub fn xkb_state_new(keymap: *mut xkb_keymap) -> *mut xkb_state;
-    pub fn xkb_state_key_get_one_sym(state: *mut xkb_state, key: xkb_keycode_t) -> xkb_keysym_t;
-    pub fn xkb_state_key_get_layout(state: *mut xkb_state, key: xkb_keycode_t) -> xkb_layout_index_t;
-    pub fn xkb_state_serialize_mods(state: *mut xkb_state, components: xkb_state_component) -> xkb_mod_mask_t;
-    pub fn xkb_state_key_get_utf8(state: *mut xkb_state, key: xkb_keycode_t, buffer: *mut c_char, size: usize) -> c_int;
+    pub fn xkb_state_key_get_one_sym(
+        state: *mut xkb_state,
+        key: xkb_keycode_t,
+    ) -> xkb_keysym_t;
+    pub fn xkb_state_key_get_layout(
+        state: *mut xkb_state,
+        key: xkb_keycode_t,
+    ) -> xkb_layout_index_t;
+    pub fn xkb_state_serialize_mods(
+        state: *mut xkb_state,
+        components: xkb_state_component,
+    ) -> xkb_mod_mask_t;
+    pub fn xkb_state_key_get_utf8(
+        state: *mut xkb_state,
+        key: xkb_keycode_t,
+        buffer: *mut c_char,
+        size: usize,
+    ) -> c_int;
     pub fn xkb_state_update_mask(
         state: *mut xkb_state,
         depressed_mods: xkb_mod_mask_t,
@@ -168,9 +192,14 @@ unsafe extern "C" {
         buffer: *mut c_char,
         size: usize,
     ) -> c_int;
-    pub fn xkb_compose_state_feed(state: *mut xkb_compose_state, keysym: xkb_keysym_t) -> xkb_compose_feed_result;
+    pub fn xkb_compose_state_feed(
+        state: *mut xkb_compose_state,
+        keysym: xkb_keysym_t,
+    ) -> xkb_compose_feed_result;
     pub fn xkb_compose_state_reset(state: *mut xkb_compose_state);
-    pub fn xkb_compose_state_get_status(state: *mut xkb_compose_state) -> xkb_compose_status;
+    pub fn xkb_compose_state_get_status(
+        state: *mut xkb_compose_state,
+    ) -> xkb_compose_status;
 }
 
 #[cfg(x11_platform)]

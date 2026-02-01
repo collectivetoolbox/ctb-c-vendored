@@ -3,14 +3,16 @@ use std::ffi::c_void;
 use core_foundation::base::CFRelease;
 use core_foundation::data::{CFDataGetBytePtr, CFDataRef};
 use objc2::rc::Retained;
-use objc2_app_kit::{NSEvent, NSEventModifierFlags, NSEventSubtype, NSEventType};
-use objc2_foundation::{run_on_main, NSPoint};
+use objc2_app_kit::{
+    NSEvent, NSEventModifierFlags, NSEventSubtype, NSEventType,
+};
+use objc2_foundation::{NSPoint, run_on_main};
 use smol_str::SmolStr;
 
 use crate::event::{ElementState, KeyEvent, Modifiers};
 use crate::keyboard::{
-    Key, KeyCode, KeyLocation, ModifiersKeys, ModifiersState, NamedKey, NativeKey, NativeKeyCode,
-    PhysicalKey,
+    Key, KeyCode, KeyLocation, ModifiersKeys, ModifiersState, NamedKey,
+    NativeKey, NativeKeyCode, PhysicalKey,
 };
 use crate::platform_impl::platform::ffi;
 
@@ -28,17 +30,22 @@ pub fn get_modifierless_char(scancode: u16) -> Key {
     unsafe {
         input_source = ffi::TISCopyCurrentKeyboardLayoutInputSource();
         if input_source.is_null() {
-            tracing::error!("`TISCopyCurrentKeyboardLayoutInputSource` returned null ptr");
+            tracing::error!(
+                "`TISCopyCurrentKeyboardLayoutInputSource` returned null ptr"
+            );
             return Key::Unidentified(NativeKey::MacOS(scancode));
         }
-        let layout_data =
-            ffi::TISGetInputSourceProperty(input_source, ffi::kTISPropertyUnicodeKeyLayoutData);
+        let layout_data = ffi::TISGetInputSourceProperty(
+            input_source,
+            ffi::kTISPropertyUnicodeKeyLayoutData,
+        );
         if layout_data.is_null() {
             CFRelease(input_source as *mut c_void);
             tracing::error!("`TISGetInputSourceProperty` returned null ptr");
             return Key::Unidentified(NativeKey::MacOS(scancode));
         }
-        layout = CFDataGetBytePtr(layout_data as CFDataRef) as *const ffi::UCKeyboardLayout;
+        layout = CFDataGetBytePtr(layout_data as CFDataRef)
+            as *const ffi::UCKeyboardLayout;
     }
     let keyboard_type = run_on_main(|_mtm| unsafe { ffi::LMGetKbdType() });
 
@@ -63,7 +70,10 @@ pub fn get_modifierless_char(scancode: u16) -> Key {
         CFRelease(input_source as *mut c_void);
     }
     if translate_result != 0 {
-        tracing::error!("`UCKeyTranslate` returned with the non-zero value: {}", translate_result);
+        tracing::error!(
+            "`UCKeyTranslate` returned with the non-zero value: {}",
+            translate_result
+        );
         return Key::Unidentified(NativeKey::MacOS(scancode));
     }
     if result_len == 0 {
@@ -92,7 +102,11 @@ fn get_logical_key_char(ns_event: &NSEvent, modifierless_chars: &str) -> Key {
 /// Create `KeyEvent` for the given `NSEvent`.
 ///
 /// This function shouldn't be called when the IME input is in process.
-pub(crate) fn create_key_event(ns_event: &NSEvent, is_press: bool, is_repeat: bool) -> KeyEvent {
+pub(crate) fn create_key_event(
+    ns_event: &NSEvent,
+    is_press: bool,
+    is_repeat: bool,
+) -> KeyEvent {
     use ElementState::{Pressed, Released};
     let state = if is_press { Pressed } else { Released };
 
@@ -106,7 +120,9 @@ pub(crate) fn create_key_event(ns_event: &NSEvent, is_press: bool, is_repeat: bo
     // * Pressing CTRL SHIFT A: logical key should also be "A"
     // This is not easy to tease out of `NSEvent`, but we do our best.
 
-    let characters = unsafe { ns_event.characters() }.map(|s| s.to_string()).unwrap_or_default();
+    let characters = unsafe { ns_event.characters() }
+        .map(|s| s.to_string())
+        .unwrap_or_default();
     let text_with_all_modifiers = if characters.is_empty() {
         None
     } else {
@@ -118,40 +134,47 @@ pub(crate) fn create_key_event(ns_event: &NSEvent, is_press: bool, is_repeat: bo
     };
 
     let key_from_code = code_to_key(physical_key, scancode);
-    let (logical_key, key_without_modifiers) = if matches!(key_from_code, Key::Unidentified(_)) {
-        // `get_modifierless_char/key_without_modifiers` ignores ALL modifiers.
-        let key_without_modifiers = get_modifierless_char(scancode);
+    let (logical_key, key_without_modifiers) =
+        if matches!(key_from_code, Key::Unidentified(_)) {
+            // `get_modifierless_char/key_without_modifiers` ignores ALL modifiers.
+            let key_without_modifiers = get_modifierless_char(scancode);
 
-        let modifiers = unsafe { ns_event.modifierFlags() };
-        let has_ctrl = modifiers.contains(NSEventModifierFlags::NSEventModifierFlagControl);
-        let has_cmd = modifiers.contains(NSEventModifierFlags::NSEventModifierFlagCommand);
+            let modifiers = unsafe { ns_event.modifierFlags() };
+            let has_ctrl = modifiers
+                .contains(NSEventModifierFlags::NSEventModifierFlagControl);
+            let has_cmd = modifiers
+                .contains(NSEventModifierFlags::NSEventModifierFlagCommand);
 
-        let logical_key = match text_with_all_modifiers.as_ref() {
-            // Only checking for ctrl and cmd here, not checking for alt because we DO want to
-            // include its effect in the key. For example if -on the Germay layout- one
-            // presses alt+8, the logical key should be "{"
-            // Also not checking if this is a release event because then this issue would
-            // still affect the key release.
-            Some(text) if !has_ctrl && !has_cmd => {
-                // Character heeding both SHIFT and ALT.
-                Key::Character(text.clone())
-            },
+            let logical_key = match text_with_all_modifiers.as_ref() {
+                // Only checking for ctrl and cmd here, not checking for alt because we DO want to
+                // include its effect in the key. For example if -on the Germay layout- one
+                // presses alt+8, the logical key should be "{"
+                // Also not checking if this is a release event because then this issue would
+                // still affect the key release.
+                Some(text) if !has_ctrl && !has_cmd => {
+                    // Character heeding both SHIFT and ALT.
+                    Key::Character(text.clone())
+                }
 
-            _ => match key_without_modifiers.as_ref() {
-                // Character heeding just SHIFT, ignoring ALT.
-                Key::Character(ch) => get_logical_key_char(ns_event, ch),
+                _ => match key_without_modifiers.as_ref() {
+                    // Character heeding just SHIFT, ignoring ALT.
+                    Key::Character(ch) => get_logical_key_char(ns_event, ch),
 
-                // Character ignoring ALL modifiers.
-                _ => key_without_modifiers.clone(),
-            },
+                    // Character ignoring ALL modifiers.
+                    _ => key_without_modifiers.clone(),
+                },
+            };
+
+            (logical_key, key_without_modifiers)
+        } else {
+            (key_from_code.clone(), key_from_code)
         };
 
-        (logical_key, key_without_modifiers)
+    let text = if is_press {
+        logical_key.to_text().map(SmolStr::new)
     } else {
-        (key_from_code.clone(), key_from_code)
+        None
     };
-
-    let text = if is_press { logical_key.to_text().map(SmolStr::new) } else { None };
 
     let location = code_to_location(physical_key);
 
@@ -162,14 +185,19 @@ pub(crate) fn create_key_event(ns_event: &NSEvent, is_press: bool, is_repeat: bo
         repeat: is_repeat,
         state,
         text,
-        platform_specific: KeyEventExtra { text_with_all_modifiers, key_without_modifiers },
+        platform_specific: KeyEventExtra {
+            text_with_all_modifiers,
+            key_without_modifiers,
+        },
     }
 }
 
 pub fn code_to_key(key: PhysicalKey, scancode: u16) -> Key {
     let code = match key {
         PhysicalKey::Code(code) => code,
-        PhysicalKey::Unidentified(code) => return Key::Unidentified(code.into()),
+        PhysicalKey::Unidentified(code) => {
+            return Key::Unidentified(code.into());
+        }
     };
 
     Key::Named(match code {
@@ -286,14 +314,22 @@ pub fn extra_function_key_to_code(scancode: u16, string: &str) -> PhysicalKey {
 }
 
 // The values are from the https://github.com/apple-oss-distributions/IOHIDFamily/blob/19666c840a6d896468416ff0007040a10b7b46b8/IOHIDSystem/IOKit/hidsystem/IOLLEvent.h#L258-L259
-const NX_DEVICELCTLKEYMASK: NSEventModifierFlags = NSEventModifierFlags(0x00000001);
-const NX_DEVICELSHIFTKEYMASK: NSEventModifierFlags = NSEventModifierFlags(0x00000002);
-const NX_DEVICERSHIFTKEYMASK: NSEventModifierFlags = NSEventModifierFlags(0x00000004);
-const NX_DEVICELCMDKEYMASK: NSEventModifierFlags = NSEventModifierFlags(0x00000008);
-const NX_DEVICERCMDKEYMASK: NSEventModifierFlags = NSEventModifierFlags(0x00000010);
-const NX_DEVICELALTKEYMASK: NSEventModifierFlags = NSEventModifierFlags(0x00000020);
-const NX_DEVICERALTKEYMASK: NSEventModifierFlags = NSEventModifierFlags(0x00000040);
-const NX_DEVICERCTLKEYMASK: NSEventModifierFlags = NSEventModifierFlags(0x00002000);
+const NX_DEVICELCTLKEYMASK: NSEventModifierFlags =
+    NSEventModifierFlags(0x00000001);
+const NX_DEVICELSHIFTKEYMASK: NSEventModifierFlags =
+    NSEventModifierFlags(0x00000002);
+const NX_DEVICERSHIFTKEYMASK: NSEventModifierFlags =
+    NSEventModifierFlags(0x00000004);
+const NX_DEVICELCMDKEYMASK: NSEventModifierFlags =
+    NSEventModifierFlags(0x00000008);
+const NX_DEVICERCMDKEYMASK: NSEventModifierFlags =
+    NSEventModifierFlags(0x00000010);
+const NX_DEVICELALTKEYMASK: NSEventModifierFlags =
+    NSEventModifierFlags(0x00000020);
+const NX_DEVICERALTKEYMASK: NSEventModifierFlags =
+    NSEventModifierFlags(0x00000040);
+const NX_DEVICERCTLKEYMASK: NSEventModifierFlags =
+    NSEventModifierFlags(0x00002000);
 
 pub(super) fn lalt_pressed(event: &NSEvent) -> bool {
     unsafe { event.modifierFlags() }.contains(NX_DEVICELALTKEYMASK)
@@ -308,19 +344,36 @@ pub(super) fn event_mods(event: &NSEvent) -> Modifiers {
     let mut state = ModifiersState::empty();
     let mut pressed_mods = ModifiersKeys::empty();
 
-    state
-        .set(ModifiersState::SHIFT, flags.contains(NSEventModifierFlags::NSEventModifierFlagShift));
-    pressed_mods.set(ModifiersKeys::LSHIFT, flags.contains(NX_DEVICELSHIFTKEYMASK));
-    pressed_mods.set(ModifiersKeys::RSHIFT, flags.contains(NX_DEVICERSHIFTKEYMASK));
+    state.set(
+        ModifiersState::SHIFT,
+        flags.contains(NSEventModifierFlags::NSEventModifierFlagShift),
+    );
+    pressed_mods.set(
+        ModifiersKeys::LSHIFT,
+        flags.contains(NX_DEVICELSHIFTKEYMASK),
+    );
+    pressed_mods.set(
+        ModifiersKeys::RSHIFT,
+        flags.contains(NX_DEVICERSHIFTKEYMASK),
+    );
 
     state.set(
         ModifiersState::CONTROL,
         flags.contains(NSEventModifierFlags::NSEventModifierFlagControl),
     );
-    pressed_mods.set(ModifiersKeys::LCONTROL, flags.contains(NX_DEVICELCTLKEYMASK));
-    pressed_mods.set(ModifiersKeys::RCONTROL, flags.contains(NX_DEVICERCTLKEYMASK));
+    pressed_mods.set(
+        ModifiersKeys::LCONTROL,
+        flags.contains(NX_DEVICELCTLKEYMASK),
+    );
+    pressed_mods.set(
+        ModifiersKeys::RCONTROL,
+        flags.contains(NX_DEVICERCTLKEYMASK),
+    );
 
-    state.set(ModifiersState::ALT, flags.contains(NSEventModifierFlags::NSEventModifierFlagOption));
+    state.set(
+        ModifiersState::ALT,
+        flags.contains(NSEventModifierFlags::NSEventModifierFlagOption),
+    );
     pressed_mods.set(ModifiersKeys::LALT, flags.contains(NX_DEVICELALTKEYMASK));
     pressed_mods.set(ModifiersKeys::RALT, flags.contains(NX_DEVICERALTKEYMASK));
 
@@ -328,10 +381,15 @@ pub(super) fn event_mods(event: &NSEvent) -> Modifiers {
         ModifiersState::SUPER,
         flags.contains(NSEventModifierFlags::NSEventModifierFlagCommand),
     );
-    pressed_mods.set(ModifiersKeys::LSUPER, flags.contains(NX_DEVICELCMDKEYMASK));
-    pressed_mods.set(ModifiersKeys::RSUPER, flags.contains(NX_DEVICERCMDKEYMASK));
+    pressed_mods
+        .set(ModifiersKeys::LSUPER, flags.contains(NX_DEVICELCMDKEYMASK));
+    pressed_mods
+        .set(ModifiersKeys::RSUPER, flags.contains(NX_DEVICERCMDKEYMASK));
 
-    Modifiers { state, pressed_mods }
+    Modifiers {
+        state,
+        pressed_mods,
+    }
 }
 
 pub(super) fn dummy_event() -> Option<Retained<NSEvent>> {
@@ -350,7 +408,9 @@ pub(super) fn dummy_event() -> Option<Retained<NSEvent>> {
     }
 }
 
-pub(crate) fn physicalkey_to_scancode(physical_key: PhysicalKey) -> Option<u32> {
+pub(crate) fn physicalkey_to_scancode(
+    physical_key: PhysicalKey,
+) -> Option<u32> {
     let code = match physical_key {
         PhysicalKey::Code(code) => code,
         PhysicalKey::Unidentified(_) => return None,
@@ -611,6 +671,10 @@ pub(crate) fn scancode_to_physicalkey(scancode: u32) -> PhysicalKey {
         // 0xA is the caret (^) an macOS's German QERTZ layout. This key is at the same location as
         // backquote (`) on Windows' US layout.
         0xa => KeyCode::Backquote,
-        _ => return PhysicalKey::Unidentified(NativeKeyCode::MacOS(scancode as u16)),
+        _ => {
+            return PhysicalKey::Unidentified(NativeKeyCode::MacOS(
+                scancode as u16,
+            ));
+        }
     })
 }

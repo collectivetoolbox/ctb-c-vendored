@@ -8,7 +8,10 @@ pub struct Delta<T> {
 
 impl<T: Default> Default for Delta<T> {
     fn default() -> Self {
-        Self { x: Default::default(), y: Default::default() }
+        Self {
+            x: Default::default(),
+            y: Default::default(),
+        }
     }
 }
 
@@ -25,7 +28,10 @@ impl<T: Default> Delta<T> {
 macro_rules! consume {
     ($this:expr, $ty:ty) => {{
         let this = $this;
-        let (x, y) = match (this.x.abs() < <$ty>::EPSILON, this.y.abs() < <$ty>::EPSILON) {
+        let (x, y) = match (
+            this.x.abs() < <$ty>::EPSILON,
+            this.y.abs() < <$ty>::EPSILON,
+        ) {
             (true, true) => return None,
             (false, true) => (this.x, 0.0),
             (true, false) => (0.0, this.y),

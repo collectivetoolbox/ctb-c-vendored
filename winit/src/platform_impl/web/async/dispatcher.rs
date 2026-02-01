@@ -1,5 +1,5 @@
 use super::super::main_thread::MainThreadMarker;
-use super::{channel, Receiver, Sender, Wrapper};
+use super::{Receiver, Sender, Wrapper, channel};
 use std::cell::Ref;
 use std::sync::{Arc, Condvar, Mutex};
 
@@ -9,7 +9,10 @@ struct Closure<T>(Box<dyn FnOnce(&T) + Send>);
 
 impl<T> Dispatcher<T> {
     #[track_caller]
-    pub fn new(main_thread: MainThreadMarker, value: T) -> Option<(Self, DispatchRunner<T>)> {
+    pub fn new(
+        main_thread: MainThreadMarker,
+        value: T,
+    ) -> Option<(Self, DispatchRunner<T>)> {
         let (sender, receiver) = channel::<Closure<T>>();
 
         Wrapper::new(
@@ -38,7 +41,9 @@ impl<T> Dispatcher<T> {
                 sender.send(closure).unwrap()
             },
         )
-        .map(|wrapper| (Self(wrapper.clone()), DispatchRunner { wrapper, receiver }))
+        .map(|wrapper| {
+            (Self(wrapper.clone()), DispatchRunner { wrapper, receiver })
+        })
     }
 
     pub fn value(&self) -> Option<Ref<'_, T>> {
@@ -95,12 +100,19 @@ pub struct DispatchRunner<T: 'static> {
 
 impl<T> DispatchRunner<T> {
     pub fn run(&self) {
-        while let Some(Closure(closure)) =
-            self.receiver.try_recv().expect("should only be closed when `Dispatcher` is dropped")
+        while let Some(Closure(closure)) = self
+            .receiver
+            .try_recv()
+            .expect("should only be closed when `Dispatcher` is dropped")
         {
             // SAFETY: The given `Closure` here isn't really `'static`, so we shouldn't do anything
             // funny with it here. See `Self::queue()`.
-            closure(&self.wrapper.value().expect("don't call this outside the main thread"))
+            closure(
+                &self
+                    .wrapper
+                    .value()
+                    .expect("don't call this outside the main thread"),
+            )
         }
     }
 }

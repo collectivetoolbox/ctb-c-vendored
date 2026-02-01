@@ -7,22 +7,27 @@ use std::sync::{Arc, Mutex};
 
 use core_graphics::display::{CGDisplay, CGPoint};
 use monitor::VideoModeHandle;
-use objc2::rc::{autoreleasepool, Retained};
+use objc2::rc::{Retained, autoreleasepool};
 use objc2::runtime::{AnyObject, ProtocolObject};
-use objc2::{declare_class, msg_send_id, mutability, sel, ClassType, DeclaredClass};
+use objc2::{
+    ClassType, DeclaredClass, declare_class, msg_send_id, mutability, sel,
+};
 use objc2_app_kit::{
-    NSAppKitVersionNumber, NSAppKitVersionNumber10_12, NSAppearance, NSAppearanceCustomization,
-    NSAppearanceNameAqua, NSApplication, NSApplicationPresentationOptions, NSBackingStoreType,
-    NSColor, NSDraggingDestination, NSFilenamesPboardType, NSPasteboard,
-    NSRequestUserAttentionType, NSScreen, NSView, NSWindowButton, NSWindowDelegate,
-    NSWindowFullScreenButton, NSWindowLevel, NSWindowOcclusionState, NSWindowOrderingMode,
-    NSWindowSharingType, NSWindowStyleMask, NSWindowTabbingMode, NSWindowTitleVisibility,
+    NSAppKitVersionNumber, NSAppKitVersionNumber10_12, NSAppearance,
+    NSAppearanceCustomization, NSAppearanceNameAqua, NSApplication,
+    NSApplicationPresentationOptions, NSBackingStoreType, NSColor,
+    NSDraggingDestination, NSFilenamesPboardType, NSPasteboard,
+    NSRequestUserAttentionType, NSScreen, NSView, NSWindowButton,
+    NSWindowDelegate, NSWindowFullScreenButton, NSWindowLevel,
+    NSWindowOcclusionState, NSWindowOrderingMode, NSWindowSharingType,
+    NSWindowStyleMask, NSWindowTabbingMode, NSWindowTitleVisibility,
 };
 use objc2_foundation::{
-    ns_string, CGFloat, MainThreadMarker, NSArray, NSCopying, NSDictionary, NSKeyValueChangeKey,
-    NSKeyValueChangeNewKey, NSKeyValueChangeOldKey, NSKeyValueObservingOptions, NSObject,
-    NSObjectNSDelayedPerforming, NSObjectNSKeyValueObserverRegistration, NSObjectProtocol, NSPoint,
-    NSRect, NSSize, NSString,
+    CGFloat, MainThreadMarker, NSArray, NSCopying, NSDictionary,
+    NSKeyValueChangeKey, NSKeyValueChangeNewKey, NSKeyValueChangeOldKey,
+    NSKeyValueObservingOptions, NSObject, NSObjectNSDelayedPerforming,
+    NSObjectNSKeyValueObserverRegistration, NSObjectProtocol, NSPoint, NSRect,
+    NSSize, NSString, ns_string,
 };
 use tracing::{trace, warn};
 
@@ -32,14 +37,17 @@ use super::monitor::{self, flip_window_screen_coordinates, get_display_id};
 use super::observer::RunLoop;
 use super::view::WinitView;
 use super::window::WinitWindow;
-use super::{ffi, Fullscreen, MonitorHandle, OsError, WindowId};
-use crate::dpi::{LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize, Position, Size};
+use super::{Fullscreen, MonitorHandle, OsError, WindowId, ffi};
+use crate::dpi::{
+    LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize, Position,
+    Size,
+};
 use crate::error::{ExternalError, NotSupportedError, OsError as RootOsError};
 use crate::event::{InnerSizeWriter, WindowEvent};
 use crate::platform::macos::{OptionAsAlt, WindowExtMacOS};
 use crate::window::{
-    Cursor, CursorGrabMode, Icon, ImePurpose, ResizeDirection, Theme, UserAttentionType,
-    WindowAttributes, WindowButtons, WindowLevel,
+    Cursor, CursorGrabMode, Icon, ImePurpose, ResizeDirection, Theme,
+    UserAttentionType, WindowAttributes, WindowButtons, WindowLevel,
 };
 
 #[derive(Clone, Debug)]
@@ -479,7 +487,10 @@ declare_class!(
 impl Drop for WindowDelegate {
     fn drop(&mut self) {
         unsafe {
-            self.window().removeObserver_forKeyPath(self, ns_string!("effectiveAppearance"));
+            self.window().removeObserver_forKeyPath(
+                self,
+                ns_string!("effectiveAppearance"),
+            );
         }
     }
 }
@@ -492,9 +503,9 @@ fn new_window(
     autoreleasepool(|_| {
         let screen = match attrs.fullscreen.clone().map(Into::into) {
             Some(Fullscreen::Borderless(Some(monitor)))
-            | Some(Fullscreen::Exclusive(VideoModeHandle { monitor, .. })) => {
-                monitor.ns_screen(mtm).or_else(|| NSScreen::mainScreen(mtm))
-            },
+            | Some(Fullscreen::Exclusive(VideoModeHandle {
+                monitor, ..
+            })) => monitor.ns_screen(mtm).or_else(|| NSScreen::mainScreen(mtm)),
             Some(Fullscreen::Borderless(None)) => NSScreen::mainScreen(mtm),
             None => None,
         };
@@ -508,7 +519,7 @@ fn new_window(
                     Some(size) => {
                         let size = size.to_logical(scale_factor);
                         NSSize::new(size.width, size.height)
-                    },
+                    }
                     None => NSSize::new(800.0, 600.0),
                 };
                 let position = match attrs.position {
@@ -518,12 +529,12 @@ fn new_window(
                             NSPoint::new(position.x, position.y),
                             size,
                         ))
-                    },
+                    }
                     // This value is ignored by calling win.center() below
                     None => NSPoint::new(0.0, 0.0),
                 };
                 NSRect::new(position, size)
-            },
+            }
         };
 
         let mut masks = if (!attrs.decorations && screen.is_none())
@@ -592,7 +603,9 @@ fn new_window(
             window.setTitlebarAppearsTransparent(true);
         }
         if attrs.platform_specific.title_hidden {
-            window.setTitleVisibility(NSWindowTitleVisibility::NSWindowTitleHidden);
+            window.setTitleVisibility(
+                NSWindowTitleVisibility::NSWindowTitleHidden,
+            );
         }
         if attrs.platform_specific.titlebar_buttons_hidden {
             for titlebar_button in &[
@@ -602,7 +615,9 @@ fn new_window(
                 NSWindowButton::NSWindowCloseButton,
                 NSWindowButton::NSWindowZoomButton,
             ] {
-                if let Some(button) = window.standardWindowButton(*titlebar_button) {
+                if let Some(button) =
+                    window.standardWindowButton(*titlebar_button)
+                {
                     button.setHidden(true);
                 }
             }
@@ -612,7 +627,9 @@ fn new_window(
         }
 
         if !attrs.enabled_buttons.contains(WindowButtons::MAXIMIZE) {
-            if let Some(button) = window.standardWindowButton(NSWindowButton::NSWindowZoomButton) {
+            if let Some(button) =
+                window.standardWindowButton(NSWindowButton::NSWindowZoomButton)
+            {
                 button.setEnabled(false);
             }
         }
@@ -635,14 +652,17 @@ fn new_window(
         // macos 10.14 and `true` after 10.15, we should set it to `YES` or `NO` to avoid
         // always the default system value in favour of the user's code
         #[allow(deprecated)]
-        view.setWantsBestResolutionOpenGLSurface(!attrs.platform_specific.disallow_hidpi);
+        view.setWantsBestResolutionOpenGLSurface(
+            !attrs.platform_specific.disallow_hidpi,
+        );
 
         // On Mojave, views automatically become layer-backed shortly after being added to
         // a window. Changing the layer-backedness of a view breaks the association between
         // the view and its associated OpenGL context. To work around this, on Mojave we
         // explicitly make the view layer-backed up front so that AppKit doesn't do it
         // itself and break the association with its context.
-        if unsafe { NSAppKitVersionNumber }.floor() > NSAppKitVersionNumber10_12 {
+        if unsafe { NSAppKitVersionNumber }.floor() > NSAppKitVersionNumber10_12
+        {
             view.setWantsLayer(true);
         }
 
@@ -657,10 +677,10 @@ fn new_window(
         }
 
         // register for drag and drop operations.
-        window
-            .registerForDraggedTypes(&NSArray::from_id_slice(&[
-                unsafe { NSFilenamesPboardType }.copy()
-            ]));
+        window.registerForDraggedTypes(&NSArray::from_id_slice(&[unsafe {
+            NSFilenamesPboardType
+        }
+        .copy()]));
 
         Some(window)
     })
@@ -672,8 +692,10 @@ impl WindowDelegate {
         attrs: WindowAttributes,
         mtm: MainThreadMarker,
     ) -> Result<Retained<Self>, RootOsError> {
-        let window = new_window(app_delegate, &attrs, mtm)
-            .ok_or_else(|| os_error!(OsError::CreationError("couldn't create `NSWindow`")))?;
+        let window =
+            new_window(app_delegate, &attrs, mtm).ok_or_else(|| {
+                os_error!(OsError::CreationError("couldn't create `NSWindow`"))
+            })?;
 
         #[cfg(feature = "rwh_06")]
         match attrs.parent_window.map(|handle| handle.0) {
@@ -681,29 +703,39 @@ impl WindowDelegate {
                 // SAFETY: Caller ensures the pointer is valid or NULL
                 // Unwrap is fine, since the pointer comes from `NonNull`.
                 let parent_view: Retained<NSView> =
-                    unsafe { Retained::retain(handle.ns_view.as_ptr().cast()) }.unwrap();
+                    unsafe { Retained::retain(handle.ns_view.as_ptr().cast()) }
+                        .unwrap();
                 let parent = parent_view.window().ok_or_else(|| {
-                    os_error!(OsError::CreationError("parent view should be installed in a window"))
+                    os_error!(OsError::CreationError(
+                        "parent view should be installed in a window"
+                    ))
                 })?;
 
                 // SAFETY: We know that there are no parent -> child -> parent cycles since the only
                 // place in `winit` where we allow making a window a child window is
                 // right here, just after it's been created.
                 unsafe {
-                    parent.addChildWindow_ordered(&window, NSWindowOrderingMode::NSWindowAbove)
+                    parent.addChildWindow_ordered(
+                        &window,
+                        NSWindowOrderingMode::NSWindowAbove,
+                    )
                 };
-            },
+            }
             Some(raw) => panic!("invalid raw window handle {raw:?} on macOS"),
             None => (),
         }
 
-        let resize_increments =
-            match attrs.resize_increments.map(|i| i.to_logical(window.backingScaleFactor() as _)) {
-                Some(LogicalSize { width, height }) if width >= 1. && height >= 1. => {
-                    NSSize::new(width, height)
-                },
-                _ => NSSize::new(1., 1.),
-            };
+        let resize_increments = match attrs
+            .resize_increments
+            .map(|i| i.to_logical(window.backingScaleFactor() as _))
+        {
+            Some(LogicalSize { width, height })
+                if width >= 1. && height >= 1. =>
+            {
+                NSSize::new(width, height)
+            }
+            _ => NSSize::new(1., 1.),
+        };
 
         let scale_factor = window.backingScaleFactor() as _;
 
@@ -714,7 +746,9 @@ impl WindowDelegate {
         let delegate = mtm.alloc().set_ivars(State {
             app_delegate: app_delegate.retain(),
             window: window.retain(),
-            previous_position: Cell::new(flip_window_screen_coordinates(window.frame())),
+            previous_position: Cell::new(flip_window_screen_coordinates(
+                window.frame(),
+            )),
             previous_scale_factor: Cell::new(scale_factor),
             resize_increments: Cell::new(resize_increments),
             decorations: Cell::new(attrs.decorations),
@@ -728,9 +762,12 @@ impl WindowDelegate {
             standard_frame: Cell::new(None),
             is_simple_fullscreen: Cell::new(false),
             saved_style: Cell::new(None),
-            is_borderless_game: Cell::new(attrs.platform_specific.borderless_game),
+            is_borderless_game: Cell::new(
+                attrs.platform_specific.borderless_game,
+            ),
         });
-        let delegate: Retained<WindowDelegate> = unsafe { msg_send_id![super(delegate), init] };
+        let delegate: Retained<WindowDelegate> =
+            unsafe { msg_send_id![super(delegate), init] };
 
         if scale_factor != 1.0 {
             let delegate = delegate.clone();
@@ -811,7 +848,9 @@ impl WindowDelegate {
     }
 
     pub(crate) fn queue_event(&self, event: WindowEvent) {
-        self.ivars().app_delegate.maybe_queue_window_event(self.window().id(), event);
+        self.ivars()
+            .app_delegate
+            .maybe_queue_window_event(self.window().id(), event);
     }
 
     fn handle_scale_factor_changed(&self, scale_factor: CGFloat) {
@@ -819,14 +858,20 @@ impl WindowDelegate {
         let window = self.window();
 
         let content_size = window.contentRectForFrameRect(window.frame()).size;
-        let content_size = LogicalSize::new(content_size.width, content_size.height);
+        let content_size =
+            LogicalSize::new(content_size.width, content_size.height);
 
         let suggested_size = content_size.to_physical(scale_factor);
         let new_inner_size = Arc::new(Mutex::new(suggested_size));
-        app_delegate.handle_window_event(window.id(), WindowEvent::ScaleFactorChanged {
-            scale_factor,
-            inner_size_writer: InnerSizeWriter::new(Arc::downgrade(&new_inner_size)),
-        });
+        app_delegate.handle_window_event(
+            window.id(),
+            WindowEvent::ScaleFactorChanged {
+                scale_factor,
+                inner_size_writer: InnerSizeWriter::new(Arc::downgrade(
+                    &new_inner_size,
+                )),
+            },
+        );
         let physical_size = *new_inner_size.lock().unwrap();
         drop(new_inner_size);
 
@@ -835,7 +880,10 @@ impl WindowDelegate {
             let size = NSSize::new(logical_size.width, logical_size.height);
             window.setContentSize(size);
         }
-        app_delegate.handle_window_event(window.id(), WindowEvent::Resized(physical_size));
+        app_delegate.handle_window_event(
+            window.id(),
+            WindowEvent::Resized(physical_size),
+        );
     }
 
     fn emit_move_event(&self) {
@@ -845,8 +893,8 @@ impl WindowDelegate {
         }
         self.ivars().previous_position.set(position);
 
-        let position =
-            LogicalPosition::new(position.x, position.y).to_physical(self.scale_factor());
+        let position = LogicalPosition::new(position.x, position.y)
+            .to_physical(self.scale_factor());
         self.queue_event(WindowEvent::Moved(position));
     }
 
@@ -914,15 +962,22 @@ impl WindowDelegate {
     #[inline]
     pub fn pre_present_notify(&self) {}
 
-    pub fn outer_position(&self) -> Result<PhysicalPosition<i32>, NotSupportedError> {
+    pub fn outer_position(
+        &self,
+    ) -> Result<PhysicalPosition<i32>, NotSupportedError> {
         let position = flip_window_screen_coordinates(self.window().frame());
-        Ok(LogicalPosition::new(position.x, position.y).to_physical(self.scale_factor()))
+        Ok(LogicalPosition::new(position.x, position.y)
+            .to_physical(self.scale_factor()))
     }
 
-    pub fn inner_position(&self) -> Result<PhysicalPosition<i32>, NotSupportedError> {
-        let content_rect = self.window().contentRectForFrameRect(self.window().frame());
+    pub fn inner_position(
+        &self,
+    ) -> Result<PhysicalPosition<i32>, NotSupportedError> {
+        let content_rect =
+            self.window().contentRectForFrameRect(self.window().frame());
         let position = flip_window_screen_coordinates(content_rect);
-        Ok(LogicalPosition::new(position.x, position.y).to_physical(self.scale_factor()))
+        Ok(LogicalPosition::new(position.x, position.y)
+            .to_physical(self.scale_factor()))
     }
 
     pub fn set_outer_position(&self, position: Position) {
@@ -936,8 +991,10 @@ impl WindowDelegate {
 
     #[inline]
     pub fn inner_size(&self) -> PhysicalSize<u32> {
-        let content_rect = self.window().contentRectForFrameRect(self.window().frame());
-        let logical = LogicalSize::new(content_rect.size.width, content_rect.size.height);
+        let content_rect =
+            self.window().contentRectForFrameRect(self.window().frame());
+        let logical =
+            LogicalSize::new(content_rect.size.width, content_rect.size.height);
         logical.to_physical(self.scale_factor())
     }
 
@@ -952,20 +1009,26 @@ impl WindowDelegate {
     pub fn request_inner_size(&self, size: Size) -> Option<PhysicalSize<u32>> {
         let scale_factor = self.scale_factor();
         let size = size.to_logical(scale_factor);
-        self.window().setContentSize(NSSize::new(size.width, size.height));
+        self.window()
+            .setContentSize(NSSize::new(size.width, size.height));
         None
     }
 
     pub fn set_min_inner_size(&self, dimensions: Option<Size>) {
-        let dimensions =
-            dimensions.unwrap_or(Size::Logical(LogicalSize { width: 0.0, height: 0.0 }));
+        let dimensions = dimensions.unwrap_or(Size::Logical(LogicalSize {
+            width: 0.0,
+            height: 0.0,
+        }));
         let min_size = dimensions.to_logical::<CGFloat>(self.scale_factor());
 
         let min_size = NSSize::new(min_size.width, min_size.height);
         unsafe { self.window().setContentMinSize(min_size) };
 
         // If necessary, resize the window to match constraint
-        let mut current_size = self.window().contentRectForFrameRect(self.window().frame()).size;
+        let mut current_size = self
+            .window()
+            .contentRectForFrameRect(self.window().frame())
+            .size;
         if current_size.width < min_size.width {
             current_size.width = min_size.width;
         }
@@ -987,7 +1050,10 @@ impl WindowDelegate {
         unsafe { self.window().setContentMaxSize(max_size) };
 
         // If necessary, resize the window to match constraint
-        let mut current_size = self.window().contentRectForFrameRect(self.window().frame()).size;
+        let mut current_size = self
+            .window()
+            .contentRectForFrameRect(self.window().frame())
+            .size;
         if max_size.width < current_size.width {
             current_size.width = max_size.width;
         }
@@ -1012,7 +1078,8 @@ impl WindowDelegate {
         self.ivars().resize_increments.set(
             increments
                 .map(|increments| {
-                    let logical = increments.to_logical::<f64>(self.scale_factor());
+                    let logical =
+                        increments.to_logical::<f64>(self.scale_factor());
                     NSSize::new(logical.width.max(1.0), logical.height.max(1.0))
                 })
                 .unwrap_or_else(|| NSSize::new(1.0, 1.0)),
@@ -1071,7 +1138,9 @@ impl WindowDelegate {
         // We edit the button directly instead of using `NSResizableWindowMask`,
         // since that mask also affect the resizability of the window (which is
         // controllable by other means in `winit`).
-        if let Some(button) = self.window().standardWindowButton(NSWindowButton::NSWindowZoomButton)
+        if let Some(button) = self
+            .window()
+            .standardWindowButton(NSWindowButton::NSWindowZoomButton)
         {
             button.setEnabled(buttons.contains(WindowButtons::MAXIMIZE));
         }
@@ -1114,18 +1183,27 @@ impl WindowDelegate {
     }
 
     #[inline]
-    pub fn set_cursor_grab(&self, mode: CursorGrabMode) -> Result<(), ExternalError> {
+    pub fn set_cursor_grab(
+        &self,
+        mode: CursorGrabMode,
+    ) -> Result<(), ExternalError> {
         let associate_mouse_cursor = match mode {
             CursorGrabMode::Locked => false,
             CursorGrabMode::None => true,
             CursorGrabMode::Confined => {
-                return Err(ExternalError::NotSupported(NotSupportedError::new()))
-            },
+                return Err(ExternalError::NotSupported(
+                    NotSupportedError::new(),
+                ));
+            }
         };
 
         // TODO: Do this for real https://stackoverflow.com/a/40922095/5435443
-        CGDisplay::associate_mouse_and_mouse_cursor_position(associate_mouse_cursor)
-            .map_err(|status| ExternalError::Os(os_error!(OsError::CGError(status))))
+        CGDisplay::associate_mouse_and_mouse_cursor_position(
+            associate_mouse_cursor,
+        )
+        .map_err(|status| {
+            ExternalError::Os(os_error!(OsError::CGError(status)))
+        })
     }
 
     #[inline]
@@ -1143,11 +1221,16 @@ impl WindowDelegate {
     }
 
     #[inline]
-    pub fn set_cursor_position(&self, cursor_position: Position) -> Result<(), ExternalError> {
+    pub fn set_cursor_position(
+        &self,
+        cursor_position: Position,
+    ) -> Result<(), ExternalError> {
         let physical_window_position = self.inner_position().unwrap();
         let scale_factor = self.scale_factor();
-        let window_position = physical_window_position.to_logical::<CGFloat>(scale_factor);
-        let logical_cursor_position = cursor_position.to_logical::<CGFloat>(scale_factor);
+        let window_position =
+            physical_window_position.to_logical::<CGFloat>(scale_factor);
+        let logical_cursor_position =
+            cursor_position.to_logical::<CGFloat>(scale_factor);
         let point = CGPoint {
             x: logical_cursor_position.x + window_position.x,
             y: logical_cursor_position.y + window_position.y,
@@ -1163,14 +1246,18 @@ impl WindowDelegate {
     #[inline]
     pub fn drag_window(&self) -> Result<(), ExternalError> {
         let mtm = MainThreadMarker::from(self);
-        let event =
-            NSApplication::sharedApplication(mtm).currentEvent().ok_or(ExternalError::Ignored)?;
+        let event = NSApplication::sharedApplication(mtm)
+            .currentEvent()
+            .ok_or(ExternalError::Ignored)?;
         self.window().performWindowDragWithEvent(&event);
         Ok(())
     }
 
     #[inline]
-    pub fn drag_resize_window(&self, _direction: ResizeDirection) -> Result<(), ExternalError> {
+    pub fn drag_resize_window(
+        &self,
+        _direction: ResizeDirection,
+    ) -> Result<(), ExternalError> {
         Err(ExternalError::NotSupported(NotSupportedError::new()))
     }
 
@@ -1178,7 +1265,10 @@ impl WindowDelegate {
     pub fn show_window_menu(&self, _position: Position) {}
 
     #[inline]
-    pub fn set_cursor_hittest(&self, hittest: bool) -> Result<(), ExternalError> {
+    pub fn set_cursor_hittest(
+        &self,
+        hittest: bool,
+    ) -> Result<(), ExternalError> {
         self.window().setIgnoresMouseEvents(!hittest);
         Ok(())
     }
@@ -1205,8 +1295,11 @@ impl WindowDelegate {
     }
 
     fn saved_style(&self) -> NSWindowStyleMask {
-        let base_mask =
-            self.ivars().saved_style.take().unwrap_or_else(|| self.window().styleMask());
+        let base_mask = self
+            .ivars()
+            .saved_style
+            .take()
+            .unwrap_or_else(|| self.window().styleMask());
         if self.ivars().resizable.get() {
             base_mask | NSWindowStyleMask::Resizable
         } else {
@@ -1266,16 +1359,24 @@ impl WindowDelegate {
             return;
         }
 
-        if self.window().styleMask().contains(NSWindowStyleMask::Resizable) {
+        if self
+            .window()
+            .styleMask()
+            .contains(NSWindowStyleMask::Resizable)
+        {
             // Just use the native zoom if resizable
             self.window().zoom(None);
         } else {
             // if it's not resizable, we set the frame directly
             let new_rect = if maximized {
-                let screen = NSScreen::mainScreen(mtm).expect("no screen found");
+                let screen =
+                    NSScreen::mainScreen(mtm).expect("no screen found");
                 screen.visibleFrame()
             } else {
-                self.ivars().standard_frame.get().unwrap_or(DEFAULT_STANDARD_FRAME)
+                self.ivars()
+                    .standard_frame
+                    .get()
+                    .unwrap_or(DEFAULT_STANDARD_FRAME)
             };
             self.window().setFrame_display(new_rect, false);
         }
@@ -1322,7 +1423,7 @@ impl WindowDelegate {
                     } else {
                         return;
                     }
-                },
+                }
                 Fullscreen::Exclusive(video_mode) => video_mode.monitor(),
             }
             .ns_screen(mtm)
@@ -1330,7 +1431,9 @@ impl WindowDelegate {
 
             let old_screen = self.window().screen().unwrap();
             if old_screen != new_screen {
-                unsafe { self.window().setFrameOrigin(new_screen.frame().origin) };
+                unsafe {
+                    self.window().setFrameOrigin(new_screen.frame().origin)
+                };
             }
         }
 
@@ -1352,7 +1455,9 @@ impl WindowDelegate {
             let mut fade_token = ffi::kCGDisplayFadeReservationInvalidToken;
 
             if matches!(old_fullscreen, Some(Fullscreen::Borderless(_))) {
-                self.ivars().save_presentation_opts.replace(Some(app.presentationOptions()));
+                self.ivars()
+                    .save_presentation_opts
+                    .replace(Some(app.presentationOptions()));
             }
 
             unsafe {
@@ -1373,7 +1478,10 @@ impl WindowDelegate {
                     );
                 }
 
-                assert_eq!(ffi::CGDisplayCapture(display_id), ffi::kCGErrorSuccess);
+                assert_eq!(
+                    ffi::CGDisplayCapture(display_id),
+                    ffi::kCGErrorSuccess
+                );
             }
 
             unsafe {
@@ -1382,7 +1490,10 @@ impl WindowDelegate {
                     video_mode.native_mode.0,
                     std::ptr::null(),
                 );
-                assert!(result == ffi::kCGErrorSuccess, "failed to set video mode");
+                assert!(
+                    result == ffi::kCGErrorSuccess,
+                    "failed to set video mode"
+                );
 
                 // After the display has been configured, fade back in
                 // asynchronously
@@ -1418,7 +1529,8 @@ impl WindowDelegate {
                 // set a normal style temporarily. The previous state will be
                 // restored in `WindowDelegate::window_did_exit_fullscreen`.
                 let curr_mask = self.window().styleMask();
-                let required = NSWindowStyleMask::Titled | NSWindowStyleMask::Resizable;
+                let required =
+                    NSWindowStyleMask::Titled | NSWindowStyleMask::Resizable;
                 if !curr_mask.contains(required) {
                     self.set_style_mask(required);
                     self.ivars().saved_style.set(Some(curr_mask));
@@ -1428,23 +1540,28 @@ impl WindowDelegate {
                 // by setting the presentation options. We do this here rather than in
                 // `window:willUseFullScreenPresentationOptions` because for some reason
                 // the menu bar remains interactable despite being hidden.
-                if self.is_borderless_game() && matches!(fullscreen, Fullscreen::Borderless(_)) {
+                if self.is_borderless_game()
+                    && matches!(fullscreen, Fullscreen::Borderless(_))
+                {
                     let presentation_options = NSApplicationPresentationOptions::NSApplicationPresentationHideDock
                             | NSApplicationPresentationOptions::NSApplicationPresentationHideMenuBar;
                     app.setPresentationOptions(presentation_options);
                 }
 
                 toggle_fullscreen(self.window());
-            },
+            }
             (Some(Fullscreen::Borderless(_)), None) => {
                 // State is restored by `window_did_exit_fullscreen`
                 toggle_fullscreen(self.window());
-            },
+            }
             (Some(Fullscreen::Exclusive(ref video_mode)), None) => {
                 restore_and_release_display(&video_mode.monitor());
                 toggle_fullscreen(self.window());
-            },
-            (Some(Fullscreen::Borderless(_)), Some(Fullscreen::Exclusive(_))) => {
+            }
+            (
+                Some(Fullscreen::Borderless(_)),
+                Some(Fullscreen::Exclusive(_)),
+            ) => {
                 // If we're already in fullscreen mode, calling
                 // `CGDisplayCapture` will place the shielding window on top of
                 // our window, which results in a black display and is not what
@@ -1453,7 +1570,9 @@ impl WindowDelegate {
                 // of the menu bar, and this looks broken, so we must make sure
                 // that the menu bar is disabled. This is done in the window
                 // delegate in `window:willUseFullScreenPresentationOptions:`.
-                self.ivars().save_presentation_opts.set(Some(app.presentationOptions()));
+                self.ivars()
+                    .save_presentation_opts
+                    .set(Some(app.presentationOptions()));
 
                 let presentation_options =
                     NSApplicationPresentationOptions::NSApplicationPresentationFullScreen
@@ -1461,10 +1580,15 @@ impl WindowDelegate {
                         | NSApplicationPresentationOptions::NSApplicationPresentationHideMenuBar;
                 app.setPresentationOptions(presentation_options);
 
-                let window_level = unsafe { ffi::CGShieldingWindowLevel() } as NSWindowLevel + 1;
+                let window_level = unsafe { ffi::CGShieldingWindowLevel() }
+                    as NSWindowLevel
+                    + 1;
                 self.window().setLevel(window_level);
-            },
-            (Some(Fullscreen::Exclusive(ref video_mode)), Some(Fullscreen::Borderless(_))) => {
+            }
+            (
+                Some(Fullscreen::Exclusive(ref video_mode)),
+                Some(Fullscreen::Borderless(_)),
+            ) => {
                 let presentation_options = self.ivars().save_presentation_opts.get().unwrap_or(
                     NSApplicationPresentationOptions::NSApplicationPresentationFullScreen
                         | NSApplicationPresentationOptions::NSApplicationPresentationAutoHideDock
@@ -1476,9 +1600,10 @@ impl WindowDelegate {
 
                 // Restore the normal window level following the Borderless fullscreen
                 // `CGShieldingWindowLevel() + 1` hack.
-                self.window().setLevel(ffi::kCGNormalWindowLevel as NSWindowLevel);
-            },
-            _ => {},
+                self.window()
+                    .setLevel(ffi::kCGNormalWindowLevel as NSWindowLevel);
+            }
+            _ => {}
         };
     }
 
@@ -1524,8 +1649,12 @@ impl WindowDelegate {
     #[inline]
     pub fn set_window_level(&self, level: WindowLevel) {
         let level = match level {
-            WindowLevel::AlwaysOnTop => ffi::kCGFloatingWindowLevel as NSWindowLevel,
-            WindowLevel::AlwaysOnBottom => (ffi::kCGNormalWindowLevel - 1) as NSWindowLevel,
+            WindowLevel::AlwaysOnTop => {
+                ffi::kCGFloatingWindowLevel as NSWindowLevel
+            }
+            WindowLevel::AlwaysOnBottom => {
+                (ffi::kCGNormalWindowLevel - 1) as NSWindowLevel
+            }
             WindowLevel::Normal => ffi::kCGNormalWindowLevel as NSWindowLevel,
         };
         self.window().setLevel(level);
@@ -1571,17 +1700,25 @@ impl WindowDelegate {
 
         if !is_minimized && is_visible {
             #[allow(deprecated)]
-            NSApplication::sharedApplication(mtm).activateIgnoringOtherApps(true);
+            NSApplication::sharedApplication(mtm)
+                .activateIgnoringOtherApps(true);
             self.window().makeKeyAndOrderFront(None);
         }
     }
 
     #[inline]
-    pub fn request_user_attention(&self, request_type: Option<UserAttentionType>) {
+    pub fn request_user_attention(
+        &self,
+        request_type: Option<UserAttentionType>,
+    ) {
         let mtm = MainThreadMarker::from(self);
         let ns_request_type = request_type.map(|ty| match ty {
-            UserAttentionType::Critical => NSRequestUserAttentionType::NSCriticalRequest,
-            UserAttentionType::Informational => NSRequestUserAttentionType::NSInformationalRequest,
+            UserAttentionType::Critical => {
+                NSRequestUserAttentionType::NSCriticalRequest
+            }
+            UserAttentionType::Informational => {
+                NSRequestUserAttentionType::NSInformationalRequest
+            }
         });
         if let Some(ty) = ns_request_type {
             NSApplication::sharedApplication(mtm).requestUserAttention(ty);
@@ -1647,7 +1784,8 @@ impl WindowDelegate {
     pub fn raw_window_handle_rwh_06(&self) -> rwh_06::RawWindowHandle {
         let window_handle = rwh_06::AppKitWindowHandle::new({
             let ptr = Retained::as_ptr(&self.view()) as *mut _;
-            std::ptr::NonNull::new(ptr).expect("Retained<T> should never be null")
+            std::ptr::NonNull::new(ptr)
+                .expect("Retained<T> should never be null")
         });
         rwh_06::RawWindowHandle::AppKit(window_handle)
     }
@@ -1674,7 +1812,9 @@ impl WindowDelegate {
                 let app = NSApplication::sharedApplication(mtm);
 
                 if app.respondsToSelector(sel!(effectiveAppearance)) {
-                    Some(super::window_delegate::appearance_to_theme(&app.effectiveAppearance()))
+                    Some(super::window_delegate::appearance_to_theme(
+                        &app.effectiveAppearance(),
+                    ))
                 } else {
                     Some(Theme::Light)
                 }
@@ -1682,7 +1822,10 @@ impl WindowDelegate {
     }
 
     pub fn set_theme(&self, theme: Option<Theme>) {
-        unsafe { self.window().setAppearance(theme_to_appearance(theme).as_deref()) };
+        unsafe {
+            self.window()
+                .setAppearance(theme_to_appearance(theme).as_deref())
+        };
     }
 
     #[inline]
@@ -1708,7 +1851,10 @@ fn restore_and_release_display(monitor: &MonitorHandle) {
     if available_monitors.contains(monitor) {
         unsafe {
             ffi::CGRestorePermanentDisplayConfiguration();
-            assert_eq!(ffi::CGDisplayRelease(monitor.native_identifier()), ffi::kCGErrorSuccess);
+            assert_eq!(
+                ffi::CGDisplayRelease(monitor.native_identifier()),
+                ffi::kCGErrorSuccess
+            );
         };
     } else {
         warn!(
@@ -1743,11 +1889,15 @@ impl WindowExtMacOS for WindowDelegate {
         if fullscreen {
             // Remember the original window's settings
             // Exclude title bar
+            self.ivars().standard_frame.set(Some(
+                self.window().contentRectForFrameRect(self.window().frame()),
+            ));
             self.ivars()
-                .standard_frame
-                .set(Some(self.window().contentRectForFrameRect(self.window().frame())));
-            self.ivars().saved_style.set(Some(self.window().styleMask()));
-            self.ivars().save_presentation_opts.set(Some(app.presentationOptions()));
+                .saved_style
+                .set(Some(self.window().styleMask()));
+            self.ivars()
+                .save_presentation_opts
+                .set(Some(app.presentationOptions()));
 
             // Tell our window's state that we're in fullscreen
             self.ivars().is_simple_fullscreen.set(true);
@@ -1766,7 +1916,10 @@ impl WindowExtMacOS for WindowDelegate {
             self.toggle_style_mask(NSWindowStyleMask::Titled, false);
 
             // Set the window frame to the screen frame size
-            let screen = self.window().screen().expect("expected screen to be available");
+            let screen = self
+                .window()
+                .screen()
+                .expect("expected screen to be available");
             self.window().setFrame_display(screen.frame(), true);
 
             // Fullscreen windows can't be resized, minimized, or moved
@@ -1777,8 +1930,13 @@ impl WindowExtMacOS for WindowDelegate {
             let new_mask = self.saved_style();
             self.ivars().is_simple_fullscreen.set(false);
 
-            let save_presentation_opts = self.ivars().save_presentation_opts.get();
-            let frame = self.ivars().standard_frame.get().unwrap_or(DEFAULT_STANDARD_FRAME);
+            let save_presentation_opts =
+                self.ivars().save_presentation_opts.get();
+            let frame = self
+                .ivars()
+                .standard_frame
+                .get()
+                .unwrap_or(DEFAULT_STANDARD_FRAME);
 
             if let Some(presentation_opts) = save_presentation_opts {
                 app.setPresentationOptions(presentation_opts);
@@ -1804,7 +1962,8 @@ impl WindowExtMacOS for WindowDelegate {
 
     #[inline]
     fn set_tabbing_identifier(&self, identifier: &str) {
-        self.window().setTabbingIdentifier(&NSString::from_str(identifier))
+        self.window()
+            .setTabbingIdentifier(&NSString::from_str(identifier))
     }
 
     #[inline]
@@ -1835,7 +1994,9 @@ impl WindowExtMacOS for WindowDelegate {
 
     #[inline]
     fn num_tabs(&self) -> usize {
-        unsafe { self.window().tabbedWindows() }.map(|windows| windows.len()).unwrap_or(1)
+        unsafe { self.window().tabbedWindows() }
+            .map(|windows| windows.len())
+            .unwrap_or(1)
     }
 
     fn is_document_edited(&self) -> bool {
@@ -1872,10 +2033,12 @@ fn dark_appearance_name() -> &'static NSString {
 }
 
 pub fn appearance_to_theme(appearance: &NSAppearance) -> Theme {
-    let best_match = appearance.bestMatchFromAppearancesWithNames(&NSArray::from_id_slice(&[
-        unsafe { NSAppearanceNameAqua.copy() },
-        dark_appearance_name().copy(),
-    ]));
+    let best_match = appearance.bestMatchFromAppearancesWithNames(
+        &NSArray::from_id_slice(&[
+            unsafe { NSAppearanceNameAqua.copy() },
+            dark_appearance_name().copy(),
+        ]),
+    );
     if let Some(best_match) = best_match {
         if *best_match == *dark_appearance_name() {
             Theme::Dark
@@ -1883,7 +2046,10 @@ pub fn appearance_to_theme(appearance: &NSAppearance) -> Theme {
             Theme::Light
         }
     } else {
-        warn!(?appearance, "failed to determine the theme of the appearance");
+        warn!(
+            ?appearance,
+            "failed to determine the theme of the appearance"
+        );
         // Default to light in this case
         Theme::Light
     }
@@ -1891,7 +2057,9 @@ pub fn appearance_to_theme(appearance: &NSAppearance) -> Theme {
 
 fn theme_to_appearance(theme: Option<Theme>) -> Option<Retained<NSAppearance>> {
     let appearance = match theme? {
-        Theme::Light => unsafe { NSAppearance::appearanceNamed(NSAppearanceNameAqua) },
+        Theme::Light => unsafe {
+            NSAppearance::appearanceNamed(NSAppearanceNameAqua)
+        },
         Theme::Dark => NSAppearance::appearanceNamed(dark_appearance_name()),
     };
     if let Some(appearance) = appearance {

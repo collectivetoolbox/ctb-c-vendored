@@ -3,11 +3,12 @@
 
 use std::ffi::c_void;
 
-use windows_sys::core::{IUnknown, GUID, HRESULT};
 use windows_sys::Win32::Foundation::{BOOL, HWND, POINTL};
 use windows_sys::Win32::System::Com::{
-    IAdviseSink, IDataObject, IEnumFORMATETC, IEnumSTATDATA, FORMATETC, STGMEDIUM,
+    FORMATETC, IAdviseSink, IDataObject, IEnumFORMATETC, IEnumSTATDATA,
+    STGMEDIUM,
 };
+use windows_sys::core::{GUID, HRESULT, IUnknown};
 
 #[repr(C)]
 pub struct IUnknownVtbl {
@@ -33,8 +34,10 @@ pub struct IDataObjectVtbl {
         pformatetc: *const FORMATETC,
         pmedium: *mut STGMEDIUM,
     ) -> HRESULT,
-    QueryGetData:
-        unsafe extern "system" fn(This: *mut IDataObject, pformatetc: *const FORMATETC) -> HRESULT,
+    QueryGetData: unsafe extern "system" fn(
+        This: *mut IDataObject,
+        pformatetc: *const FORMATETC,
+    ) -> HRESULT,
     pub GetCanonicalFormatEtc: unsafe extern "system" fn(
         This: *mut IDataObject,
         pformatetcIn: *const FORMATETC,
@@ -58,7 +61,10 @@ pub struct IDataObjectVtbl {
         pAdvSInk: *const IAdviseSink,
         pdwConnection: *mut u32,
     ) -> HRESULT,
-    pub DUnadvise: unsafe extern "system" fn(This: *mut IDataObject, dwConnection: u32) -> HRESULT,
+    pub DUnadvise: unsafe extern "system" fn(
+        This: *mut IDataObject,
+        dwConnection: u32,
+    ) -> HRESULT,
     pub EnumDAdvise: unsafe extern "system" fn(
         This: *mut IDataObject,
         ppenumAdvise: *const *const IEnumSTATDATA,
@@ -100,10 +106,22 @@ pub struct IDropTarget {
 pub struct ITaskbarListVtbl {
     pub parent: IUnknownVtbl,
     pub HrInit: unsafe extern "system" fn(This: *mut ITaskbarList) -> HRESULT,
-    pub AddTab: unsafe extern "system" fn(This: *mut ITaskbarList, hwnd: HWND) -> HRESULT,
-    pub DeleteTab: unsafe extern "system" fn(This: *mut ITaskbarList, hwnd: HWND) -> HRESULT,
-    pub ActivateTab: unsafe extern "system" fn(This: *mut ITaskbarList, hwnd: HWND) -> HRESULT,
-    pub SetActiveAlt: unsafe extern "system" fn(This: *mut ITaskbarList, hwnd: HWND) -> HRESULT,
+    pub AddTab: unsafe extern "system" fn(
+        This: *mut ITaskbarList,
+        hwnd: HWND,
+    ) -> HRESULT,
+    pub DeleteTab: unsafe extern "system" fn(
+        This: *mut ITaskbarList,
+        hwnd: HWND,
+    ) -> HRESULT,
+    pub ActivateTab: unsafe extern "system" fn(
+        This: *mut ITaskbarList,
+        hwnd: HWND,
+    ) -> HRESULT,
+    pub SetActiveAlt: unsafe extern "system" fn(
+        This: *mut ITaskbarList,
+        hwnd: HWND,
+    ) -> HRESULT,
 }
 
 #[repr(C)]

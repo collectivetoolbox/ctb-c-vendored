@@ -2,18 +2,24 @@ use std::collections::HashMap;
 use std::mem;
 use std::sync::Arc;
 
-use super::{ffi, XConnection, XError};
+use super::{XConnection, XError, ffi};
 
 use super::context::ImeContext;
 use super::input_method::{InputMethod, PotentialInputMethods};
 use crate::platform_impl::platform::x11::ime::ImeEventSender;
 
-pub(crate) unsafe fn close_im(xconn: &Arc<XConnection>, im: ffi::XIM) -> Result<(), XError> {
+pub(crate) unsafe fn close_im(
+    xconn: &Arc<XConnection>,
+    im: ffi::XIM,
+) -> Result<(), XError> {
     unsafe { ffi::XCloseIM(im) };
     xconn.check_errors()
 }
 
-pub(crate) unsafe fn destroy_ic(xconn: &Arc<XConnection>, ic: ffi::XIC) -> Result<(), XError> {
+pub(crate) unsafe fn destroy_ic(
+    xconn: &Arc<XConnection>,
+    ic: ffi::XIC,
+) -> Result<(), XError> {
     unsafe { ffi::XDestroyIC(ic) };
     xconn.check_errors()
 }
@@ -52,13 +58,17 @@ impl ImeInner {
 
     pub unsafe fn close_im_if_necessary(&self) -> Result<bool, XError> {
         if !self.is_destroyed && self.im.is_some() {
-            unsafe { close_im(&self.xconn, self.im.as_ref().unwrap().im) }.map(|_| true)
+            unsafe { close_im(&self.xconn, self.im.as_ref().unwrap().im) }
+                .map(|_| true)
         } else {
             Ok(false)
         }
     }
 
-    pub unsafe fn destroy_ic_if_necessary(&self, ic: ffi::XIC) -> Result<bool, XError> {
+    pub unsafe fn destroy_ic_if_necessary(
+        &self,
+        ic: ffi::XIC,
+    ) -> Result<bool, XError> {
         if !self.is_destroyed {
             unsafe { destroy_ic(&self.xconn, ic) }.map(|_| true)
         } else {
@@ -66,7 +76,9 @@ impl ImeInner {
         }
     }
 
-    pub unsafe fn destroy_all_contexts_if_necessary(&self) -> Result<bool, XError> {
+    pub unsafe fn destroy_all_contexts_if_necessary(
+        &self,
+    ) -> Result<bool, XError> {
         for context in self.contexts.values().flatten() {
             unsafe { self.destroy_ic_if_necessary(context.ic)? };
         }

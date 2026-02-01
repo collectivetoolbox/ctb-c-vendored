@@ -58,8 +58,9 @@ pub enum WindowType {
 /// indicator whether the error was handled by the callback.
 ///
 /// [`XErrorEvent`]: https://linux.die.net/man/3/xerrorevent
-pub type XlibErrorHook =
-    Box<dyn Fn(*mut std::ffi::c_void, *mut std::ffi::c_void) -> bool + Send + Sync>;
+pub type XlibErrorHook = Box<
+    dyn Fn(*mut std::ffi::c_void, *mut std::ffi::c_void) -> bool + Send + Sync,
+>;
 
 /// A unique identifier for an X11 visual.
 pub type XVisualID = u32;
@@ -81,7 +82,10 @@ pub type XWindow = u32;
 #[inline]
 pub fn register_xlib_error_hook(hook: XlibErrorHook) {
     // Append new hook.
-    crate::platform_impl::XLIB_ERROR_HOOKS.lock().unwrap().push(hook);
+    crate::platform_impl::XLIB_ERROR_HOOKS
+        .lock()
+        .unwrap()
+        .push(hook);
 }
 
 /// Additional methods on [`ActiveEventLoop`] that are specific to X11.
@@ -125,7 +129,8 @@ pub trait EventLoopBuilderExtX11 {
 impl<T> EventLoopBuilderExtX11 for EventLoopBuilder<T> {
     #[inline]
     fn with_x11(&mut self) -> &mut Self {
-        self.platform_specific.forced_backend = Some(crate::platform_impl::Backend::X);
+        self.platform_specific.forced_backend =
+            Some(crate::platform_impl::Backend::X);
         self
     }
 
@@ -156,7 +161,11 @@ pub trait WindowAttributesExtX11 {
     ///
     /// For details about application ID conventions, see the
     /// [Desktop Entry Spec](https://specifications.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html#desktop-file-id)
-    fn with_name(self, general: impl Into<String>, instance: impl Into<String>) -> Self;
+    fn with_name(
+        self,
+        general: impl Into<String>,
+        instance: impl Into<String>,
+    ) -> Self;
 
     /// Build window with override-redirect flag; defaults to false.
     fn with_override_redirect(self, override_redirect: bool) -> Self;
@@ -209,9 +218,16 @@ impl WindowAttributesExtX11 for WindowAttributes {
     }
 
     #[inline]
-    fn with_name(mut self, general: impl Into<String>, instance: impl Into<String>) -> Self {
+    fn with_name(
+        mut self,
+        general: impl Into<String>,
+        instance: impl Into<String>,
+    ) -> Self {
         self.platform_specific.name =
-            Some(crate::platform_impl::ApplicationName::new(general.into(), instance.into()));
+            Some(crate::platform_impl::ApplicationName::new(
+                general.into(),
+                instance.into(),
+            ));
         self
     }
 
@@ -222,7 +238,10 @@ impl WindowAttributesExtX11 for WindowAttributes {
     }
 
     #[inline]
-    fn with_x11_window_type(mut self, x11_window_types: Vec<WindowType>) -> Self {
+    fn with_x11_window_type(
+        mut self,
+        x11_window_types: Vec<WindowType>,
+    ) -> Self {
         self.platform_specific.x11.x11_window_types = x11_window_types;
         self
     }

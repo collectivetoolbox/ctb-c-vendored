@@ -224,7 +224,9 @@ pub trait ApplicationHandler<T: 'static = ()> {
     }
 }
 
-impl<A: ?Sized + ApplicationHandler<T>, T: 'static> ApplicationHandler<T> for &mut A {
+impl<A: ?Sized + ApplicationHandler<T>, T: 'static> ApplicationHandler<T>
+    for &mut A
+{
     #[inline]
     fn new_events(&mut self, event_loop: &ActiveEventLoop, cause: StartCause) {
         (**self).new_events(event_loop, cause);
@@ -281,7 +283,9 @@ impl<A: ?Sized + ApplicationHandler<T>, T: 'static> ApplicationHandler<T> for &m
     }
 }
 
-impl<A: ?Sized + ApplicationHandler<T>, T: 'static> ApplicationHandler<T> for Box<A> {
+impl<A: ?Sized + ApplicationHandler<T>, T: 'static> ApplicationHandler<T>
+    for Box<A>
+{
     #[inline]
     fn new_events(&mut self, event_loop: &ActiveEventLoop, cause: StartCause) {
         (**self).new_events(event_loop, cause);

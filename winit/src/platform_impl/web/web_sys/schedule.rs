@@ -5,7 +5,8 @@ use wasm_bindgen::closure::Closure;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::{JsCast, JsValue};
 use web_sys::{
-    AbortController, AbortSignal, Blob, BlobPropertyBag, MessageChannel, MessagePort, Url, Worker,
+    AbortController, AbortSignal, Blob, BlobPropertyBag, MessageChannel,
+    MessagePort, Url, Worker,
 };
 
 use crate::platform::web::{PollStrategy, WaitUntilStrategy};
@@ -35,13 +36,20 @@ enum Inner {
 }
 
 impl Schedule {
-    pub fn new<F>(strategy: PollStrategy, window: &web_sys::Window, f: F) -> Schedule
+    pub fn new<F>(
+        strategy: PollStrategy,
+        window: &web_sys::Window,
+        f: F,
+    ) -> Schedule
     where
         F: 'static + FnMut(),
     {
-        if strategy == PollStrategy::Scheduler && has_scheduler_support(window) {
+        if strategy == PollStrategy::Scheduler && has_scheduler_support(window)
+        {
             Self::new_scheduler(window, f, None)
-        } else if strategy == PollStrategy::IdleCallback && has_idle_callback_support(window) {
+        } else if strategy == PollStrategy::IdleCallback
+            && has_idle_callback_support(window)
+        {
             Self::new_idle_callback(window.clone(), f)
         } else {
             Self::new_timeout(window.clone(), f, None)
@@ -64,12 +72,16 @@ impl Schedule {
                 } else {
                     Self::new_timeout(window.clone(), f, Some(duration))
                 }
-            },
+            }
             WaitUntilStrategy::Worker => Self::new_worker(f, duration),
         }
     }
 
-    fn new_scheduler<F>(window: &web_sys::Window, f: F, duration: Option<Duration>) -> Schedule
+    fn new_scheduler<F>(
+        window: &web_sys::Window,
+        f: F,
+        duration: Option<Duration>,
+    ) -> Schedule
     where
         F: 'static + FnMut(),
     {
@@ -78,7 +90,8 @@ impl Schedule {
 
         let closure = Closure::new(f);
         let mut options = SchedulerPostTaskOptions::new();
-        let controller = AbortController::new().expect("Failed to create `AbortController`");
+        let controller =
+            AbortController::new().expect("Failed to create `AbortController`");
         options.signal(&controller.signal());
 
         if let Some(duration) = duration {
@@ -87,7 +100,9 @@ impl Schedule {
             let duration = duration
                 .as_secs()
                 .checked_mul(1000)
-                .and_then(|secs| secs.checked_add(duration_millis_ceil(duration).into()))
+                .and_then(|secs| {
+                    secs.checked_add(duration_millis_ceil(duration).into())
+                })
                 .unwrap_or(u64::MAX);
 
             options.delay(duration as f64);
@@ -98,11 +113,17 @@ impl Schedule {
         }
         REJECT_HANDLER.with(|handler| {
             let _ = scheduler
-                .post_task_with_options(closure.as_ref().unchecked_ref(), &options)
+                .post_task_with_options(
+                    closure.as_ref().unchecked_ref(),
+                    &options,
+                )
                 .catch(handler);
         });
 
-        Schedule { _closure: closure, inner: Inner::Scheduler { controller } }
+        Schedule {
+            _closure: closure,
+            inner: Inner::Scheduler { controller },
+        }
     }
 
     fn new_idle_callback<F>(window: web_sys::Window, f: F) -> Schedule
@@ -114,10 +135,17 @@ impl Schedule {
             .request_idle_callback(closure.as_ref().unchecked_ref())
             .expect("Failed to request idle callback");
 
-        Schedule { _closure: closure, inner: Inner::IdleCallback { window, handle } }
+        Schedule {
+            _closure: closure,
+            inner: Inner::IdleCallback { window, handle },
+        }
     }
 
-    fn new_timeout<F>(window: web_sys::Window, f: F, duration: Option<Duration>) -> Schedule
+    fn new_timeout<F>(
+        window: web_sys::Window,
+        f: F,
+        duration: Option<Duration>,
+    ) -> Schedule
     where
         F: 'static + FnMut(),
     {
@@ -129,7 +157,9 @@ impl Schedule {
 
         let port_2 = channel.port2();
         let timeout_closure = Closure::new(move || {
-            port_2.post_message(&JsValue::UNDEFINED).expect("Failed to send message")
+            port_2
+                .post_message(&JsValue::UNDEFINED)
+                .expect("Failed to send message")
         });
         let handle = if let Some(duration) = duration {
             // `Duration::as_millis()` always rounds down (because of truncation), we want to round
@@ -152,7 +182,9 @@ impl Schedule {
                 duration,
             )
         } else {
-            window.set_timeout_with_callback(timeout_closure.as_ref().unchecked_ref())
+            window.set_timeout_with_callback(
+                timeout_closure.as_ref().unchecked_ref(),
+            )
         }
         .expect("Failed to set timeout");
 
@@ -202,7 +234,10 @@ impl Schedule {
             })
             .expect("`Worker.postMessage()` is not expected to fail");
 
-        Schedule { _closure: closure, inner: Inner::Worker(port_1) }
+        Schedule {
+            _closure: closure,
+            inner: Inner::Worker(port_1),
+        }
     }
 }
 
@@ -210,16 +245,23 @@ impl Drop for Schedule {
     fn drop(&mut self) {
         match &self.inner {
             Inner::Scheduler { controller, .. } => controller.abort(),
-            Inner::IdleCallback { window, handle, .. } => window.cancel_idle_callback(*handle),
-            Inner::Timeout { window, handle, port, .. } => {
+            Inner::IdleCallback { window, handle, .. } => {
+                window.cancel_idle_callback(*handle)
+            }
+            Inner::Timeout {
+                window,
+                handle,
+                port,
+                ..
+            } => {
                 window.clear_timeout_with_handle(*handle);
                 port.close();
                 port.set_onmessage(None);
-            },
+            }
             Inner::Worker(port) => {
                 port.close();
                 port.set_onmessage(None);
-            },
+            }
         }
     }
 }
@@ -231,11 +273,7 @@ fn duration_millis_ceil(duration: Duration) -> u32 {
     // From <https://doc.rust-lang.org/1.73.0/src/core/num/uint_macros.rs.html#2086-2094>.
     let d = micros / 1000;
     let r = micros % 1000;
-    if r > 0 && 1000 > 0 {
-        d + 1
-    } else {
-        d
-    }
+    if r > 0 && 1000 > 0 { d + 1 } else { d }
 }
 
 fn has_scheduler_support(window: &web_sys::Window) -> bool {
@@ -272,7 +310,9 @@ fn has_idle_callback_support(window: &web_sys::Window) -> bool {
                 type IdleCallbackSupport;
 
                 #[wasm_bindgen(method, getter, js_name = requestIdleCallback)]
-                fn has_request_idle_callback(this: &IdleCallbackSupport) -> JsValue;
+                fn has_request_idle_callback(
+                    this: &IdleCallbackSupport,
+                ) -> JsValue;
             }
 
             let support: &IdleCallbackSupport = window.unchecked_ref();
@@ -288,8 +328,9 @@ impl ScriptUrl {
         let sequence = Array::of1(&script.into());
         let property = BlobPropertyBag::new();
         property.set_type("text/javascript");
-        let blob = Blob::new_with_str_sequence_and_options(&sequence, &property)
-            .expect("`new Blob()` should never throw");
+        let blob =
+            Blob::new_with_str_sequence_and_options(&sequence, &property)
+                .expect("`new Blob()` should never throw");
 
         let url = Url::create_object_url_with_blob(&blob)
             .expect("`URL.createObjectURL()` should never throw");
@@ -300,7 +341,8 @@ impl ScriptUrl {
 
 impl Drop for ScriptUrl {
     fn drop(&mut self) {
-        Url::revoke_object_url(&self.0).expect("`URL.revokeObjectURL()` should never throw");
+        Url::revoke_object_url(&self.0)
+            .expect("`URL.revokeObjectURL()` should never throw");
     }
 }
 

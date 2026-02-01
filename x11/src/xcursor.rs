@@ -133,9 +133,14 @@ pub type XcursorCursors = _XcursorCursors;
 #[repr(C)]
 pub struct _XcursorFile {
     pub closure: *mut c_void,
-    pub read: Option<unsafe extern "C" fn(*mut XcursorFile, *mut c_uchar, c_int) -> c_int>,
-    pub write: Option<unsafe extern "C" fn(*mut XcursorFile, *mut c_uchar, c_int) -> c_int>,
-    pub seek: Option<unsafe extern "C" fn(*mut XcursorFile, c_long, c_int) -> c_int>,
+    pub read: Option<
+        unsafe extern "C" fn(*mut XcursorFile, *mut c_uchar, c_int) -> c_int,
+    >,
+    pub write: Option<
+        unsafe extern "C" fn(*mut XcursorFile, *mut c_uchar, c_int) -> c_int,
+    >,
+    pub seek:
+        Option<unsafe extern "C" fn(*mut XcursorFile, c_long, c_int) -> c_int>,
 }
 pub type XcursorFile = _XcursorFile;
 

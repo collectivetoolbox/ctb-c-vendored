@@ -10,7 +10,10 @@ pub struct Notifier<T: Clone>(Arc<Inner<T>>);
 
 impl<T: Clone> Notifier<T> {
     pub fn new() -> Self {
-        Self(Arc::new(Inner { queue: ConcurrentQueue::unbounded(), value: OnceLock::new() }))
+        Self(Arc::new(Inner {
+            queue: ConcurrentQueue::unbounded(),
+            value: OnceLock::new(),
+        }))
     }
 
     pub fn notify(self, value: T) {
@@ -36,7 +39,10 @@ pub struct Notified<T: Clone>(Option<Arc<Inner<T>>>);
 impl<T: Clone> Future for Notified<T> {
     type Output = T;
 
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+    fn poll(
+        mut self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+    ) -> Poll<Self::Output> {
         let this = self.0.take().expect("`Receiver` polled after completion");
 
         if this.value.get().is_none() {
@@ -46,11 +52,13 @@ impl<T: Clone> Future for Notified<T> {
                         self.0 = Some(this);
                         return Poll::Pending;
                     }
-                },
+                }
                 Err(PushError::Closed(_)) => (),
                 Err(PushError::Full(_)) => {
-                    unreachable!("found full queue despite using unbounded queue")
-                },
+                    unreachable!(
+                        "found full queue despite using unbounded queue"
+                    )
+                }
             }
         }
 

@@ -21,20 +21,23 @@ use crate::event_loop::AsyncRequestSerial;
 use crate::platform::x11::WindowType;
 use crate::platform_impl::x11::atoms::*;
 use crate::platform_impl::x11::{
-    xinput_fp1616_to_float, MonitorHandle as X11MonitorHandle, WakeSender, X11Error,
+    MonitorHandle as X11MonitorHandle, WakeSender, X11Error,
+    xinput_fp1616_to_float,
 };
 use crate::platform_impl::{
-    Fullscreen, MonitorHandle as PlatformMonitorHandle, OsError, PlatformCustomCursor,
-    PlatformIcon, VideoModeHandle as PlatformVideoModeHandle,
+    Fullscreen, MonitorHandle as PlatformMonitorHandle, OsError,
+    PlatformCustomCursor, PlatformIcon,
+    VideoModeHandle as PlatformVideoModeHandle,
 };
 use crate::window::{
-    CursorGrabMode, ImePurpose, ResizeDirection, Theme, UserAttentionType, WindowAttributes,
-    WindowButtons, WindowLevel,
+    CursorGrabMode, ImePurpose, ResizeDirection, Theme, UserAttentionType,
+    WindowAttributes, WindowButtons, WindowLevel,
 };
 
 use super::util::{self, SelectedCursor};
 use super::{
-    ffi, ActiveEventLoop, CookieResultExt, ImeRequest, ImeSender, VoidCookie, WindowId, XConnection,
+    ActiveEventLoop, CookieResultExt, ImeRequest, ImeSender, VoidCookie,
+    WindowId, XConnection, ffi,
 };
 
 #[derive(Debug)]
@@ -75,9 +78,15 @@ pub enum Visibility {
 }
 
 impl SharedState {
-    fn new(last_monitor: X11MonitorHandle, window_attributes: &WindowAttributes) -> Mutex<Self> {
-        let visibility =
-            if window_attributes.visible { Visibility::YesWait } else { Visibility::No };
+    fn new(
+        last_monitor: X11MonitorHandle,
+        window_attributes: &WindowAttributes,
+    ) -> Mutex<Self> {
+        let visibility = if window_attributes.visible {
+            Visibility::YesWait
+        } else {
+            Visibility::No
+        };
 
         Mutex::new(SharedState {
             last_monitor,
@@ -131,7 +140,11 @@ macro_rules! leap {
     ($e:expr) => {
         match $e {
             Ok(x) => x,
-            Err(err) => return Err(os_error!(OsError::XError(X11Error::from(err).into()))),
+            Err(err) => {
+                return Err(os_error!(OsError::XError(
+                    X11Error::from(err).into()
+                )))
+            }
         }
     };
 }
@@ -151,20 +164,33 @@ impl UnownedWindow {
         };
 
         let screen = {
-            let screen_id_usize = usize::try_from(screen_id)
-                .map_err(|_| os_error!(OsError::Misc("screen id must be non-negative")))?;
-            xconn.xcb_connection().setup().roots.get(screen_id_usize).ok_or(os_error!(
-                OsError::Misc("requested screen id not present in server's response")
-            ))?
+            let screen_id_usize = usize::try_from(screen_id).map_err(|_| {
+                os_error!(OsError::Misc("screen id must be non-negative"))
+            })?;
+            xconn
+                .xcb_connection()
+                .setup()
+                .roots
+                .get(screen_id_usize)
+                .ok_or(os_error!(OsError::Misc(
+                    "requested screen id not present in server's response"
+                )))?
         };
 
         #[cfg(feature = "rwh_06")]
-        let root = match window_attrs.parent_window.as_ref().map(|handle| handle.0) {
-            Some(rwh_06::RawWindowHandle::Xlib(handle)) => handle.window as xproto::Window,
-            Some(rwh_06::RawWindowHandle::Xcb(handle)) => handle.window.get(),
-            Some(raw) => unreachable!("Invalid raw window handle {raw:?} on X11"),
-            None => screen.root,
-        };
+        let root =
+            match window_attrs.parent_window.as_ref().map(|handle| handle.0) {
+                Some(rwh_06::RawWindowHandle::Xlib(handle)) => {
+                    handle.window as xproto::Window
+                }
+                Some(rwh_06::RawWindowHandle::Xcb(handle)) => {
+                    handle.window.get()
+                }
+                Some(raw) => {
+                    unreachable!("Invalid raw window handle {raw:?} on X11")
+                }
+                None => screen.root,
+            };
         #[cfg(not(feature = "rwh_06"))]
         let root = event_loop.root;
 
@@ -176,7 +202,10 @@ impl UnownedWindow {
                 .query_pointer(root, util::VIRTUAL_CORE_POINTER)
                 .ok()
                 .and_then(|pointer_state| {
-                    let (x, y) = (pointer_state.root_x as i64, pointer_state.root_y as i64);
+                    let (x, y) = (
+                        pointer_state.root_x as i64,
+                        pointer_state.root_y as i64,
+                    );
 
                     for i in 0..monitors.len() {
                         if monitors[i].rect.contains_point(x, y) {
@@ -192,13 +221,16 @@ impl UnownedWindow {
 
         info!("Guessed window scale factor: {}", scale_factor);
 
-        let max_inner_size: Option<(u32, u32)> =
-            window_attrs.max_inner_size.map(|size| size.to_physical::<u32>(scale_factor).into());
-        let min_inner_size: Option<(u32, u32)> =
-            window_attrs.min_inner_size.map(|size| size.to_physical::<u32>(scale_factor).into());
+        let max_inner_size: Option<(u32, u32)> = window_attrs
+            .max_inner_size
+            .map(|size| size.to_physical::<u32>(scale_factor).into());
+        let min_inner_size: Option<(u32, u32)> = window_attrs
+            .min_inner_size
+            .map(|size| size.to_physical::<u32>(scale_factor).into());
 
-        let position =
-            window_attrs.position.map(|position| position.to_physical::<i32>(scale_factor));
+        let position = window_attrs
+            .position
+            .map(|position| position.to_physical::<i32>(scale_factor));
 
         let dimensions = {
             // x11 only applies constraints when the window is actively resized
@@ -217,31 +249,42 @@ impl UnownedWindow {
                 dimensions.0 = cmp::max(dimensions.0, min.0);
                 dimensions.1 = cmp::max(dimensions.1, min.1);
             }
-            debug!("Calculated physical dimensions: {}x{}", dimensions.0, dimensions.1);
+            debug!(
+                "Calculated physical dimensions: {}x{}",
+                dimensions.0, dimensions.1
+            );
             dimensions
         };
 
         // An iterator over the visuals matching screen id combined with their depths.
-        let mut all_visuals = screen
-            .allowed_depths
-            .iter()
-            .flat_map(|depth| depth.visuals.iter().map(move |visual| (visual, depth.depth)));
+        let mut all_visuals = screen.allowed_depths.iter().flat_map(|depth| {
+            depth
+                .visuals
+                .iter()
+                .map(move |visual| (visual, depth.depth))
+        });
 
         // creating
-        let (visualtype, depth, require_colormap) =
-            match window_attrs.platform_specific.x11.visual_id {
-                Some(vi) => {
-                    // Find this specific visual.
-                    let (visualtype, depth) =
-                        all_visuals.find(|(visual, _)| visual.visual_id == vi).ok_or_else(
-                            || os_error!(OsError::XError(X11Error::NoSuchVisual(vi).into())),
-                        )?;
+        let (visualtype, depth, require_colormap) = match window_attrs
+            .platform_specific
+            .x11
+            .visual_id
+        {
+            Some(vi) => {
+                // Find this specific visual.
+                let (visualtype, depth) = all_visuals
+                    .find(|(visual, _)| visual.visual_id == vi)
+                    .ok_or_else(|| {
+                        os_error!(OsError::XError(
+                            X11Error::NoSuchVisual(vi).into()
+                        ))
+                    })?;
 
-                    (Some(visualtype), depth, true)
-                },
-                None if window_attrs.transparent => {
-                    // Find a suitable visual, true color with 32 bits of depth.
-                    all_visuals
+                (Some(visualtype), depth, true)
+            }
+            None if window_attrs.transparent => {
+                // Find a suitable visual, true color with 32 bits of depth.
+                all_visuals
                         .find_map(|(visual, depth)| {
                             (depth == 32 && visual.class == xproto::VisualClass::TRUE_COLOR)
                                 .then_some((Some(visual), depth, true))
@@ -253,10 +296,11 @@ impl UnownedWindow {
                             );
                             (None as _, x11rb::COPY_FROM_PARENT as _, false)
                         })
-                },
-                _ => (None, x11rb::COPY_FROM_PARENT as _, false),
-            };
-        let mut visual = visualtype.map_or(x11rb::COPY_FROM_PARENT, |v| v.visual_id);
+            }
+            _ => (None, x11rb::COPY_FROM_PARENT as _, false),
+        };
+        let mut visual =
+            visualtype.map_or(x11rb::COPY_FROM_PARENT, |v| v.visual_id);
 
         let window_attributes = {
             use xproto::EventMask;
@@ -280,11 +324,12 @@ impl UnownedWindow {
             }
 
             // Add a colormap if needed.
-            let colormap_visual = match window_attrs.platform_specific.x11.visual_id {
-                Some(vi) => Some(vi),
-                None if require_colormap => Some(visual),
-                _ => None,
-            };
+            let colormap_visual =
+                match window_attrs.platform_specific.x11.visual_id {
+                    Some(vi) => Some(vi),
+                    None if require_colormap => Some(visual),
+                    _ => None,
+                };
 
             if let Some(visual) = colormap_visual {
                 let colormap = leap!(xconn.xcb_connection().generate_id());
@@ -303,7 +348,11 @@ impl UnownedWindow {
         };
 
         // Figure out the window's parent.
-        let parent = window_attrs.platform_specific.x11.embed_window.unwrap_or(root);
+        let parent = window_attrs
+            .platform_specific
+            .x11
+            .embed_window
+            .unwrap_or(root);
 
         // finally creating the window
         let xwindow = {
@@ -331,10 +380,14 @@ impl UnownedWindow {
         // the visual from the parent window, thus we have to query the visual
         // we've got when we built the window above.
         if visual == x11rb::COPY_FROM_PARENT {
-            visual = leap!(leap!(xconn
-                .xcb_connection()
-                .get_window_attributes(xwindow as xproto::Window))
-            .reply())
+            visual = leap!(
+                leap!(
+                    xconn
+                        .xcb_connection()
+                        .get_window_attributes(xwindow as xproto::Window)
+                )
+                .reply()
+            )
             .visual;
         }
 
@@ -358,7 +411,8 @@ impl UnownedWindow {
         // title to determine placement/etc., so doing this after mapping would cause the WM to
         // act on the wrong title state.
         leap!(window.set_title_inner(&window_attrs.title)).ignore_error();
-        leap!(window.set_decorations_inner(window_attrs.decorations)).ignore_error();
+        leap!(window.set_decorations_inner(window_attrs.decorations))
+            .ignore_error();
 
         if let Some(theme) = window_attrs.preferred_theme {
             leap!(window.set_theme_inner(Some(theme))).ignore_error();
@@ -386,21 +440,24 @@ impl UnownedWindow {
 
             // WM_CLASS must be set *before* mapping the window, as per ICCCM!
             {
-                let (instance, class) = if let Some(name) = window_attrs.platform_specific.name {
-                    (name.instance, name.general)
-                } else {
-                    let class = env::args_os()
-                        .next()
-                        .as_ref()
-                        // Default to the name of the binary (via argv[0])
-                        .and_then(|path| Path::new(path).file_name())
-                        .and_then(|bin_name| bin_name.to_str())
-                        .map(|bin_name| bin_name.to_owned())
-                        .unwrap_or_else(|| window_attrs.title.clone());
-                    // This environment variable is extraordinarily unlikely to actually be used...
-                    let instance = env::var("RESOURCE_NAME").ok().unwrap_or_else(|| class.clone());
-                    (instance, class)
-                };
+                let (instance, class) =
+                    if let Some(name) = window_attrs.platform_specific.name {
+                        (name.instance, name.general)
+                    } else {
+                        let class = env::args_os()
+                            .next()
+                            .as_ref()
+                            // Default to the name of the binary (via argv[0])
+                            .and_then(|path| Path::new(path).file_name())
+                            .and_then(|bin_name| bin_name.to_str())
+                            .map(|bin_name| bin_name.to_owned())
+                            .unwrap_or_else(|| window_attrs.title.clone());
+                        // This environment variable is extraordinarily unlikely to actually be used...
+                        let instance = env::var("RESOURCE_NAME")
+                            .ok()
+                            .unwrap_or_else(|| class.clone());
+                        (instance, class)
+                    };
 
                 let class = format!("{instance}\0{class}\0");
                 leap!(xconn.change_property(
@@ -417,18 +474,24 @@ impl UnownedWindow {
                 flusher.ignore_error()
             }
 
-            leap!(window.set_window_types(window_attrs.platform_specific.x11.x11_window_types))
-                .ignore_error();
+            leap!(window.set_window_types(
+                window_attrs.platform_specific.x11.x11_window_types
+            ))
+            .ignore_error();
 
             // Set size hints.
-            let mut min_inner_size =
-                window_attrs.min_inner_size.map(|size| size.to_physical::<u32>(scale_factor));
-            let mut max_inner_size =
-                window_attrs.max_inner_size.map(|size| size.to_physical::<u32>(scale_factor));
+            let mut min_inner_size = window_attrs
+                .min_inner_size
+                .map(|size| size.to_physical::<u32>(scale_factor));
+            let mut max_inner_size = window_attrs
+                .max_inner_size
+                .map(|size| size.to_physical::<u32>(scale_factor));
 
             if !window_attrs.resizable {
                 if util::wm_name_is_one_of(&["Xfwm4"]) {
-                    warn!("To avoid a WM bug, disabling resizing has no effect on Xfwm4");
+                    warn!(
+                        "To avoid a WM bug, disabling resizing has no effect on Xfwm4"
+                    );
                 } else {
                     max_inner_size = Some(dimensions.into());
                     min_inner_size = Some(dimensions.into());
@@ -439,7 +502,8 @@ impl UnownedWindow {
             shared_state.min_inner_size = min_inner_size.map(Into::into);
             shared_state.max_inner_size = max_inner_size.map(Into::into);
             shared_state.resize_increments = window_attrs.resize_increments;
-            shared_state.base_size = window_attrs.platform_specific.x11.base_size;
+            shared_state.base_size =
+                window_attrs.platform_specific.x11.base_size;
 
             let normal_hints = WmSizeHints {
                 position: position.map(|PhysicalPosition { x, y }| {
@@ -463,12 +527,14 @@ impl UnownedWindow {
                 aspect: None,
                 win_gravity: None,
             };
-            leap!(leap!(normal_hints.set(
-                xconn.xcb_connection(),
-                window.xwindow as xproto::Window,
-                xproto::AtomEnum::WM_NORMAL_HINTS,
-            ))
-            .check());
+            leap!(
+                leap!(normal_hints.set(
+                    xconn.xcb_connection(),
+                    window.xwindow as xproto::Window,
+                    xproto::AtomEnum::WM_NORMAL_HINTS,
+                ))
+                .check()
+            );
 
             // Set window icons
             if let Some(icon) = window_attrs.window_icon {
@@ -501,16 +567,24 @@ impl UnownedWindow {
                 | xinput::XIEventMask::TOUCH_BEGIN
                 | xinput::XIEventMask::TOUCH_UPDATE
                 | xinput::XIEventMask::TOUCH_END;
-            leap!(xconn.select_xinput_events(window.xwindow, super::ALL_MASTER_DEVICES, mask))
-                .ignore_error();
+            leap!(xconn.select_xinput_events(
+                window.xwindow,
+                super::ALL_MASTER_DEVICES,
+                mask
+            ))
+            .ignore_error();
 
             // Set visibility (map window)
             if window_attrs.visible {
-                leap!(xconn.xcb_connection().map_window(window.xwindow)).ignore_error();
-                leap!(xconn.xcb_connection().configure_window(
-                    xwindow,
-                    &xproto::ConfigureWindowAux::new().stack_mode(xproto::StackMode::ABOVE)
-                ))
+                leap!(xconn.xcb_connection().map_window(window.xwindow))
+                    .ignore_error();
+                leap!(
+                    xconn.xcb_connection().configure_window(
+                        xwindow,
+                        &xproto::ConfigureWindowAux::new()
+                            .stack_mode(xproto::StackMode::ABOVE)
+                    )
+                )
                 .ignore_error();
             }
 
@@ -523,25 +597,29 @@ impl UnownedWindow {
                     &mut supported_ptr,
                 );
                 if supported_ptr == ffi::False {
-                    return Err(os_error!(OsError::Misc("`XkbSetDetectableAutoRepeat` failed")));
+                    return Err(os_error!(OsError::Misc(
+                        "`XkbSetDetectableAutoRepeat` failed"
+                    )));
                 }
             }
 
             // Try to create input context for the window.
             if let Some(ime) = event_loop.ime.as_ref() {
-                let result = ime.borrow_mut().create_context(window.xwindow as ffi::Window, false);
+                let result = ime
+                    .borrow_mut()
+                    .create_context(window.xwindow as ffi::Window, false);
                 leap!(result);
             }
 
             // These properties must be set after mapping
             if window_attrs.maximized {
-                leap!(window.set_maximized_inner(window_attrs.maximized)).ignore_error();
+                leap!(window.set_maximized_inner(window_attrs.maximized))
+                    .ignore_error();
             }
             if window_attrs.fullscreen.is_some() {
-                if let Some(flusher) =
-                    leap!(window
-                        .set_fullscreen_inner(window_attrs.fullscreen.clone().map(Into::into)))
-                {
+                if let Some(flusher) = leap!(window.set_fullscreen_inner(
+                    window_attrs.fullscreen.clone().map(Into::into)
+                )) {
                     flusher.ignore_error()
                 }
 
@@ -552,13 +630,16 @@ impl UnownedWindow {
                 }
             }
 
-            leap!(window.set_window_level_inner(window_attrs.window_level)).ignore_error();
+            leap!(window.set_window_level_inner(window_attrs.window_level))
+                .ignore_error();
         }
 
         window.set_cursor(window_attrs.cursor);
 
         // Remove the startup notification if we have one.
-        if let Some(startup) = window_attrs.platform_specific.activation_token.as_ref() {
+        if let Some(startup) =
+            window_attrs.platform_specific.activation_token.as_ref()
+        {
             leap!(xconn.remove_activation_token(xwindow, &startup.token));
         }
 
@@ -571,14 +652,16 @@ impl UnownedWindow {
     /// Embed this window into a parent window.
     pub(super) fn embed_window(&self) -> Result<(), RootOsError> {
         let atoms = self.xconn.atoms();
-        leap!(leap!(self.xconn.change_property(
-            self.xwindow,
-            atoms[_XEMBED],
-            atoms[_XEMBED],
-            xproto::PropMode::REPLACE,
-            &[0u32, 1u32],
-        ))
-        .check());
+        leap!(
+            leap!(self.xconn.change_property(
+                self.xwindow,
+                atoms[_XEMBED],
+                atoms[_XEMBED],
+                xproto::PropMode::REPLACE,
+                &[0u32, 1u32],
+            ))
+            .check()
+        );
 
         Ok(())
     }
@@ -615,10 +698,16 @@ impl UnownedWindow {
         flusher.map(Some)
     }
 
-    fn set_window_types(&self, window_types: Vec<WindowType>) -> Result<VoidCookie<'_>, X11Error> {
+    fn set_window_types(
+        &self,
+        window_types: Vec<WindowType>,
+    ) -> Result<VoidCookie<'_>, X11Error> {
         let atoms = self.xconn.atoms();
         let hint_atom = atoms[_NET_WM_WINDOW_TYPE];
-        let atoms: Vec<_> = window_types.iter().map(|t| t.as_atom(&self.xconn)).collect();
+        let atoms: Vec<_> = window_types
+            .iter()
+            .map(|t| t.as_atom(&self.xconn))
+            .collect();
 
         self.xconn.change_property(
             self.xwindow,
@@ -629,7 +718,10 @@ impl UnownedWindow {
         )
     }
 
-    pub fn set_theme_inner(&self, theme: Option<Theme>) -> Result<VoidCookie<'_>, X11Error> {
+    pub fn set_theme_inner(
+        &self,
+        theme: Option<Theme>,
+    ) -> Result<VoidCookie<'_>, X11Error> {
         let atoms = self.xconn.atoms();
         let hint_atom = atoms[_GTK_THEME_VARIANT];
         let utf8_atom = atoms[UTF8_STRING];
@@ -638,7 +730,8 @@ impl UnownedWindow {
             Some(Theme::Light) => "light",
             None => "dark",
         };
-        let variant = CString::new(variant).expect("`_GTK_THEME_VARIANT` contained null byte");
+        let variant = CString::new(variant)
+            .expect("`_GTK_THEME_VARIANT` contained null byte");
         self.xconn.change_property(
             self.xwindow,
             hint_atom,
@@ -650,9 +743,13 @@ impl UnownedWindow {
 
     #[inline]
     pub fn set_theme(&self, theme: Option<Theme>) {
-        self.set_theme_inner(theme).expect("Failed to change window theme").ignore_error();
+        self.set_theme_inner(theme)
+            .expect("Failed to change window theme")
+            .ignore_error();
 
-        self.xconn.flush_requests().expect("Failed to change window theme");
+        self.xconn
+            .flush_requests()
+            .expect("Failed to change window theme");
     }
 
     fn set_netwm(
@@ -666,22 +763,39 @@ impl UnownedWindow {
             self.xwindow,
             self.root,
             state_atom,
-            Some(xproto::EventMask::SUBSTRUCTURE_REDIRECT | xproto::EventMask::SUBSTRUCTURE_NOTIFY),
-            [operation as u32, properties.0, properties.1, properties.2, properties.3],
+            Some(
+                xproto::EventMask::SUBSTRUCTURE_REDIRECT
+                    | xproto::EventMask::SUBSTRUCTURE_NOTIFY,
+            ),
+            [
+                operation as u32,
+                properties.0,
+                properties.1,
+                properties.2,
+                properties.3,
+            ],
         )
     }
 
-    fn set_fullscreen_hint(&self, fullscreen: bool) -> Result<VoidCookie<'_>, X11Error> {
+    fn set_fullscreen_hint(
+        &self,
+        fullscreen: bool,
+    ) -> Result<VoidCookie<'_>, X11Error> {
         let atoms = self.xconn.atoms();
         let fullscreen_atom = atoms[_NET_WM_STATE_FULLSCREEN];
-        let flusher = self.set_netwm(fullscreen.into(), (fullscreen_atom, 0, 0, 0));
+        let flusher =
+            self.set_netwm(fullscreen.into(), (fullscreen_atom, 0, 0, 0));
 
         if fullscreen {
             // Ensure that the fullscreen window receives input focus to prevent
             // locking up the user's display.
             self.xconn
                 .xcb_connection()
-                .set_input_focus(xproto::InputFocus::PARENT, self.xwindow, x11rb::CURRENT_TIME)?
+                .set_input_focus(
+                    xproto::InputFocus::PARENT,
+                    self.xwindow,
+                    x11rb::CURRENT_TIME,
+                )?
                 .ignore_error();
         }
 
@@ -699,7 +813,7 @@ impl UnownedWindow {
             Visibility::No | Visibility::YesWait => {
                 shared_state_lock.desired_fullscreen = Some(fullscreen);
                 return Ok(None);
-            },
+            }
             Visibility::Yes => (),
         }
 
@@ -714,25 +828,38 @@ impl UnownedWindow {
             // fullscreen, so we can restore it upon exit, as XRandR does not
             // provide a mechanism to set this per app-session or restore this
             // to the desktop video mode as macOS and Windows do
-            (&None, &Some(Fullscreen::Exclusive(PlatformVideoModeHandle::X(ref video_mode))))
+            (
+                &None,
+                &Some(Fullscreen::Exclusive(PlatformVideoModeHandle::X(
+                    ref video_mode,
+                ))),
+            )
             | (
                 &Some(Fullscreen::Borderless(_)),
-                &Some(Fullscreen::Exclusive(PlatformVideoModeHandle::X(ref video_mode))),
+                &Some(Fullscreen::Exclusive(PlatformVideoModeHandle::X(
+                    ref video_mode,
+                ))),
             ) => {
                 let monitor = video_mode.monitor.as_ref().unwrap();
                 shared_state_lock.desktop_video_mode = Some((
                     monitor.id,
-                    self.xconn.get_crtc_mode(monitor.id).expect("Failed to get desktop video mode"),
+                    self.xconn
+                        .get_crtc_mode(monitor.id)
+                        .expect("Failed to get desktop video mode"),
                 ));
-            },
+            }
             // Restore desktop video mode upon exiting exclusive fullscreen
             (&Some(Fullscreen::Exclusive(_)), &None)
-            | (&Some(Fullscreen::Exclusive(_)), &Some(Fullscreen::Borderless(_))) => {
-                let (monitor_id, mode_id) = shared_state_lock.desktop_video_mode.take().unwrap();
+            | (
+                &Some(Fullscreen::Exclusive(_)),
+                &Some(Fullscreen::Borderless(_)),
+            ) => {
+                let (monitor_id, mode_id) =
+                    shared_state_lock.desktop_video_mode.take().unwrap();
                 self.xconn
                     .set_crtc_config(monitor_id, mode_id)
                     .expect("failed to restore desktop video mode");
-            },
+            }
             _ => (),
         }
 
@@ -742,24 +869,30 @@ impl UnownedWindow {
             None => {
                 let flusher = self.set_fullscreen_hint(false);
                 let mut shared_state_lock = self.shared_state_lock();
-                if let Some(position) = shared_state_lock.restore_position.take() {
+                if let Some(position) =
+                    shared_state_lock.restore_position.take()
+                {
                     drop(shared_state_lock);
                     self.set_position_inner(position.0, position.1)
-                        .expect_then_ignore_error("Failed to restore window position");
+                        .expect_then_ignore_error(
+                            "Failed to restore window position",
+                        );
                 }
                 flusher.map(Some)
-            },
+            }
             Some(fullscreen) => {
                 let (video_mode, monitor) = match fullscreen {
-                    Fullscreen::Exclusive(PlatformVideoModeHandle::X(ref video_mode)) => {
+                    Fullscreen::Exclusive(PlatformVideoModeHandle::X(
+                        ref video_mode,
+                    )) => {
                         (Some(video_mode), video_mode.monitor.clone().unwrap())
-                    },
-                    Fullscreen::Borderless(Some(PlatformMonitorHandle::X(monitor))) => {
-                        (None, monitor)
-                    },
+                    }
+                    Fullscreen::Borderless(Some(PlatformMonitorHandle::X(
+                        monitor,
+                    ))) => (None, monitor),
                     Fullscreen::Borderless(None) => {
                         (None, self.shared_state_lock().last_monitor.clone())
-                    },
+                    }
                     #[cfg(wayland_platform)]
                     _ => unreachable!(),
                 };
@@ -801,12 +934,13 @@ impl UnownedWindow {
                 }
 
                 let window_position = self.outer_position_physical();
-                self.shared_state_lock().restore_position = Some(window_position);
+                self.shared_state_lock().restore_position =
+                    Some(window_position);
                 let monitor_origin: (i32, i32) = monitor.position().into();
                 self.set_position_inner(monitor_origin.0, monitor_origin.1)
                     .expect_then_ignore_error("Failed to set window position");
                 self.set_fullscreen_hint(true).map(Some)
-            },
+            }
         }
     }
 
@@ -814,15 +948,21 @@ impl UnownedWindow {
     pub(crate) fn fullscreen(&self) -> Option<Fullscreen> {
         let shared_state = self.shared_state_lock();
 
-        shared_state.desired_fullscreen.clone().unwrap_or_else(|| shared_state.fullscreen.clone())
+        shared_state
+            .desired_fullscreen
+            .clone()
+            .unwrap_or_else(|| shared_state.fullscreen.clone())
     }
 
     #[inline]
     pub(crate) fn set_fullscreen(&self, fullscreen: Option<Fullscreen>) {
-        if let Some(flusher) =
-            self.set_fullscreen_inner(fullscreen).expect("Failed to change window fullscreen state")
+        if let Some(flusher) = self
+            .set_fullscreen_inner(fullscreen)
+            .expect("Failed to change window fullscreen state")
         {
-            flusher.check().expect("Failed to change window fullscreen state");
+            flusher
+                .check()
+                .expect("Failed to change window fullscreen state");
             self.invalidate_cached_frame_extents();
         }
     }
@@ -841,11 +981,12 @@ impl UnownedWindow {
             Visibility::YesWait => {
                 shared_state.visibility = Visibility::Yes;
 
-                if let Some(fullscreen) = shared_state.desired_fullscreen.take() {
+                if let Some(fullscreen) = shared_state.desired_fullscreen.take()
+                {
                     drop(shared_state);
                     self.set_fullscreen(fullscreen);
                 }
-            },
+            }
         }
     }
 
@@ -854,11 +995,17 @@ impl UnownedWindow {
     }
 
     pub fn available_monitors(&self) -> Vec<X11MonitorHandle> {
-        self.xconn.available_monitors().expect("Failed to get available monitors")
+        self.xconn
+            .available_monitors()
+            .expect("Failed to get available monitors")
     }
 
     pub fn primary_monitor(&self) -> Option<X11MonitorHandle> {
-        Some(self.xconn.primary_monitor().expect("Failed to get primary monitor"))
+        Some(
+            self.xconn
+                .primary_monitor()
+                .expect("Failed to get primary monitor"),
+        )
     }
 
     #[inline]
@@ -873,9 +1020,9 @@ impl UnownedWindow {
         let hidden_atom = atoms[_NET_WM_STATE_HIDDEN];
 
         Some(match state {
-            Ok(atoms) => {
-                atoms.iter().any(|atom: &xproto::Atom| *atom as xproto::Atom == hidden_atom)
-            },
+            Ok(atoms) => atoms.iter().any(|atom: &xproto::Atom| {
+                *atom as xproto::Atom == hidden_atom
+            }),
             _ => false,
         })
     }
@@ -906,12 +1053,15 @@ impl UnownedWindow {
 
             let window_id = crate::window::WindowId(self.id());
             let old_inner_size = PhysicalSize::new(width, height);
-            let inner_size = Arc::new(Mutex::new(PhysicalSize::new(new_width, new_height)));
+            let inner_size =
+                Arc::new(Mutex::new(PhysicalSize::new(new_width, new_height)));
             callback(Event::WindowEvent {
                 window_id,
                 event: WindowEvent::ScaleFactorChanged {
                     scale_factor: new_monitor.scale_factor,
-                    inner_size_writer: InnerSizeWriter::new(Arc::downgrade(&inner_size)),
+                    inner_size_writer: InnerSizeWriter::new(Arc::downgrade(
+                        &inner_size,
+                    )),
                 },
             });
 
@@ -925,7 +1075,10 @@ impl UnownedWindow {
         }
     }
 
-    fn set_minimized_inner(&self, minimized: bool) -> Result<VoidCookie<'_>, X11Error> {
+    fn set_minimized_inner(
+        &self,
+        minimized: bool,
+    ) -> Result<VoidCookie<'_>, X11Error> {
         let atoms = self.xconn.atoms();
 
         if minimized {
@@ -960,7 +1113,9 @@ impl UnownedWindow {
         self.set_minimized_inner(minimized)
             .expect_then_ignore_error("Failed to change window minimization");
 
-        self.xconn.flush_requests().expect("Failed to change window minimization");
+        self.xconn
+            .flush_requests()
+            .expect("Failed to change window minimization");
     }
 
     #[inline]
@@ -979,12 +1134,15 @@ impl UnownedWindow {
                 let horz_maximized = atoms.contains(&horz_atom);
                 let vert_maximized = atoms.contains(&vert_atom);
                 horz_maximized && vert_maximized
-            },
+            }
             _ => false,
         }
     }
 
-    fn set_maximized_inner(&self, maximized: bool) -> Result<VoidCookie<'_>, X11Error> {
+    fn set_maximized_inner(
+        &self,
+        maximized: bool,
+    ) -> Result<VoidCookie<'_>, X11Error> {
         let atoms = self.xconn.atoms();
         let horz_atom = atoms[_NET_WM_STATE_MAXIMIZED_HORZ];
         let vert_atom = atoms[_NET_WM_STATE_MAXIMIZED_VERT];
@@ -996,14 +1154,17 @@ impl UnownedWindow {
     pub fn set_maximized(&self, maximized: bool) {
         self.set_maximized_inner(maximized)
             .expect_then_ignore_error("Failed to change window maximization");
-        self.xconn.flush_requests().expect("Failed to change window maximization");
+        self.xconn
+            .flush_requests()
+            .expect("Failed to change window maximization");
         self.invalidate_cached_frame_extents();
     }
 
     fn set_title_inner(&self, title: &str) -> Result<VoidCookie<'_>, X11Error> {
         let atoms = self.xconn.atoms();
 
-        let title = CString::new(title).expect("Window title contained null byte");
+        let title =
+            CString::new(title).expect("Window title contained null byte");
         self.xconn
             .change_property(
                 self.xwindow,
@@ -1024,9 +1185,12 @@ impl UnownedWindow {
 
     #[inline]
     pub fn set_title(&self, title: &str) {
-        self.set_title_inner(title).expect_then_ignore_error("Failed to set window title");
+        self.set_title_inner(title)
+            .expect_then_ignore_error("Failed to set window title");
 
-        self.xconn.flush_requests().expect("Failed to set window title");
+        self.xconn
+            .flush_requests()
+            .expect("Failed to set window title");
     }
 
     #[inline]
@@ -1035,7 +1199,10 @@ impl UnownedWindow {
     #[inline]
     pub fn set_blur(&self, _blur: bool) {}
 
-    fn set_decorations_inner(&self, decorations: bool) -> Result<VoidCookie<'_>, X11Error> {
+    fn set_decorations_inner(
+        &self,
+        decorations: bool,
+    ) -> Result<VoidCookie<'_>, X11Error> {
         self.shared_state_lock().is_decorated = decorations;
         let mut hints = self.xconn.get_motif_hints(self.xwindow);
 
@@ -1048,7 +1215,9 @@ impl UnownedWindow {
     pub fn set_decorations(&self, decorations: bool) {
         self.set_decorations_inner(decorations)
             .expect_then_ignore_error("Failed to set decoration state");
-        self.xconn.flush_requests().expect("Failed to set decoration state");
+        self.xconn
+            .flush_requests()
+            .expect("Failed to set decoration state");
         self.invalidate_cached_frame_extents();
     }
 
@@ -1057,7 +1226,10 @@ impl UnownedWindow {
         self.shared_state_lock().is_decorated
     }
 
-    fn set_maximizable_inner(&self, maximizable: bool) -> Result<VoidCookie<'_>, X11Error> {
+    fn set_maximizable_inner(
+        &self,
+        maximizable: bool,
+    ) -> Result<VoidCookie<'_>, X11Error> {
         let mut hints = self.xconn.get_motif_hints(self.xwindow);
 
         hints.set_maximizable(maximizable);
@@ -1065,25 +1237,44 @@ impl UnownedWindow {
         self.xconn.set_motif_hints(self.xwindow, &hints)
     }
 
-    fn toggle_atom(&self, atom_name: AtomName, enable: bool) -> Result<VoidCookie<'_>, X11Error> {
+    fn toggle_atom(
+        &self,
+        atom_name: AtomName,
+        enable: bool,
+    ) -> Result<VoidCookie<'_>, X11Error> {
         let atoms = self.xconn.atoms();
         let atom = atoms[atom_name];
         self.set_netwm(enable.into(), (atom, 0, 0, 0))
     }
 
-    fn set_window_level_inner(&self, level: WindowLevel) -> Result<VoidCookie<'_>, X11Error> {
-        self.toggle_atom(_NET_WM_STATE_ABOVE, level == WindowLevel::AlwaysOnTop)?.ignore_error();
-        self.toggle_atom(_NET_WM_STATE_BELOW, level == WindowLevel::AlwaysOnBottom)
+    fn set_window_level_inner(
+        &self,
+        level: WindowLevel,
+    ) -> Result<VoidCookie<'_>, X11Error> {
+        self.toggle_atom(
+            _NET_WM_STATE_ABOVE,
+            level == WindowLevel::AlwaysOnTop,
+        )?
+        .ignore_error();
+        self.toggle_atom(
+            _NET_WM_STATE_BELOW,
+            level == WindowLevel::AlwaysOnBottom,
+        )
     }
 
     #[inline]
     pub fn set_window_level(&self, level: WindowLevel) {
         self.set_window_level_inner(level)
             .expect_then_ignore_error("Failed to set window-level state");
-        self.xconn.flush_requests().expect("Failed to set window-level state");
+        self.xconn
+            .flush_requests()
+            .expect("Failed to set window-level state");
     }
 
-    fn set_icon_inner(&self, icon: PlatformIcon) -> Result<VoidCookie<'_>, X11Error> {
+    fn set_icon_inner(
+        &self,
+        icon: PlatformIcon,
+    ) -> Result<VoidCookie<'_>, X11Error> {
         let atoms = self.xconn.atoms();
         let icon_atom = atoms[_NET_WM_ICON];
         let data = icon.to_cardinals();
@@ -1125,9 +1316,9 @@ impl UnownedWindow {
         let mut shared_state = self.shared_state_lock();
 
         match (visible, shared_state.visibility) {
-            (true, Visibility::Yes) | (true, Visibility::YesWait) | (false, Visibility::No) => {
-                return
-            },
+            (true, Visibility::Yes)
+            | (true, Visibility::YesWait)
+            | (false, Visibility::No) => return,
             _ => (),
         }
 
@@ -1140,17 +1331,24 @@ impl UnownedWindow {
                 .xcb_connection()
                 .configure_window(
                     self.xwindow,
-                    &xproto::ConfigureWindowAux::new().stack_mode(xproto::StackMode::ABOVE),
+                    &xproto::ConfigureWindowAux::new()
+                        .stack_mode(xproto::StackMode::ABOVE),
                 )
-                .expect_then_ignore_error("Failed to call `xcb_configure_window`");
-            self.xconn.flush_requests().expect("Failed to call XMapRaised");
+                .expect_then_ignore_error(
+                    "Failed to call `xcb_configure_window`",
+                );
+            self.xconn
+                .flush_requests()
+                .expect("Failed to call XMapRaised");
             shared_state.visibility = Visibility::YesWait;
         } else {
             self.xconn
                 .xcb_connection()
                 .unmap_window(self.xwindow)
                 .expect_then_ignore_error("Failed to call `xcb_unmap_window`");
-            self.xconn.flush_requests().expect("Failed to call XUnmapWindow");
+            self.xconn
+                .flush_requests()
+                .expect("Failed to call XUnmapWindow");
             shared_state.visibility = Visibility::No;
         }
     }
@@ -1161,7 +1359,9 @@ impl UnownedWindow {
     }
 
     fn update_cached_frame_extents(&self) {
-        let extents = self.xconn.get_frame_extents_heuristic(self.xwindow, self.root);
+        let extents = self
+            .xconn
+            .get_frame_extents_heuristic(self.xwindow, self.root);
         self.shared_state_lock().frame_extents = Some(extents);
     }
 
@@ -1181,7 +1381,9 @@ impl UnownedWindow {
     }
 
     #[inline]
-    pub fn outer_position(&self) -> Result<PhysicalPosition<i32>, NotSupportedError> {
+    pub fn outer_position(
+        &self,
+    ) -> Result<PhysicalPosition<i32>, NotSupportedError> {
         let extents = self.shared_state_lock().frame_extents.clone();
         if let Some(extents) = extents {
             let (x, y) = self.inner_position_physical();
@@ -1202,7 +1404,9 @@ impl UnownedWindow {
     }
 
     #[inline]
-    pub fn inner_position(&self) -> Result<PhysicalPosition<i32>, NotSupportedError> {
+    pub fn inner_position(
+        &self,
+    ) -> Result<PhysicalPosition<i32>, NotSupportedError> {
         Ok(self.inner_position_physical().into())
     }
 
@@ -1226,12 +1430,16 @@ impl UnownedWindow {
 
         self.xconn
             .xcb_connection()
-            .configure_window(self.xwindow, &xproto::ConfigureWindowAux::new().x(x).y(y))
+            .configure_window(
+                self.xwindow,
+                &xproto::ConfigureWindowAux::new().x(x).y(y),
+            )
             .map_err(Into::into)
     }
 
     pub(crate) fn set_position_physical(&self, x: i32, y: i32) {
-        self.set_position_inner(x, y).expect_then_ignore_error("Failed to call `XMoveWindow`");
+        self.set_position_inner(x, y)
+            .expect_then_ignore_error("Failed to call `XMoveWindow`");
     }
 
     #[inline]
@@ -1271,10 +1479,14 @@ impl UnownedWindow {
             .xcb_connection()
             .configure_window(
                 self.xwindow,
-                &xproto::ConfigureWindowAux::new().width(width).height(height),
+                &xproto::ConfigureWindowAux::new()
+                    .width(width)
+                    .height(height),
             )
             .expect_then_ignore_error("Failed to call `xcb_configure_window`");
-        self.xconn.flush_requests().expect("Failed to call XResizeWindow");
+        self.xconn
+            .flush_requests()
+            .expect("Failed to call XResizeWindow");
         // cursor_hittest needs to be reapplied after each window resize.
         if self.shared_state_lock().cursor_hittest.unwrap_or(false) {
             let _ = self.set_cursor_hittest(true);
@@ -1319,10 +1531,14 @@ impl UnownedWindow {
         Ok(())
     }
 
-    pub(crate) fn set_min_inner_size_physical(&self, dimensions: Option<(u32, u32)>) {
+    pub(crate) fn set_min_inner_size_physical(
+        &self,
+        dimensions: Option<(u32, u32)>,
+    ) {
         self.update_normal_hints(|normal_hints| {
-            normal_hints.min_size =
-                dimensions.map(|(w, h)| (cast_dimension_to_hint(w), cast_dimension_to_hint(h)))
+            normal_hints.min_size = dimensions.map(|(w, h)| {
+                (cast_dimension_to_hint(w), cast_dimension_to_hint(h))
+            })
         })
         .expect("Failed to call `XSetWMNormalHints`");
     }
@@ -1330,15 +1546,20 @@ impl UnownedWindow {
     #[inline]
     pub fn set_min_inner_size(&self, dimensions: Option<Size>) {
         self.shared_state_lock().min_inner_size = dimensions;
-        let physical_dimensions =
-            dimensions.map(|dimensions| dimensions.to_physical::<u32>(self.scale_factor()).into());
+        let physical_dimensions = dimensions.map(|dimensions| {
+            dimensions.to_physical::<u32>(self.scale_factor()).into()
+        });
         self.set_min_inner_size_physical(physical_dimensions);
     }
 
-    pub(crate) fn set_max_inner_size_physical(&self, dimensions: Option<(u32, u32)>) {
+    pub(crate) fn set_max_inner_size_physical(
+        &self,
+        dimensions: Option<(u32, u32)>,
+    ) {
         self.update_normal_hints(|normal_hints| {
-            normal_hints.max_size =
-                dimensions.map(|(w, h)| (cast_dimension_to_hint(w), cast_dimension_to_hint(h)))
+            normal_hints.max_size = dimensions.map(|(w, h)| {
+                (cast_dimension_to_hint(w), cast_dimension_to_hint(h))
+            })
         })
         .expect("Failed to call `XSetWMNormalHints`");
     }
@@ -1346,8 +1567,9 @@ impl UnownedWindow {
     #[inline]
     pub fn set_max_inner_size(&self, dimensions: Option<Size>) {
         self.shared_state_lock().max_inner_size = dimensions;
-        let physical_dimensions =
-            dimensions.map(|dimensions| dimensions.to_physical::<u32>(self.scale_factor()).into());
+        let physical_dimensions = dimensions.map(|dimensions| {
+            dimensions.to_physical::<u32>(self.scale_factor()).into()
+        });
         self.set_max_inner_size_physical(physical_dimensions);
     }
 
@@ -1368,10 +1590,13 @@ impl UnownedWindow {
     #[inline]
     pub fn set_resize_increments(&self, increments: Option<Size>) {
         self.shared_state_lock().resize_increments = increments;
-        let physical_increments =
-            increments.map(|increments| cast_size_to_hint(increments, self.scale_factor()));
-        self.update_normal_hints(|hints| hints.size_increment = physical_increments)
-            .expect("Failed to call `XSetWMNormalHints`");
+        let physical_increments = increments.map(|increments| {
+            cast_size_to_hint(increments, self.scale_factor())
+        });
+        self.update_normal_hints(|hints| {
+            hints.size_increment = physical_increments
+        })
+        .expect("Failed to call `XSetWMNormalHints`");
     }
 
     pub(crate) fn adjust_for_dpi(
@@ -1384,10 +1609,13 @@ impl UnownedWindow {
     ) -> (u32, u32) {
         let scale_factor = new_scale_factor / old_scale_factor;
         self.update_normal_hints(|normal_hints| {
-            let dpi_adjuster = |size: Size| -> (i32, i32) { cast_size_to_hint(size, scale_factor) };
+            let dpi_adjuster = |size: Size| -> (i32, i32) {
+                cast_size_to_hint(size, scale_factor)
+            };
             let max_size = shared_state.max_inner_size.map(dpi_adjuster);
             let min_size = shared_state.min_inner_size.map(dpi_adjuster);
-            let resize_increments = shared_state.resize_increments.map(dpi_adjuster);
+            let resize_increments =
+                shared_state.resize_increments.map(dpi_adjuster);
             let base_size = shared_state.base_size.map(dpi_adjuster);
 
             normal_hints.max_size = max_size;
@@ -1409,13 +1637,18 @@ impl UnownedWindow {
             // from being detected. This makes it impossible for resizing to be
             // re-enabled, and also breaks DPI scaling. As such, we choose the lesser of
             // two evils and do nothing.
-            warn!("To avoid a WM bug, disabling resizing has no effect on Xfwm4");
+            warn!(
+                "To avoid a WM bug, disabling resizing has no effect on Xfwm4"
+            );
             return;
         }
 
         let (min_size, max_size) = if resizable {
             let shared_state_lock = self.shared_state_lock();
-            (shared_state_lock.min_inner_size, shared_state_lock.max_inner_size)
+            (
+                shared_state_lock.min_inner_size,
+                shared_state_lock.max_inner_size,
+            )
         } else {
             let window_size = Some(Size::from(self.inner_size()));
             (window_size, window_size)
@@ -1426,8 +1659,10 @@ impl UnownedWindow {
             .expect_then_ignore_error("Failed to call `XSetWMNormalHints`");
 
         let scale_factor = self.scale_factor();
-        let min_inner_size = min_size.map(|size| cast_size_to_hint(size, scale_factor));
-        let max_inner_size = max_size.map(|size| cast_size_to_hint(size, scale_factor));
+        let min_inner_size =
+            min_size.map(|size| cast_size_to_hint(size, scale_factor));
+        let max_inner_size =
+            max_size.map(|size| cast_size_to_hint(size, scale_factor));
         self.update_normal_hints(|normal_hints| {
             normal_hints.min_size = min_inner_size;
             normal_hints.max_size = max_inner_size;
@@ -1470,28 +1705,37 @@ impl UnownedWindow {
                 );
 
                 #[allow(clippy::mutex_atomic)]
-                if SelectedCursor::Named(icon) != old_cursor && *self.cursor_visible.lock().unwrap()
+                if SelectedCursor::Named(icon) != old_cursor
+                    && *self.cursor_visible.lock().unwrap()
                 {
                     self.xconn.set_cursor_icon(self.xwindow, Some(icon));
                 }
-            },
-            Cursor::Custom(RootCustomCursor { inner: PlatformCustomCursor::X(cursor) }) => {
+            }
+            Cursor::Custom(RootCustomCursor {
+                inner: PlatformCustomCursor::X(cursor),
+            }) => {
                 #[allow(clippy::mutex_atomic)]
                 if *self.cursor_visible.lock().unwrap() {
                     self.xconn.set_custom_cursor(self.xwindow, &cursor);
                 }
 
-                *self.selected_cursor.lock().unwrap() = SelectedCursor::Custom(cursor);
-            },
+                *self.selected_cursor.lock().unwrap() =
+                    SelectedCursor::Custom(cursor);
+            }
             #[cfg(wayland_platform)]
-            Cursor::Custom(RootCustomCursor { inner: PlatformCustomCursor::Wayland(_) }) => {
+            Cursor::Custom(RootCustomCursor {
+                inner: PlatformCustomCursor::Wayland(_),
+            }) => {
                 tracing::error!("passed a Wayland cursor to X11 backend")
-            },
+            }
         }
     }
 
     #[inline]
-    pub fn set_cursor_grab(&self, mode: CursorGrabMode) -> Result<(), ExternalError> {
+    pub fn set_cursor_grab(
+        &self,
+        mode: CursorGrabMode,
+    ) -> Result<(), ExternalError> {
         // We don't support the locked cursor yet, so ignore it early on.
         if mode == CursorGrabMode::Locked {
             return Err(ExternalError::NotSupported(NotSupportedError::new()));
@@ -1511,9 +1755,13 @@ impl UnownedWindow {
         *grabbed_lock = CursorGrabMode::None;
 
         let result = match mode {
-            CursorGrabMode::None => self.xconn.flush_requests().map_err(|err| {
-                ExternalError::Os(os_error!(OsError::XError(X11Error::Xlib(err).into())))
-            }),
+            CursorGrabMode::None => {
+                self.xconn.flush_requests().map_err(|err| {
+                    ExternalError::Os(os_error!(OsError::XError(
+                        X11Error::Xlib(err).into()
+                    )))
+                })
+            }
             CursorGrabMode::Confined => {
                 let result = self
                     .xconn
@@ -1560,7 +1808,7 @@ impl UnownedWindow {
                     _ => unreachable!(),
                 }
                 .map_err(|err| ExternalError::Os(os_error!(OsError::Misc(err))))
-            },
+            }
             CursorGrabMode::Locked => return Ok(()),
         };
 
@@ -1578,20 +1826,23 @@ impl UnownedWindow {
         if visible == *visible_lock {
             return;
         }
-        let cursor =
-            if visible { Some((*self.selected_cursor.lock().unwrap()).clone()) } else { None };
+        let cursor = if visible {
+            Some((*self.selected_cursor.lock().unwrap()).clone())
+        } else {
+            None
+        };
         *visible_lock = visible;
         drop(visible_lock);
         match cursor {
             Some(SelectedCursor::Custom(cursor)) => {
                 self.xconn.set_custom_cursor(self.xwindow, &cursor);
-            },
+            }
             Some(SelectedCursor::Named(cursor)) => {
                 self.xconn.set_cursor_icon(self.xwindow, Some(cursor));
-            },
+            }
             None => {
                 self.xconn.set_cursor_icon(self.xwindow, None);
-            },
+            }
         }
     }
 
@@ -1600,28 +1851,51 @@ impl UnownedWindow {
         self.shared_state_lock().last_monitor.scale_factor
     }
 
-    pub fn set_cursor_position_physical(&self, x: i32, y: i32) -> Result<(), ExternalError> {
+    pub fn set_cursor_position_physical(
+        &self,
+        x: i32,
+        y: i32,
+    ) -> Result<(), ExternalError> {
         {
             self.xconn
                 .xcb_connection()
-                .warp_pointer(x11rb::NONE, self.xwindow, 0, 0, 0, 0, x as _, y as _)
+                .warp_pointer(
+                    x11rb::NONE,
+                    self.xwindow,
+                    0,
+                    0,
+                    0,
+                    0,
+                    x as _,
+                    y as _,
+                )
                 .map_err(|e| {
-                    ExternalError::Os(os_error!(OsError::XError(X11Error::from(e).into())))
+                    ExternalError::Os(os_error!(OsError::XError(
+                        X11Error::from(e).into()
+                    )))
                 })?;
             self.xconn.flush_requests().map_err(|e| {
-                ExternalError::Os(os_error!(OsError::XError(X11Error::Xlib(e).into())))
+                ExternalError::Os(os_error!(OsError::XError(
+                    X11Error::Xlib(e).into()
+                )))
             })
         }
     }
 
     #[inline]
-    pub fn set_cursor_position(&self, position: Position) -> Result<(), ExternalError> {
+    pub fn set_cursor_position(
+        &self,
+        position: Position,
+    ) -> Result<(), ExternalError> {
         let (x, y) = position.to_physical::<i32>(self.scale_factor()).into();
         self.set_cursor_position_physical(x, y)
     }
 
     #[inline]
-    pub fn set_cursor_hittest(&self, hittest: bool) -> Result<(), ExternalError> {
+    pub fn set_cursor_hittest(
+        &self,
+        hittest: bool,
+    ) -> Result<(), ExternalError> {
         let mut rectangles: Vec<Rectangle> = Vec::new();
         if hittest {
             let size = self.inner_size();
@@ -1632,11 +1906,20 @@ impl UnownedWindow {
                 height: size.height as u16,
             })
         }
-        let region = RegionWrapper::create_region(self.xconn.xcb_connection(), &rectangles)
-            .map_err(|_e| ExternalError::Ignored)?;
+        let region = RegionWrapper::create_region(
+            self.xconn.xcb_connection(),
+            &rectangles,
+        )
+        .map_err(|_e| ExternalError::Ignored)?;
         self.xconn
             .xcb_connection()
-            .xfixes_set_window_shape_region(self.xwindow, SK::INPUT, 0, 0, region.region())
+            .xfixes_set_window_shape_region(
+                self.xwindow,
+                SK::INPUT,
+                0,
+                0,
+                region.region(),
+            )
             .map_err(|_e| ExternalError::Ignored)?;
         self.shared_state_lock().cursor_hittest = Some(hittest);
         Ok(())
@@ -1651,7 +1934,10 @@ impl UnownedWindow {
     pub fn show_window_menu(&self, _position: Position) {}
 
     /// Resizes the window while it is being dragged.
-    pub fn drag_resize_window(&self, direction: ResizeDirection) -> Result<(), ExternalError> {
+    pub fn drag_resize_window(
+        &self,
+        direction: ResizeDirection,
+    ) -> Result<(), ExternalError> {
         self.drag_initiate(match direction {
             ResizeDirection::East => util::MOVERESIZE_RIGHT,
             ResizeDirection::North => util::MOVERESIZE_TOP,
@@ -1669,9 +1955,12 @@ impl UnownedWindow {
         let pointer = self
             .xconn
             .query_pointer(self.xwindow, util::VIRTUAL_CORE_POINTER)
-            .map_err(|err| ExternalError::Os(os_error!(OsError::XError(err.into()))))?;
+            .map_err(|err| {
+                ExternalError::Os(os_error!(OsError::XError(err.into())))
+            })?;
 
-        let window = self.inner_position().map_err(ExternalError::NotSupported)?;
+        let window =
+            self.inner_position().map_err(ExternalError::NotSupported)?;
 
         let atoms = self.xconn.atoms();
         let message = atoms[_NET_WM_MOVERESIZE];
@@ -1683,11 +1972,15 @@ impl UnownedWindow {
             .xcb_connection()
             .ungrab_pointer(x11rb::CURRENT_TIME)
             .map_err(|err| {
-                ExternalError::Os(os_error!(OsError::XError(X11Error::from(err).into())))
+                ExternalError::Os(os_error!(OsError::XError(
+                    X11Error::from(err).into()
+                )))
             })?
             .ignore_error();
         self.xconn.flush_requests().map_err(|err| {
-            ExternalError::Os(os_error!(OsError::XError(X11Error::Xlib(err).into())))
+            ExternalError::Os(os_error!(OsError::XError(
+                X11Error::Xlib(err).into()
+            )))
         })?;
         *grabbed_lock = CursorGrabMode::None;
 
@@ -1702,17 +1995,23 @@ impl UnownedWindow {
                         | xproto::EventMask::SUBSTRUCTURE_NOTIFY,
                 ),
                 [
-                    (window.x + xinput_fp1616_to_float(pointer.win_x) as i32) as u32,
-                    (window.y + xinput_fp1616_to_float(pointer.win_y) as i32) as u32,
+                    (window.x + xinput_fp1616_to_float(pointer.win_x) as i32)
+                        as u32,
+                    (window.y + xinput_fp1616_to_float(pointer.win_y) as i32)
+                        as u32,
                     action.try_into().unwrap(),
                     1, // Button 1
                     1,
                 ],
             )
-            .map_err(|err| ExternalError::Os(os_error!(OsError::XError(err.into()))))?;
+            .map_err(|err| {
+                ExternalError::Os(os_error!(OsError::XError(err.into())))
+            })?;
 
         self.xconn.flush_requests().map_err(|err| {
-            ExternalError::Os(os_error!(OsError::XError(X11Error::Xlib(err).into())))
+            ExternalError::Os(os_error!(OsError::XError(
+                X11Error::Xlib(err).into()
+            )))
         })
     }
 
@@ -1743,9 +2042,11 @@ impl UnownedWindow {
         let atoms = self.xconn.atoms();
         let state_atom = atoms[WM_STATE];
         let state_type_atom = atoms[CARD32];
-        let is_minimized = if let Ok(state) =
-            self.xconn.get_property::<u32>(self.xwindow, state_atom, state_type_atom)
-        {
+        let is_minimized = if let Ok(state) = self.xconn.get_property::<u32>(
+            self.xwindow,
+            state_atom,
+            state_type_atom,
+        ) {
             state.contains(&super::ICONIC_STATE)
         } else {
             false
@@ -1778,13 +2079,18 @@ impl UnownedWindow {
     }
 
     #[inline]
-    pub fn request_user_attention(&self, request_type: Option<UserAttentionType>) {
-        let mut wm_hints =
-            WmHints::get(self.xconn.xcb_connection(), self.xwindow as xproto::Window)
-                .ok()
-                .and_then(|cookie| cookie.reply().ok())
-                .flatten()
-                .unwrap_or_default();
+    pub fn request_user_attention(
+        &self,
+        request_type: Option<UserAttentionType>,
+    ) {
+        let mut wm_hints = WmHints::get(
+            self.xconn.xcb_connection(),
+            self.xwindow as xproto::Window,
+        )
+        .ok()
+        .and_then(|cookie| cookie.reply().ok())
+        .flatten()
+        .unwrap_or_default();
 
         wm_hints.urgent = request_type.is_some();
         wm_hints
@@ -1799,7 +2105,11 @@ impl UnownedWindow {
         let title = {
             let title_bytes = self
                 .xconn
-                .get_property(self.xwindow, atoms[_NET_WM_NAME], atoms[UTF8_STRING])
+                .get_property(
+                    self.xwindow,
+                    atoms[_NET_WM_NAME],
+                    atoms[UTF8_STRING],
+                )
                 .expect("Failed to get title");
 
             String::from_utf8(title_bytes).expect("Bad title")
@@ -1812,7 +2122,9 @@ impl UnownedWindow {
     }
 
     #[inline]
-    pub fn request_activation_token(&self) -> Result<AsyncRequestSerial, NotSupportedError> {
+    pub fn request_activation_token(
+        &self,
+    ) -> Result<AsyncRequestSerial, NotSupportedError> {
         let serial = AsyncRequestSerial::get();
         self.activation_sender
             .send((self.id(), serial))
@@ -1827,7 +2139,9 @@ impl UnownedWindow {
 
     #[inline]
     pub fn request_redraw(&self) {
-        self.redraw_sender.send(WindowId(self.xwindow as _)).unwrap();
+        self.redraw_sender
+            .send(WindowId(self.xwindow as _))
+            .unwrap();
     }
 
     #[inline]
@@ -1865,8 +2179,11 @@ impl UnownedWindow {
 
     #[cfg(feature = "rwh_06")]
     #[inline]
-    pub fn raw_window_handle_rwh_06(&self) -> Result<rwh_06::RawWindowHandle, rwh_06::HandleError> {
-        let mut window_handle = rwh_06::XlibWindowHandle::new(self.xlib_window());
+    pub fn raw_window_handle_rwh_06(
+        &self,
+    ) -> Result<rwh_06::RawWindowHandle, rwh_06::HandleError> {
+        let mut window_handle =
+            rwh_06::XlibWindowHandle::new(self.xlib_window());
         window_handle.visual_id = self.visual as c_ulong;
         Ok(window_handle.into())
     }
@@ -1911,7 +2228,10 @@ fn cast_dimension_to_hint(val: u32) -> i32 {
 /// Use the above strategy to cast a physical size into a hinted size.
 fn cast_physical_size_to_hint(size: PhysicalSize<u32>) -> (i32, i32) {
     let PhysicalSize { width, height } = size;
-    (cast_dimension_to_hint(width), cast_dimension_to_hint(height))
+    (
+        cast_dimension_to_hint(width),
+        cast_dimension_to_hint(height),
+    )
 }
 
 /// Use the above strategy to cast a size into a hinted size.

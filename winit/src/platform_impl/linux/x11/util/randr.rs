@@ -3,7 +3,7 @@ use std::{env, str};
 
 use super::*;
 use crate::dpi::validate_scale_factor;
-use crate::platform_impl::platform::x11::{monitor, VideoModeHandle};
+use crate::platform_impl::platform::x11::{VideoModeHandle, monitor};
 
 use tracing::warn;
 use x11rb::protocol::randr::{self, ConnectionExt as _};
@@ -21,19 +21,19 @@ pub fn calc_dpi_factor(
 ) -> f64 {
     // See http://xpra.org/trac/ticket/728 for more information.
     if width_mm == 0 || height_mm == 0 {
-        warn!("XRandR reported that the display's 0mm in size, which is certifiably insane");
+        warn!(
+            "XRandR reported that the display's 0mm in size, which is certifiably insane"
+        );
         return 1.0;
     }
 
-    let ppmm = ((width_px as f64 * height_px as f64) / (width_mm as f64 * height_mm as f64)).sqrt();
+    let ppmm = ((width_px as f64 * height_px as f64)
+        / (width_mm as f64 * height_mm as f64))
+        .sqrt();
     // Quantize 1/12 step size
     let dpi_factor = ((ppmm * (12.0 * 25.4 / 96.0)).round() / 12.0).max(1.0);
     assert!(validate_scale_factor(dpi_factor));
-    if dpi_factor <= 20. {
-        dpi_factor
-    } else {
-        1.
-    }
+    if dpi_factor <= 20. { dpi_factor } else { 1. }
 }
 
 impl XConnection {
@@ -43,14 +43,16 @@ impl XConnection {
         if let Some(xsettings_screen) = self.xsettings_screen() {
             match self.xsettings_dpi(xsettings_screen) {
                 Ok(Some(dpi)) => return Some(dpi),
-                Ok(None) => {},
+                Ok(None) => {}
                 Err(err) => {
                     tracing::warn!("failed to fetch XSettings: {err}");
-                },
+                }
             }
         }
 
-        self.database().get_string("Xft.dpi", "").and_then(|s| f64::from_str(s).ok())
+        self.database()
+            .get_string("Xft.dpi", "")
+            .and_then(|s| f64::from_str(s).ok())
     }
 
     pub fn get_output_info(
@@ -68,38 +70,40 @@ impl XConnection {
             Err(err) => {
                 warn!("Failed to get output info: {:?}", err);
                 return None;
-            },
+            }
         };
 
         let bit_depth = self.default_root().root_depth;
         let output_modes = &output_info.modes;
         let resource_modes = resources.modes();
 
-        let modes = resource_modes
-            .iter()
-            // XRROutputInfo contains an array of mode ids that correspond to
-            // modes in the array in XRRScreenResources
-            .filter(|x| output_modes.contains(&x.id))
-            .map(|mode| {
-                VideoModeHandle {
-                    size: (mode.width.into(), mode.height.into()),
-                    refresh_rate_millihertz: monitor::mode_refresh_rate_millihertz(mode)
-                        .unwrap_or(0),
-                    bit_depth: bit_depth as u16,
-                    native_mode: mode.id,
-                    // This is populated in `MonitorHandle::video_modes` as the
-                    // video mode is returned to the user
-                    monitor: None,
-                }
-            })
-            .collect();
+        let modes =
+            resource_modes
+                .iter()
+                // XRROutputInfo contains an array of mode ids that correspond to
+                // modes in the array in XRRScreenResources
+                .filter(|x| output_modes.contains(&x.id))
+                .map(|mode| {
+                    VideoModeHandle {
+                        size: (mode.width.into(), mode.height.into()),
+                        refresh_rate_millihertz:
+                            monitor::mode_refresh_rate_millihertz(mode)
+                                .unwrap_or(0),
+                        bit_depth: bit_depth as u16,
+                        native_mode: mode.id,
+                        // This is populated in `MonitorHandle::video_modes` as the
+                        // video mode is returned to the user
+                        monitor: None,
+                    }
+                })
+                .collect();
 
         let name = match str::from_utf8(&output_info.name) {
             Ok(name) => name.to_owned(),
             Err(err) => {
                 warn!("Failed to get output name: {:?}", err);
                 return None;
-            },
+            }
         };
         // Override DPI if `WINIT_X11_SCALE_FACTOR` variable is set
         let deprecated_dpi_override = env::var("WINIT_HIDPI_FACTOR").ok();
@@ -140,7 +144,7 @@ impl XConnection {
                     );
                 }
                 dpi_override
-            },
+            }
             EnvVarDPI::NotSet => {
                 if let Some(dpi) = self.get_xft_dpi() {
                     dpi / 96.
@@ -150,7 +154,7 @@ impl XConnection {
                         (output_info.mm_width as _, output_info.mm_height as _),
                     )
                 }
-            },
+            }
         };
 
         Some((name, scale_factor, modes))
@@ -161,8 +165,10 @@ impl XConnection {
         crtc_id: randr::Crtc,
         mode_id: randr::Mode,
     ) -> Result<(), X11Error> {
-        let crtc =
-            self.xcb_connection().randr_get_crtc_info(crtc_id, x11rb::CURRENT_TIME)?.reply()?;
+        let crtc = self
+            .xcb_connection()
+            .randr_get_crtc_info(crtc_id, x11rb::CURRENT_TIME)?
+            .reply()?;
 
         self.xcb_connection()
             .randr_set_crtc_config(
@@ -180,7 +186,14 @@ impl XConnection {
             .map_err(Into::into)
     }
 
-    pub fn get_crtc_mode(&self, crtc_id: randr::Crtc) -> Result<randr::Mode, X11Error> {
-        Ok(self.xcb_connection().randr_get_crtc_info(crtc_id, x11rb::CURRENT_TIME)?.reply()?.mode)
+    pub fn get_crtc_mode(
+        &self,
+        crtc_id: randr::Crtc,
+    ) -> Result<randr::Mode, X11Error> {
+        Ok(self
+            .xcb_connection()
+            .randr_get_crtc_info(crtc_id, x11rb::CURRENT_TIME)?
+            .reply()?
+            .mode)
     }
 }

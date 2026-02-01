@@ -37,7 +37,9 @@ impl CustomCursor {
             )
             .unwrap();
 
-        for (canvas_chunk, rgba) in canvas.chunks_exact_mut(4).zip(image.rgba.chunks_exact(4)) {
+        for (canvas_chunk, rgba) in
+            canvas.chunks_exact_mut(4).zip(image.rgba.chunks_exact(4))
+        {
             // Alpha in buffer is premultiplied.
             let alpha = rgba[3] as f32 / 255.;
             let r = (rgba[0] as f32 * alpha) as u32;

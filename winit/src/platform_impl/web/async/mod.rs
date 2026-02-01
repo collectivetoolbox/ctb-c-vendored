@@ -10,7 +10,7 @@ mod waker;
 mod wrapper;
 
 pub use self::abortable::{AbortHandle, Abortable, DropAbortHandle};
-pub use self::channel::{channel, Receiver, Sender};
+pub use self::channel::{Receiver, Sender, channel};
 pub use self::dispatcher::{DispatchRunner, Dispatcher};
 pub use self::notifier::{Notified, Notifier};
 pub use self::waker::{Waker, WakerSpawner};

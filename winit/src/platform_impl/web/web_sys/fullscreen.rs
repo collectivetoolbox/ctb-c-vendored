@@ -43,7 +43,9 @@ pub fn is_fullscreen(document: &Document, canvas: &HtmlCanvasElement) -> bool {
         type FullscreenElement;
 
         #[wasm_bindgen(method, getter, js_name = webkitFullscreenElement)]
-        fn webkit_fullscreen_element(this: &FullscreenElement) -> Option<Element>;
+        fn webkit_fullscreen_element(
+            this: &FullscreenElement,
+        ) -> Option<Element>;
     }
 
     let element = if has_fullscreen_api_support(canvas) {
@@ -58,7 +60,7 @@ pub fn is_fullscreen(document: &Document, canvas: &HtmlCanvasElement) -> bool {
         Some(element) => {
             let canvas: &Element = canvas;
             canvas == &element
-        },
+        }
         None => false,
     }
 }
@@ -93,7 +95,9 @@ fn has_fullscreen_api_support(canvas: &HtmlCanvasElement) -> bool {
                 type CanvasFullScreenApiSupport;
 
                 #[wasm_bindgen(method, getter, js_name = requestFullscreen)]
-                fn has_request_fullscreen(this: &CanvasFullScreenApiSupport) -> JsValue;
+                fn has_request_fullscreen(
+                    this: &CanvasFullScreenApiSupport,
+                ) -> JsValue;
             }
 
             let support: &CanvasFullScreenApiSupport = canvas.unchecked_ref();

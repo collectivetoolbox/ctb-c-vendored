@@ -3,8 +3,8 @@
 use std::ops::Deref;
 
 use sctk::reexports::client::globals::{BindError, GlobalList};
-use sctk::reexports::client::{delegate_dispatch, Dispatch};
 use sctk::reexports::client::{Connection, QueueHandle};
+use sctk::reexports::client::{Dispatch, delegate_dispatch};
 use sctk::reexports::protocols::wp::relative_pointer::zv1::{
     client::zwp_relative_pointer_manager_v1::ZwpRelativePointerManagerV1,
     client::zwp_relative_pointer_v1::{self, ZwpRelativePointerV1},
@@ -39,7 +39,9 @@ impl Deref for RelativePointerState {
     }
 }
 
-impl Dispatch<ZwpRelativePointerManagerV1, GlobalData, WinitState> for RelativePointerState {
+impl Dispatch<ZwpRelativePointerManagerV1, GlobalData, WinitState>
+    for RelativePointerState
+{
     fn event(
         _state: &mut WinitState,
         _proxy: &ZwpRelativePointerManagerV1,
@@ -51,7 +53,9 @@ impl Dispatch<ZwpRelativePointerManagerV1, GlobalData, WinitState> for RelativeP
     }
 }
 
-impl Dispatch<ZwpRelativePointerV1, GlobalData, WinitState> for RelativePointerState {
+impl Dispatch<ZwpRelativePointerV1, GlobalData, WinitState>
+    for RelativePointerState
+{
     fn event(
         state: &mut WinitState,
         _proxy: &ZwpRelativePointerV1,
@@ -61,19 +65,31 @@ impl Dispatch<ZwpRelativePointerV1, GlobalData, WinitState> for RelativePointerS
         _qhandle: &QueueHandle<WinitState>,
     ) {
         let (dx_unaccel, dy_unaccel) = match event {
-            zwp_relative_pointer_v1::Event::RelativeMotion { dx_unaccel, dy_unaccel, .. } => {
-                (dx_unaccel, dy_unaccel)
-            },
+            zwp_relative_pointer_v1::Event::RelativeMotion {
+                dx_unaccel,
+                dy_unaccel,
+                ..
+            } => (dx_unaccel, dy_unaccel),
             _ => return,
         };
-        state
-            .events_sink
-            .push_device_event(DeviceEvent::Motion { axis: 0, value: dx_unaccel }, super::DeviceId);
-        state
-            .events_sink
-            .push_device_event(DeviceEvent::Motion { axis: 1, value: dy_unaccel }, super::DeviceId);
         state.events_sink.push_device_event(
-            DeviceEvent::MouseMotion { delta: (dx_unaccel, dy_unaccel) },
+            DeviceEvent::Motion {
+                axis: 0,
+                value: dx_unaccel,
+            },
+            super::DeviceId,
+        );
+        state.events_sink.push_device_event(
+            DeviceEvent::Motion {
+                axis: 1,
+                value: dy_unaccel,
+            },
+            super::DeviceId,
+        );
+        state.events_sink.push_device_event(
+            DeviceEvent::MouseMotion {
+                delta: (dx_unaccel, dy_unaccel),
+            },
             super::DeviceId,
         );
     }

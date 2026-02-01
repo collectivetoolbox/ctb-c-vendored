@@ -11,7 +11,10 @@
 pub use platform::cleanup_window;
 pub use platform::fill_window;
 
-#[cfg(all(feature = "rwh_05", not(any(target_os = "android", target_os = "ios"))))]
+#[cfg(all(
+    feature = "rwh_05",
+    not(any(target_os = "android", target_os = "ios"))
+))]
 mod platform {
     use std::cell::RefCell;
     use std::collections::HashMap;
@@ -44,8 +47,10 @@ mod platform {
         fn new(w: &Window) -> Self {
             Self {
                 context: RefCell::new(
-                    Context::new(unsafe { mem::transmute::<&'_ Window, &'static Window>(w) })
-                        .expect("Failed to create a softbuffer context"),
+                    Context::new(unsafe {
+                        mem::transmute::<&'_ Window, &'static Window>(w)
+                    })
+                    .expect("Failed to create a softbuffer context"),
                 ),
                 surfaces: HashMap::new(),
             }
@@ -79,17 +84,24 @@ mod platform {
 
             // Either get the last context used or create a new one.
             let mut gc = gc.borrow_mut();
-            let surface =
-                gc.get_or_insert_with(|| GraphicsContext::new(window)).create_surface(window);
+            let surface = gc
+                .get_or_insert_with(|| GraphicsContext::new(window))
+                .create_surface(window);
 
             // Fill a buffer with a solid color.
             const DARK_GRAY: u32 = 0xff181818;
 
-            surface.resize(width, height).expect("Failed to resize the softbuffer surface");
+            surface
+                .resize(width, height)
+                .expect("Failed to resize the softbuffer surface");
 
-            let mut buffer = surface.buffer_mut().expect("Failed to get the softbuffer buffer");
+            let mut buffer = surface
+                .buffer_mut()
+                .expect("Failed to get the softbuffer buffer");
             buffer.fill(DARK_GRAY);
-            buffer.present().expect("Failed to present the softbuffer buffer");
+            buffer
+                .present()
+                .expect("Failed to present the softbuffer buffer");
         })
     }
 
@@ -104,7 +116,10 @@ mod platform {
     }
 }
 
-#[cfg(not(all(feature = "rwh_05", not(any(target_os = "android", target_os = "ios")))))]
+#[cfg(not(all(
+    feature = "rwh_05",
+    not(any(target_os = "android", target_os = "ios"))
+)))]
 mod platform {
     pub fn fill_window(_window: &winit::window::Window) {
         // No-op on mobile platforms.

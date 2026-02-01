@@ -1,7 +1,13 @@
 #![allow(clippy::single_match)]
 
 // Limit this example to only compatible platforms.
-#[cfg(any(windows_platform, macos_platform, x11_platform, wayland_platform, android_platform,))]
+#[cfg(any(
+    windows_platform,
+    macos_platform,
+    x11_platform,
+    wayland_platform,
+    android_platform,
+))]
 fn main() -> std::process::ExitCode {
     use std::process::ExitCode;
     use std::thread::sleep;
@@ -23,8 +29,10 @@ fn main() -> std::process::ExitCode {
 
     impl ApplicationHandler for PumpDemo {
         fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-            let window_attributes = Window::default_attributes().with_title("A fantastic window!");
-            self.window = Some(event_loop.create_window(window_attributes).unwrap());
+            let window_attributes =
+                Window::default_attributes().with_title("A fantastic window!");
+            self.window =
+                Some(event_loop.create_window(window_attributes).unwrap());
         }
 
         fn window_event(
@@ -45,7 +53,7 @@ fn main() -> std::process::ExitCode {
                 WindowEvent::RedrawRequested => {
                     fill::fill_window(window);
                     window.request_redraw();
-                },
+                }
                 _ => (),
             }
         }

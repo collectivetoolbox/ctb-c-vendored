@@ -14,20 +14,21 @@ use sctk::reexports::client::{Connection, Proxy, QueueHandle};
 use sctk::compositor::{CompositorHandler, CompositorState};
 use sctk::output::{OutputHandler, OutputState};
 use sctk::registry::{ProvidesRegistryState, RegistryState};
-use sctk::seat::pointer::ThemedPointer;
 use sctk::seat::SeatState;
-use sctk::shell::xdg::window::{Window, WindowConfigure, WindowHandler};
-use sctk::shell::xdg::XdgShell;
+use sctk::seat::pointer::ThemedPointer;
 use sctk::shell::WaylandSurface;
+use sctk::shell::xdg::XdgShell;
+use sctk::shell::xdg::window::{Window, WindowConfigure, WindowHandler};
 use sctk::shm::slot::SlotPool;
 use sctk::shm::{Shm, ShmHandler};
 use sctk::subcompositor::SubcompositorState;
 
+use crate::platform_impl::OsError;
 use crate::platform_impl::wayland::event_loop::sink::EventSink;
 use crate::platform_impl::wayland::output::MonitorHandle;
 use crate::platform_impl::wayland::seat::{
-    PointerConstraintsState, RelativePointerState, TextInputState, WinitPointerData,
-    WinitPointerDataExt, WinitSeatState,
+    PointerConstraintsState, RelativePointerState, TextInputState,
+    WinitPointerData, WinitPointerDataExt, WinitSeatState,
 };
 use crate::platform_impl::wayland::types::kwin_blur::KWinBlurManager;
 use crate::platform_impl::wayland::types::wp_fractional_scaling::FractionalScalingManager;
@@ -35,7 +36,6 @@ use crate::platform_impl::wayland::types::wp_viewporter::ViewporterState;
 use crate::platform_impl::wayland::types::xdg_activation::XdgActivationState;
 use crate::platform_impl::wayland::window::{WindowRequests, WindowState};
 use crate::platform_impl::wayland::{WaylandError, WindowId};
-use crate::platform_impl::OsError;
 
 /// Winit's Wayland state.
 pub struct WinitState {
@@ -79,7 +79,8 @@ pub struct WinitState {
     pub seats: AHashMap<ObjectId, WinitSeatState>,
 
     /// Currently present cursor surfaces.
-    pub pointer_surfaces: AHashMap<ObjectId, Arc<ThemedPointer<WinitPointerData>>>,
+    pub pointer_surfaces:
+        AHashMap<ObjectId, Arc<ThemedPointer<WinitPointerData>>>,
 
     /// The state of the text input on the client.
     pub text_input_state: Option<TextInputState>,
@@ -124,8 +125,8 @@ impl WinitState {
         loop_handle: LoopHandle<'static, WinitState>,
     ) -> Result<Self, OsError> {
         let registry_state = RegistryState::new(globals);
-        let compositor_state =
-            CompositorState::bind(globals, queue_handle).map_err(WaylandError::Bind)?;
+        let compositor_state = CompositorState::bind(globals, queue_handle)
+            .map_err(WaylandError::Bind)?;
         let subcompositor_state = match SubcompositorState::bind(
             compositor_state.wl_compositor().clone(),
             globals,
@@ -133,9 +134,11 @@ impl WinitState {
         ) {
             Ok(c) => Some(c),
             Err(e) => {
-                tracing::warn!("Subcompositor protocol not available, ignoring CSD: {e:?}");
+                tracing::warn!(
+                    "Subcompositor protocol not available, ignoring CSD: {e:?}"
+                );
                 None
-            },
+            }
         };
 
         let output_state = OutputState::new(globals, queue_handle);
@@ -148,15 +151,18 @@ impl WinitState {
             seats.insert(seat.id(), WinitSeatState::new());
         }
 
-        let (viewporter_state, fractional_scaling_manager) =
-            if let Ok(fsm) = FractionalScalingManager::new(globals, queue_handle) {
-                (ViewporterState::new(globals, queue_handle).ok(), Some(fsm))
-            } else {
-                (None, None)
-            };
+        let (viewporter_state, fractional_scaling_manager) = if let Ok(fsm) =
+            FractionalScalingManager::new(globals, queue_handle)
+        {
+            (ViewporterState::new(globals, queue_handle).ok(), Some(fsm))
+        } else {
+            (None, None)
+        };
 
-        let shm = Shm::bind(globals, queue_handle).map_err(WaylandError::Bind)?;
-        let custom_cursor_pool = Arc::new(Mutex::new(SlotPool::new(2, &shm).unwrap()));
+        let shm =
+            Shm::bind(globals, queue_handle).map_err(WaylandError::Bind)?;
+        let custom_cursor_pool =
+            Arc::new(Mutex::new(SlotPool::new(2, &shm).unwrap()));
 
         Ok(Self {
             registry_state,
@@ -167,8 +173,10 @@ impl WinitState {
             shm,
             custom_cursor_pool,
 
-            xdg_shell: XdgShell::bind(globals, queue_handle).map_err(WaylandError::Bind)?,
-            xdg_activation: XdgActivationState::bind(globals, queue_handle).ok(),
+            xdg_shell: XdgShell::bind(globals, queue_handle)
+                .map_err(WaylandError::Bind)?,
+            xdg_activation: XdgActivationState::bind(globals, queue_handle)
+                .ok(),
 
             windows: Default::default(),
             window_requests: Default::default(),
@@ -181,10 +189,14 @@ impl WinitState {
             seats,
             text_input_state: TextInputState::new(globals, queue_handle).ok(),
 
-            relative_pointer: RelativePointerState::new(globals, queue_handle).ok(),
-            pointer_constraints: PointerConstraintsState::new(globals, queue_handle)
-                .map(Arc::new)
+            relative_pointer: RelativePointerState::new(globals, queue_handle)
                 .ok(),
+            pointer_constraints: PointerConstraintsState::new(
+                globals,
+                queue_handle,
+            )
+            .map(Arc::new)
+            .ok(),
             pointer_surfaces: Default::default(),
 
             monitors: Arc::new(Mutex::new(monitors)),
@@ -218,7 +230,8 @@ impl WinitState {
             {
                 pos
             } else {
-                self.window_compositor_updates.push(WindowCompositorUpdate::new(window_id));
+                self.window_compositor_updates
+                    .push(WindowCompositorUpdate::new(window_id));
                 self.window_compositor_updates.len() - 1
             };
 
@@ -227,19 +240,27 @@ impl WinitState {
             self.window_compositor_updates[pos].scale_changed = true;
         } else if let Some(pointer) = self.pointer_surfaces.get(&surface.id()) {
             // Get the window, where the pointer resides right now.
-            let focused_window = match pointer.pointer().winit_data().focused_window() {
-                Some(focused_window) => focused_window,
-                None => return,
-            };
+            let focused_window =
+                match pointer.pointer().winit_data().focused_window() {
+                    Some(focused_window) => focused_window,
+                    None => return,
+                };
 
-            if let Some(window_state) = self.windows.get_mut().get(&focused_window) {
+            if let Some(window_state) =
+                self.windows.get_mut().get(&focused_window)
+            {
                 window_state.lock().unwrap().reload_cursor_style()
             }
         }
     }
 
-    pub fn queue_close(updates: &mut Vec<WindowCompositorUpdate>, window_id: WindowId) {
-        let pos = if let Some(pos) = updates.iter().position(|update| update.window_id == window_id)
+    pub fn queue_close(
+        updates: &mut Vec<WindowCompositorUpdate>,
+        window_id: WindowId,
+    ) {
+        let pos = if let Some(pos) = updates
+            .iter()
+            .position(|update| update.window_id == window_id)
         {
             pos
         } else {
@@ -258,7 +279,12 @@ impl ShmHandler for WinitState {
 }
 
 impl WindowHandler for WinitState {
-    fn request_close(&mut self, _: &Connection, _: &QueueHandle<Self>, window: &Window) {
+    fn request_close(
+        &mut self,
+        _: &Connection,
+        _: &QueueHandle<Self>,
+        window: &Window,
+    ) {
         let window_id = super::make_wid(window.wl_surface());
         Self::queue_close(&mut self.window_compositor_updates, window_id);
     }
@@ -273,12 +299,15 @@ impl WindowHandler for WinitState {
     ) {
         let window_id = super::make_wid(window.wl_surface());
 
-        let pos = if let Some(pos) =
-            self.window_compositor_updates.iter().position(|update| update.window_id == window_id)
+        let pos = if let Some(pos) = self
+            .window_compositor_updates
+            .iter()
+            .position(|update| update.window_id == window_id)
         {
             pos
         } else {
-            self.window_compositor_updates.push(WindowCompositorUpdate::new(window_id));
+            self.window_compositor_updates
+                .push(WindowCompositorUpdate::new(window_id));
             self.window_compositor_updates.len() - 1
         };
 
@@ -311,24 +340,44 @@ impl OutputHandler for WinitState {
         &mut self.output_state
     }
 
-    fn new_output(&mut self, _: &Connection, _: &QueueHandle<Self>, output: WlOutput) {
-        self.monitors.lock().unwrap().push(MonitorHandle::new(output));
+    fn new_output(
+        &mut self,
+        _: &Connection,
+        _: &QueueHandle<Self>,
+        output: WlOutput,
+    ) {
+        self.monitors
+            .lock()
+            .unwrap()
+            .push(MonitorHandle::new(output));
     }
 
-    fn update_output(&mut self, _: &Connection, _: &QueueHandle<Self>, updated: WlOutput) {
+    fn update_output(
+        &mut self,
+        _: &Connection,
+        _: &QueueHandle<Self>,
+        updated: WlOutput,
+    ) {
         let mut monitors = self.monitors.lock().unwrap();
         let updated = MonitorHandle::new(updated);
-        if let Some(pos) = monitors.iter().position(|output| output == &updated) {
+        if let Some(pos) = monitors.iter().position(|output| output == &updated)
+        {
             monitors[pos] = updated
         } else {
             monitors.push(updated)
         }
     }
 
-    fn output_destroyed(&mut self, _: &Connection, _: &QueueHandle<Self>, removed: WlOutput) {
+    fn output_destroyed(
+        &mut self,
+        _: &Connection,
+        _: &QueueHandle<Self>,
+        removed: WlOutput,
+    ) {
         let mut monitors = self.monitors.lock().unwrap();
         let removed = MonitorHandle::new(removed);
-        if let Some(pos) = monitors.iter().position(|output| output == &removed) {
+        if let Some(pos) = monitors.iter().position(|output| output == &removed)
+        {
             monitors.remove(pos);
         }
     }
@@ -373,7 +422,13 @@ impl CompositorHandler for WinitState {
         self.scale_factor_changed(surface, scale_factor as f64, true)
     }
 
-    fn frame(&mut self, _: &Connection, _: &QueueHandle<Self>, surface: &WlSurface, _: u32) {
+    fn frame(
+        &mut self,
+        _: &Connection,
+        _: &QueueHandle<Self>,
+        surface: &WlSurface,
+        _: u32,
+    ) {
         let window_id = super::make_wid(surface);
         let window = match self.windows.get_mut().get(&window_id) {
             Some(window) => window,
@@ -422,7 +477,12 @@ pub struct WindowCompositorUpdate {
 
 impl WindowCompositorUpdate {
     fn new(window_id: WindowId) -> Self {
-        Self { window_id, resized: false, scale_changed: false, close_window: false }
+        Self {
+            window_id,
+            resized: false,
+            scale_changed: false,
+            close_window: false,
+        }
     }
 }
 

@@ -15,7 +15,10 @@ pub trait EventLoopExtRunOnDemand {
     ///
     /// [`run_app_on_demand`]: Self::run_app_on_demand
     #[deprecated = "use EventLoopExtRunOnDemand::run_app_on_demand"]
-    fn run_on_demand<F>(&mut self, event_handler: F) -> Result<(), EventLoopError>
+    fn run_on_demand<F>(
+        &mut self,
+        event_handler: F,
+    ) -> Result<(), EventLoopError>
     where
         F: FnMut(Event<Self::UserEvent>, &ActiveEventLoop);
 
@@ -81,7 +84,10 @@ pub trait EventLoopExtRunOnDemand {
 impl<T> EventLoopExtRunOnDemand for EventLoop<T> {
     type UserEvent = T;
 
-    fn run_on_demand<F>(&mut self, event_handler: F) -> Result<(), EventLoopError>
+    fn run_on_demand<F>(
+        &mut self,
+        event_handler: F,
+    ) -> Result<(), EventLoopError>
     where
         F: FnMut(Event<Self::UserEvent>, &ActiveEventLoop),
     {

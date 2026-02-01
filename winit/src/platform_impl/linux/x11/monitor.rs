@@ -1,4 +1,4 @@
-use super::{util, X11Error, XConnection};
+use super::{X11Error, XConnection, util};
 use crate::dpi::{PhysicalPosition, PhysicalSize};
 use crate::platform_impl::VideoModeHandle as PlatformVideoModeHandle;
 use x11rb::connection::RequestConnection;
@@ -98,7 +98,10 @@ impl std::hash::Hash for MonitorHandle {
 pub fn mode_refresh_rate_millihertz(mode: &randr::ModeInfo) -> Option<u32> {
     if mode.dot_clock > 0 && mode.htotal > 0 && mode.vtotal > 0 {
         #[allow(clippy::unnecessary_cast)]
-        Some((mode.dot_clock as u64 * 1000 / (mode.htotal as u64 * mode.vtotal as u64)) as u32)
+        Some(
+            (mode.dot_clock as u64 * 1000
+                / (mode.htotal as u64 * mode.vtotal as u64)) as u32,
+        )
     } else {
         None
     }
@@ -112,7 +115,8 @@ impl MonitorHandle {
         crtc: &randr::GetCrtcInfoReply,
         primary: bool,
     ) -> Option<Self> {
-        let (name, scale_factor, video_modes) = xconn.get_output_info(resources, crtc)?;
+        let (name, scale_factor, video_modes) =
+            xconn.get_output_info(resources, crtc)?;
         let dimensions = (crtc.width as u32, crtc.height as u32);
         let position = (crtc.x as i32, crtc.y as i32);
 
@@ -216,7 +220,8 @@ impl XConnection {
         let mut largest_overlap = 0;
         let mut matched_monitor = default;
         for monitor in &monitors {
-            let overlapping_area = window_rect.get_overlapping_area(&monitor.rect);
+            let overlapping_area =
+                window_rect.get_overlapping_area(&monitor.rect);
             if overlapping_area > largest_overlap {
                 largest_overlap = overlapping_area;
                 matched_monitor = monitor;
@@ -228,18 +233,27 @@ impl XConnection {
 
     fn query_monitor_list(&self) -> Result<Vec<MonitorHandle>, X11Error> {
         let root = self.default_root();
-        let resources =
-            ScreenResources::from_connection(self.xcb_connection(), root, self.randr_version())?;
+        let resources = ScreenResources::from_connection(
+            self.xcb_connection(),
+            root,
+            self.randr_version(),
+        )?;
 
         // Pipeline all of the get-crtc requests.
         let mut crtc_cookies = Vec::with_capacity(resources.crtcs().len());
         for &crtc in resources.crtcs() {
-            crtc_cookies
-                .push(self.xcb_connection().randr_get_crtc_info(crtc, x11rb::CURRENT_TIME)?);
+            crtc_cookies.push(
+                self.xcb_connection()
+                    .randr_get_crtc_info(crtc, x11rb::CURRENT_TIME)?,
+            );
         }
 
         // Do this here so we do all of our requests in one shot.
-        let primary = self.xcb_connection().randr_get_output_primary(root.root)?.reply()?.output;
+        let primary = self
+            .xcb_connection()
+            .randr_get_output_primary(root.root)?
+            .reply()?
+            .output;
 
         let mut crtc_infos = Vec::with_capacity(crtc_cookies.len());
         for cookie in crtc_cookies {
@@ -248,7 +262,8 @@ impl XConnection {
         }
 
         let mut has_primary = false;
-        let mut available_monitors = Vec::with_capacity(resources.crtcs().len());
+        let mut available_monitors =
+            Vec::with_capacity(resources.crtcs().len());
         for (crtc_id, crtc) in resources.crtcs().iter().zip(crtc_infos.iter()) {
             if crtc.width == 0 || crtc.height == 0 || crtc.outputs.is_empty() {
                 continue;
@@ -256,7 +271,9 @@ impl XConnection {
 
             let is_primary = crtc.outputs[0] == primary;
             has_primary |= is_primary;
-            let monitor = MonitorHandle::new(self, &resources, *crtc_id, crtc, is_primary);
+            let monitor = MonitorHandle::new(
+                self, &resources, *crtc_id, crtc, is_primary,
+            );
             available_monitors.extend(monitor);
         }
 
@@ -281,7 +298,7 @@ impl XConnection {
                     *monitors_lock = Some(monitors.clone());
                 }
                 Ok(monitors)
-            },
+            }
         }
     }
 
@@ -294,7 +311,10 @@ impl XConnection {
             .unwrap_or_else(MonitorHandle::dummy))
     }
 
-    pub fn select_xrandr_input(&self, root: xproto::Window) -> Result<u8, X11Error> {
+    pub fn select_xrandr_input(
+        &self,
+        root: xproto::Window,
+    ) -> Result<u8, X11Error> {
         use randr::NotifyMask;
 
         // Get extension info.
@@ -304,8 +324,9 @@ impl XConnection {
             .ok_or(X11Error::MissingExtension(randr::X11_EXTENSION_NAME))?;
 
         // Select input data.
-        let event_mask =
-            NotifyMask::CRTC_CHANGE | NotifyMask::OUTPUT_PROPERTY | NotifyMask::SCREEN_CHANGE;
+        let event_mask = NotifyMask::CRTC_CHANGE
+            | NotifyMask::OUTPUT_PROPERTY
+            | NotifyMask::SCREEN_CHANGE;
         self.xcb_connection().randr_select_input(root, event_mask)?;
 
         Ok(info.first_event)
@@ -335,7 +356,9 @@ impl ScreenResources {
         (major_version, minor_version): (u32, u32),
     ) -> Result<Self, X11Error> {
         if (major_version == 1 && minor_version >= 3) || major_version > 1 {
-            let reply = conn.randr_get_screen_resources_current(root.root)?.reply()?;
+            let reply = conn
+                .randr_get_screen_resources_current(root.root)?
+                .reply()?;
             Ok(Self::from_get_screen_resources_current_reply(reply))
         } else {
             let reply = conn.randr_get_screen_resources(root.root)?.reply()?;
@@ -343,13 +366,21 @@ impl ScreenResources {
         }
     }
 
-    pub(crate) fn from_get_screen_resources_reply(reply: randr::GetScreenResourcesReply) -> Self {
-        Self { modes: reply.modes, crtcs: reply.crtcs }
+    pub(crate) fn from_get_screen_resources_reply(
+        reply: randr::GetScreenResourcesReply,
+    ) -> Self {
+        Self {
+            modes: reply.modes,
+            crtcs: reply.crtcs,
+        }
     }
 
     pub(crate) fn from_get_screen_resources_current_reply(
         reply: randr::GetScreenResourcesCurrentReply,
     ) -> Self {
-        Self { modes: reply.modes, crtcs: reply.crtcs }
+        Self {
+            modes: reply.modes,
+            crtcs: reply.crtcs,
+        }
     }
 }

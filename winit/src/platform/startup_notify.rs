@@ -44,7 +44,9 @@ pub trait WindowExtStartupNotify {
     /// Request a new activation token.
     ///
     /// The token will be delivered inside
-    fn request_activation_token(&self) -> Result<AsyncRequestSerial, NotSupportedError>;
+    fn request_activation_token(
+        &self,
+    ) -> Result<AsyncRequestSerial, NotSupportedError>;
 }
 
 pub trait WindowAttributesExtStartupNotify {
@@ -59,7 +61,9 @@ impl EventLoopExtStartupNotify for ActiveEventLoop {
     fn read_token_from_env(&self) -> Option<ActivationToken> {
         match self.p {
             #[cfg(wayland_platform)]
-            crate::platform_impl::ActiveEventLoop::Wayland(_) => env::var(WAYLAND_VAR),
+            crate::platform_impl::ActiveEventLoop::Wayland(_) => {
+                env::var(WAYLAND_VAR)
+            }
             #[cfg(x11_platform)]
             crate::platform_impl::ActiveEventLoop::X(_) => env::var(X11_VAR),
         }
@@ -69,7 +73,9 @@ impl EventLoopExtStartupNotify for ActiveEventLoop {
 }
 
 impl WindowExtStartupNotify for Window {
-    fn request_activation_token(&self) -> Result<AsyncRequestSerial, NotSupportedError> {
+    fn request_activation_token(
+        &self,
+    ) -> Result<AsyncRequestSerial, NotSupportedError> {
         self.window.request_activation_token()
     }
 }

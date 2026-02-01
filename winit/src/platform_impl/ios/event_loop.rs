@@ -6,34 +6,44 @@ use std::sync::mpsc::{self, Receiver, Sender};
 
 use core_foundation::base::{CFIndex, CFRelease};
 use core_foundation::runloop::{
-    kCFRunLoopAfterWaiting, kCFRunLoopBeforeWaiting, kCFRunLoopCommonModes, kCFRunLoopDefaultMode,
-    kCFRunLoopExit, CFRunLoopActivity, CFRunLoopAddObserver, CFRunLoopAddSource, CFRunLoopGetMain,
-    CFRunLoopObserverCreate, CFRunLoopObserverRef, CFRunLoopSourceContext, CFRunLoopSourceCreate,
-    CFRunLoopSourceInvalidate, CFRunLoopSourceRef, CFRunLoopSourceSignal, CFRunLoopWakeUp,
+    CFRunLoopActivity, CFRunLoopAddObserver, CFRunLoopAddSource,
+    CFRunLoopGetMain, CFRunLoopObserverCreate, CFRunLoopObserverRef,
+    CFRunLoopSourceContext, CFRunLoopSourceCreate, CFRunLoopSourceInvalidate,
+    CFRunLoopSourceRef, CFRunLoopSourceSignal, CFRunLoopWakeUp,
+    kCFRunLoopAfterWaiting, kCFRunLoopBeforeWaiting, kCFRunLoopCommonModes,
+    kCFRunLoopDefaultMode, kCFRunLoopExit,
 };
 use objc2::rc::Retained;
-use objc2::{msg_send_id, ClassType};
+use objc2::{ClassType, msg_send_id};
 use objc2_foundation::{MainThreadMarker, NSNotificationCenter, NSObject};
 use objc2_ui_kit::{
     UIApplication, UIApplicationDidBecomeActiveNotification,
-    UIApplicationDidEnterBackgroundNotification, UIApplicationDidFinishLaunchingNotification,
+    UIApplicationDidEnterBackgroundNotification,
+    UIApplicationDidFinishLaunchingNotification,
     UIApplicationDidReceiveMemoryWarningNotification, UIApplicationMain,
-    UIApplicationWillEnterForegroundNotification, UIApplicationWillResignActiveNotification,
-    UIApplicationWillTerminateNotification, UIDevice, UIScreen, UIUserInterfaceIdiom,
+    UIApplicationWillEnterForegroundNotification,
+    UIApplicationWillResignActiveNotification,
+    UIApplicationWillTerminateNotification, UIDevice, UIScreen,
+    UIUserInterfaceIdiom,
 };
 
 use crate::error::EventLoopError;
 use crate::event::Event;
 use crate::event_loop::{
-    ActiveEventLoop as RootActiveEventLoop, ControlFlow, DeviceEvents, EventLoopClosed,
+    ActiveEventLoop as RootActiveEventLoop, ControlFlow, DeviceEvents,
+    EventLoopClosed,
 };
 use crate::platform::ios::Idiom;
-use crate::platform_impl::ios::app_state::{EventLoopHandler, HandlePendingUserEvents};
+use crate::platform_impl::ios::app_state::{
+    EventLoopHandler, HandlePendingUserEvents,
+};
 use crate::window::{CustomCursor, CustomCursorSource, Theme};
 
-use super::app_state::{send_occluded_event_for_all_windows, AppState, EventWrapper};
+use super::app_state::{
+    AppState, EventWrapper, send_occluded_event_for_all_windows,
+};
 use super::notification_center::create_observer;
-use super::{app_state, monitor, MonitorHandle};
+use super::{MonitorHandle, app_state, monitor};
 
 #[derive(Debug)]
 pub struct ActiveEventLoop {
@@ -41,9 +51,14 @@ pub struct ActiveEventLoop {
 }
 
 impl ActiveEventLoop {
-    pub fn create_custom_cursor(&self, source: CustomCursorSource) -> CustomCursor {
+    pub fn create_custom_cursor(
+        &self,
+        source: CustomCursorSource,
+    ) -> CustomCursor {
         let _ = source.inner;
-        CustomCursor { inner: super::PlatformCustomCursor }
+        CustomCursor {
+            inner: super::PlatformCustomCursor,
+        }
     }
 
     pub fn available_monitors(&self) -> VecDeque<MonitorHandle> {
@@ -74,7 +89,9 @@ impl ActiveEventLoop {
     pub fn raw_display_handle_rwh_06(
         &self,
     ) -> Result<rwh_06::RawDisplayHandle, rwh_06::HandleError> {
-        Ok(rwh_06::RawDisplayHandle::UiKit(rwh_06::UiKitDisplayHandle::new()))
+        Ok(rwh_06::RawDisplayHandle::UiKit(
+            rwh_06::UiKitDisplayHandle::new(),
+        ))
     }
 
     pub(crate) fn set_control_flow(&self, control_flow: ControlFlow) {
@@ -129,7 +146,7 @@ fn map_user_event<T: 'static>(
             for event in receiver.try_iter() {
                 (handler)(Event::UserEvent(event), window_target);
             }
-        },
+        }
     }
 }
 
@@ -191,7 +208,10 @@ impl<T: 'static> EventLoop<T> {
             // `applicationDidBecomeActive:`
             unsafe { UIApplicationDidBecomeActiveNotification },
             move |_| {
-                app_state::handle_nonuser_event(mtm, EventWrapper::StaticEvent(Event::Resumed));
+                app_state::handle_nonuser_event(
+                    mtm,
+                    EventWrapper::StaticEvent(Event::Resumed),
+                );
             },
         );
         let _will_resign_active_observer = create_observer(
@@ -199,7 +219,10 @@ impl<T: 'static> EventLoop<T> {
             // `applicationWillResignActive:`
             unsafe { UIApplicationWillResignActiveNotification },
             move |_| {
-                app_state::handle_nonuser_event(mtm, EventWrapper::StaticEvent(Event::Suspended));
+                app_state::handle_nonuser_event(
+                    mtm,
+                    EventWrapper::StaticEvent(Event::Suspended),
+                );
             },
         );
         let _will_enter_foreground_observer = create_observer(
@@ -212,7 +235,8 @@ impl<T: 'static> EventLoop<T> {
                 );
                 // SAFETY: The `object` in `UIApplicationWillEnterForegroundNotification` is
                 // documented to be `UIApplication`.
-                let app: Retained<UIApplication> = unsafe { Retained::cast(app) };
+                let app: Retained<UIApplication> =
+                    unsafe { Retained::cast(app) };
                 send_occluded_event_for_all_windows(&app, false);
             },
         );
@@ -226,7 +250,8 @@ impl<T: 'static> EventLoop<T> {
                 );
                 // SAFETY: The `object` in `UIApplicationDidEnterBackgroundNotification` is
                 // documented to be `UIApplication`.
-                let app: Retained<UIApplication> = unsafe { Retained::cast(app) };
+                let app: Retained<UIApplication> =
+                    unsafe { Retained::cast(app) };
                 send_occluded_event_for_all_windows(&app, true);
             },
         );
@@ -239,7 +264,8 @@ impl<T: 'static> EventLoop<T> {
                     .expect("UIApplicationWillTerminateNotification to have application object");
                 // SAFETY: The `object` in `UIApplicationWillTerminateNotification` is
                 // (somewhat) documented to be `UIApplication`.
-                let app: Retained<UIApplication> = unsafe { Retained::cast(app) };
+                let app: Retained<UIApplication> =
+                    unsafe { Retained::cast(app) };
                 app_state::terminated(&app);
             },
         );
@@ -259,7 +285,10 @@ impl<T: 'static> EventLoop<T> {
             mtm,
             sender,
             receiver,
-            window_target: RootActiveEventLoop { p: ActiveEventLoop { mtm }, _marker: PhantomData },
+            window_target: RootActiveEventLoop {
+                p: ActiveEventLoop { mtm },
+                _marker: PhantomData,
+            },
             _did_finish_launching_observer,
             _did_become_active_observer,
             _will_resign_active_observer,
@@ -287,12 +316,25 @@ impl<T: 'static> EventLoop<T> {
 
         let handler = unsafe {
             std::mem::transmute::<
-                Box<dyn FnMut(Event<HandlePendingUserEvents>, &RootActiveEventLoop)>,
-                Box<dyn FnMut(Event<HandlePendingUserEvents>, &RootActiveEventLoop)>,
+                Box<
+                    dyn FnMut(
+                        Event<HandlePendingUserEvents>,
+                        &RootActiveEventLoop,
+                    ),
+                >,
+                Box<
+                    dyn FnMut(
+                        Event<HandlePendingUserEvents>,
+                        &RootActiveEventLoop,
+                    ),
+                >,
             >(Box::new(handler))
         };
 
-        let handler = EventLoopHandler { handler, event_loop: self.window_target };
+        let handler = EventLoopHandler {
+            handler,
+            event_loop: self.window_target,
+        };
 
         app_state::will_launch(self.mtm, handler);
 
@@ -382,7 +424,11 @@ impl<T> EventLoopProxy<T> {
                 cancel: None,
                 perform: event_loop_proxy_handler,
             };
-            let source = CFRunLoopSourceCreate(ptr::null_mut(), CFIndex::MAX - 1, &mut context);
+            let source = CFRunLoopSourceCreate(
+                ptr::null_mut(),
+                CFIndex::MAX - 1,
+                &mut context,
+            );
             CFRunLoopAddSource(rl, source, kCFRunLoopCommonModes);
             CFRunLoopWakeUp(rl);
 
@@ -391,7 +437,9 @@ impl<T> EventLoopProxy<T> {
     }
 
     pub fn send_event(&self, event: T) -> Result<(), EventLoopClosed<T>> {
-        self.sender.send(event).map_err(|::std::sync::mpsc::SendError(x)| EventLoopClosed(x))?;
+        self.sender
+            .send(event)
+            .map_err(|::std::sync::mpsc::SendError(x)| EventLoopClosed(x))?;
         unsafe {
             // let the main thread know there's a new event
             CFRunLoopSourceSignal(self.source);
@@ -414,7 +462,9 @@ fn setup_control_flow_observers() {
             let mtm = MainThreadMarker::new().unwrap();
             #[allow(non_upper_case_globals)]
             match activity {
-                kCFRunLoopAfterWaiting => app_state::handle_wakeup_transition(mtm),
+                kCFRunLoopAfterWaiting => {
+                    app_state::handle_wakeup_transition(mtm)
+                }
                 _ => unreachable!(),
             }
         }
@@ -438,8 +488,10 @@ fn setup_control_flow_observers() {
             let mtm = MainThreadMarker::new().unwrap();
             #[allow(non_upper_case_globals)]
             match activity {
-                kCFRunLoopBeforeWaiting => app_state::handle_main_events_cleared(mtm),
-                kCFRunLoopExit => {}, // may happen when running on macOS
+                kCFRunLoopBeforeWaiting => {
+                    app_state::handle_main_events_cleared(mtm)
+                }
+                kCFRunLoopExit => {} // may happen when running on macOS
                 _ => unreachable!(),
             }
         }
@@ -453,8 +505,10 @@ fn setup_control_flow_observers() {
             let mtm = MainThreadMarker::new().unwrap();
             #[allow(non_upper_case_globals)]
             match activity {
-                kCFRunLoopBeforeWaiting => app_state::handle_events_cleared(mtm),
-                kCFRunLoopExit => {}, // may happen when running on macOS
+                kCFRunLoopBeforeWaiting => {
+                    app_state::handle_events_cleared(mtm)
+                }
+                kCFRunLoopExit => {} // may happen when running on macOS
                 _ => unreachable!(),
             }
         }
@@ -479,7 +533,11 @@ fn setup_control_flow_observers() {
             control_flow_main_end_handler,
             ptr::null_mut(),
         );
-        CFRunLoopAddObserver(main_loop, main_end_observer, kCFRunLoopDefaultMode);
+        CFRunLoopAddObserver(
+            main_loop,
+            main_end_observer,
+            kCFRunLoopDefaultMode,
+        );
 
         let end_observer = CFRunLoopObserverCreate(
             ptr::null_mut(),

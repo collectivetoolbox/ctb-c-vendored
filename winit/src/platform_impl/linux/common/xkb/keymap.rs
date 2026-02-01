@@ -11,13 +11,15 @@ use {memmap2::MmapOptions, std::os::unix::io::OwnedFd};
 
 use super::ffi as xkb;
 use super::ffi::{
-    xkb_keycode_t, xkb_keymap, xkb_keymap_compile_flags, xkb_keysym_t, xkb_layout_index_t,
-    xkb_mod_index_t,
+    xkb_keycode_t, xkb_keymap, xkb_keymap_compile_flags, xkb_keysym_t,
+    xkb_layout_index_t, xkb_mod_index_t,
 };
 
 use xkb::XKB_MOD_INVALID;
 
-use crate::keyboard::{Key, KeyCode, KeyLocation, NamedKey, NativeKey, NativeKeyCode, PhysicalKey};
+use crate::keyboard::{
+    Key, KeyCode, KeyLocation, NamedKey, NativeKey, NativeKeyCode, PhysicalKey,
+};
 use crate::platform_impl::common::xkb::XkbContext;
 
 /// Map the raw X11-style keycode to the `KeyCode` enum.
@@ -296,7 +298,7 @@ pub fn physicalkey_to_scancode(key: PhysicalKey) -> Option<u32> {
                 NativeKeyCode::Xkb(raw) => Some(raw),
                 _ => None,
             };
-        },
+        }
     };
 
     match code {
@@ -917,8 +919,14 @@ pub struct XkbKeymap {
 
 impl XkbKeymap {
     #[cfg(wayland_platform)]
-    pub fn from_fd(context: &XkbContext, fd: OwnedFd, size: usize) -> Option<Self> {
-        let map = unsafe { MmapOptions::new().len(size).map_copy_read_only(&fd).ok()? };
+    pub fn from_fd(
+        context: &XkbContext,
+        fd: OwnedFd,
+        size: usize,
+    ) -> Option<Self> {
+        let map = unsafe {
+            MmapOptions::new().len(size).map_copy_read_only(&fd).ok()?
+        };
 
         // `xkb_keymap_new_from_string` expects a NUL-terminated C string. While
         // the Wayland protocol specifies that the keymap is NUL-terminated,
@@ -973,7 +981,11 @@ impl XkbKeymap {
             mod5: mod_index_for_name(keymap, b"Mod5\0"),
         };
 
-        Self { keymap, _mods_indices: mods_indices, _core_keyboard_id }
+        Self {
+            keymap,
+            _mods_indices: mods_indices,
+            _core_keyboard_id,
+        }
     }
 
     #[cfg(x11_platform)]
@@ -997,17 +1009,15 @@ impl XkbKeymap {
                 &mut keysyms,
             );
 
-            if count == 1 {
-                *keysyms
-            } else {
-                0
-            }
+            if count == 1 { *keysyms } else { 0 }
         }
     }
 
     /// Check whether the given key repeats.
     pub fn key_repeats(&mut self, keycode: xkb_keycode_t) -> bool {
-        unsafe { xkb::xkb_keymap_key_repeats(self.keymap.as_ptr(), keycode) == 1 }
+        unsafe {
+            xkb::xkb_keymap_key_repeats(self.keymap.as_ptr(), keycode) == 1
+        }
     }
 }
 
@@ -1041,10 +1051,15 @@ pub struct ModsIndices {
     pub mod5: Option<xkb_mod_index_t>,
 }
 
-fn mod_index_for_name(keymap: NonNull<xkb_keymap>, name: &[u8]) -> Option<xkb_mod_index_t> {
+fn mod_index_for_name(
+    keymap: NonNull<xkb_keymap>,
+    name: &[u8],
+) -> Option<xkb_mod_index_t> {
     unsafe {
-        let mod_index =
-            xkb::xkb_keymap_mod_get_index(keymap.as_ptr(), name.as_ptr() as *const c_char);
+        let mod_index = xkb::xkb_keymap_mod_get_index(
+            keymap.as_ptr(),
+            name.as_ptr() as *const c_char,
+        );
         if mod_index == XKB_MOD_INVALID {
             None
         } else {

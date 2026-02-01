@@ -21,7 +21,12 @@ pub enum BadIcon {
     ByteCountNotDivisibleBy4 { byte_count: usize },
     /// Produced when the number of pixels (`rgba.len() / 4`) isn't equal to `width * height`.
     /// At least one of your arguments is incorrect.
-    DimensionsVsPixelCount { width: u32, height: u32, width_x_height: usize, pixel_count: usize },
+    DimensionsVsPixelCount {
+        width: u32,
+        height: u32,
+        width_x_height: usize,
+        pixel_count: usize,
+    },
     /// Produced when underlying OS functionality failed to create the icon
     OsError(io::Error),
 }
@@ -34,15 +39,22 @@ impl fmt::Display for BadIcon {
                 "The length of the `rgba` argument ({byte_count:?}) isn't divisible by 4, making \
                  it impossible to interpret as 32bpp RGBA pixels.",
             ),
-            BadIcon::DimensionsVsPixelCount { width, height, width_x_height, pixel_count } => {
+            BadIcon::DimensionsVsPixelCount {
+                width,
+                height,
+                width_x_height,
+                pixel_count,
+            } => {
                 write!(
                     f,
                     "The specified dimensions ({width:?}x{height:?}) don't match the number of \
                      pixels supplied by the `rgba` argument ({pixel_count:?}). For those \
                      dimensions, the expected pixel count is {width_x_height:?}.",
                 )
-            },
-            BadIcon::OsError(e) => write!(f, "OS error when instantiating the icon: {e:?}"),
+            }
+            BadIcon::OsError(e) => {
+                write!(f, "OS error when instantiating the icon: {e:?}")
+            }
         }
     }
 }
@@ -65,9 +77,15 @@ mod constructors {
     use super::*;
 
     impl RgbaIcon {
-        pub fn from_rgba(rgba: Vec<u8>, width: u32, height: u32) -> Result<Self, BadIcon> {
+        pub fn from_rgba(
+            rgba: Vec<u8>,
+            width: u32,
+            height: u32,
+        ) -> Result<Self, BadIcon> {
             if rgba.len() % PIXEL_SIZE != 0 {
-                return Err(BadIcon::ByteCountNotDivisibleBy4 { byte_count: rgba.len() });
+                return Err(BadIcon::ByteCountNotDivisibleBy4 {
+                    byte_count: rgba.len(),
+                });
             }
             let pixel_count = rgba.len() / PIXEL_SIZE;
             if pixel_count != (width * height) as usize {
@@ -78,13 +96,21 @@ mod constructors {
                     pixel_count,
                 })
             } else {
-                Ok(RgbaIcon { rgba, width, height })
+                Ok(RgbaIcon {
+                    rgba,
+                    width,
+                    height,
+                })
             }
         }
     }
 
     impl NoIcon {
-        pub fn from_rgba(rgba: Vec<u8>, width: u32, height: u32) -> Result<Self, BadIcon> {
+        pub fn from_rgba(
+            rgba: Vec<u8>,
+            width: u32,
+            height: u32,
+        ) -> Result<Self, BadIcon> {
             // Create the rgba icon anyway to validate the input
             let _ = RgbaIcon::from_rgba(rgba, width, height)?;
             Ok(NoIcon)
@@ -99,7 +125,10 @@ pub struct Icon {
 }
 
 impl fmt::Debug for Icon {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+    fn fmt(
+        &self,
+        formatter: &mut fmt::Formatter<'_>,
+    ) -> Result<(), fmt::Error> {
         fmt::Debug::fmt(&self.inner, formatter)
     }
 }
@@ -109,9 +138,17 @@ impl Icon {
     ///
     /// The length of `rgba` must be divisible by 4, and `width * height` must equal
     /// `rgba.len() / 4`. Otherwise, this will return a `BadIcon` error.
-    pub fn from_rgba(rgba: Vec<u8>, width: u32, height: u32) -> Result<Self, BadIcon> {
-        let _span = tracing::debug_span!("winit::Icon::from_rgba", width, height).entered();
+    pub fn from_rgba(
+        rgba: Vec<u8>,
+        width: u32,
+        height: u32,
+    ) -> Result<Self, BadIcon> {
+        let _span =
+            tracing::debug_span!("winit::Icon::from_rgba", width, height)
+                .entered();
 
-        Ok(Icon { inner: PlatformIcon::from_rgba(rgba, width, height)? })
+        Ok(Icon {
+            inner: PlatformIcon::from_rgba(rgba, width, height)?,
+        })
     }
 }

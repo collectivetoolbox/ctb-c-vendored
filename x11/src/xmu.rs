@@ -6,8 +6,8 @@ use libc::FILE;
 use std::os::raw::{c_char, c_int, c_uchar, c_uint, c_ulong, c_void};
 
 use super::xlib::{
-    Display, Screen, XColor, XComposeStatus, XErrorEvent, XEvent, XKeyEvent, XSizeHints,
-    XStandardColormap, XVisualInfo, XrmValue, GC,
+    Display, Screen, XColor, XComposeStatus, XErrorEvent, XEvent, XKeyEvent,
+    XSizeHints, XStandardColormap, XVisualInfo, XrmValue, GC,
 };
 use super::xt::{Widget, XtAppContext};
 

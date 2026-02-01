@@ -1,7 +1,7 @@
 use crate::{BufferMutRef, ColorFieldOrder, EguiSoftwareRender};
 use egui::{
-    Context, CursorGrab, IconData, Pos2, SystemTheme, Vec2, ViewportBuilder, ViewportCommand,
-    WindowLevel, X11WindowType,
+    Context, CursorGrab, IconData, Pos2, SystemTheme, Vec2, ViewportBuilder,
+    ViewportCommand, WindowLevel, X11WindowType,
 };
 use softbuffer::SoftBufferError;
 use std::boxed::Box;
@@ -16,8 +16,12 @@ use std::time::{Duration, Instant};
 use std::vec::Vec;
 use winit::application::ApplicationHandler;
 use winit::event::{Event, WindowEvent};
-use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop, OwnedDisplayHandle};
-use winit::window::{CursorGrabMode, Fullscreen, Icon, Theme, Window, WindowButtons, WindowId};
+use winit::event_loop::{
+    ActiveEventLoop, ControlFlow, EventLoop, OwnedDisplayHandle,
+};
+use winit::window::{
+    CursorGrabMode, Fullscreen, Icon, Theme, Window, WindowButtons, WindowId,
+};
 
 /// Errors that can occur when using the egui software backend with winit.
 #[derive(Debug)]
@@ -50,9 +54,9 @@ impl Display for SoftwareBackendAppError {
                 f.write_str(function)
             }
             Self::EventLoop(_) => f.write_str("winit event loop has errored"),
-            Self::SuppressedEventLoop { .. } => {
-                f.write_str("software renderer and winit event loop have both errored")
-            }
+            Self::SuppressedEventLoop { .. } => f.write_str(
+                "software renderer and winit event loop have both errored",
+            ),
             Self::CreateWindowOs(_) => {
                 f.write_str("os error calling winit::create_window")
             }
@@ -86,7 +90,10 @@ impl SoftwareBackendAppError {
 // state machine transitions to be more expensive!
 #[expect(clippy::large_enum_variant)]
 /// Winit App State machine, that handles all states of our application.
-enum WinitAppStateMachine<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp> {
+enum WinitAppStateMachine<
+    EguiApp: App,
+    EguiAppFactory: FnMut(Context) -> EguiApp,
+> {
     /// The app has died, either without or with some sort of error.
     Dead(Option<SoftwareBackendAppError>),
 
@@ -103,7 +110,10 @@ enum WinitAppStateMachine<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiAp
     Running(RunningEguiAppState<EguiApp, EguiAppFactory>),
 }
 
-struct ConfiguredAppState<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp> {
+struct ConfiguredAppState<
+    EguiApp: App,
+    EguiAppFactory: FnMut(Context) -> EguiApp,
+> {
     /////////// DANGER ZONE DO NOT CHANGE THE ORDER OF THOSE FIELDS ////////////////////
     // WAYLAND BUG: The wayland clipboard blows up with a segmentation fault if
     // If the fields are dropped in the wrong order. Other platforms are not affected by drop order.
@@ -117,7 +127,10 @@ struct ConfiguredAppState<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiAp
     egui_app_factory: EguiAppFactory,
 }
 
-struct WindowInitializedAppState<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp> {
+struct WindowInitializedAppState<
+    EguiApp: App,
+    EguiAppFactory: FnMut(Context) -> EguiApp,
+> {
     /////////// DANGER ZONE DO NOT CHANGE THE ORDER OF THOSE FIELDS ////////////////////
     // WAYLAND BUG: The wayland clipboard blows up with a segmentation fault if
     // If the fields are dropped in the wrong order. Other platforms are not affected by drop order.
@@ -132,7 +145,10 @@ struct WindowInitializedAppState<EguiApp: App, EguiAppFactory: FnMut(Context) ->
     egui_app_factory: EguiAppFactory,
 }
 
-struct RunningEguiAppState<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp> {
+struct RunningEguiAppState<
+    EguiApp: App,
+    EguiAppFactory: FnMut(Context) -> EguiApp,
+> {
     /////////// DANGER ZONE DO NOT CHANGE THE ORDER OF THOSE FIELDS ////////////////////
     // WAYLAND BUG: The wayland clipboard blows up with a segmentation fault if
     // If the fields are dropped in the wrong order. Other platforms are not affected by drop order.
@@ -167,7 +183,10 @@ impl<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp>
     pub(crate) fn create_window(
         mut self,
         elwt: &ActiveEventLoop,
-    ) -> Result<WindowInitializedAppState<EguiApp, EguiAppFactory>, SoftwareBackendAppError> {
+    ) -> Result<
+        WindowInitializedAppState<EguiApp, EguiAppFactory>,
+        SoftwareBackendAppError,
+    > {
         // !BUG IN WAYLAND!
         // If resizable is false during window creation you can never make the window resizable again.
         // We always force None before we call into egui_winit and set it on the window object later.
@@ -178,13 +197,18 @@ impl<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp>
             .take()
             .unwrap_or(true);
 
-        let window =
-            egui_winit::create_window(&self.egui_context, elwt, &self.config.viewport_builder);
+        let window = egui_winit::create_window(
+            &self.egui_context,
+            elwt,
+            &self.config.viewport_builder,
+        );
 
         self.config.viewport_builder.resizable = Some(resizable);
 
         let window = window
-            .map_err(|ose| SoftwareBackendAppError::CreateWindowOs(Box::new(ose)))
+            .map_err(|ose| {
+                SoftwareBackendAppError::CreateWindowOs(Box::new(ose))
+            })
             .map(Rc::new)?;
 
         window.set_resizable(resizable);
@@ -206,11 +230,17 @@ impl<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp>
 {
     pub(crate) fn create_surface(
         mut self,
-    ) -> Result<RunningEguiAppState<EguiApp, EguiAppFactory>, SoftwareBackendAppError> {
-        let surface = softbuffer::Surface::new(&self.softbuffer_context, self.window.clone())
-            .map_err(SoftwareBackendAppError::soft_buffer(
-                "softbuffer::Surface::new",
-            ))?;
+    ) -> Result<
+        RunningEguiAppState<EguiApp, EguiAppFactory>,
+        SoftwareBackendAppError,
+    > {
+        let surface = softbuffer::Surface::new(
+            &self.softbuffer_context,
+            self.window.clone(),
+        )
+        .map_err(SoftwareBackendAppError::soft_buffer(
+            "softbuffer::Surface::new",
+        ))?;
 
         let egui_winit = egui_winit::State::new(
             self.egui_context.clone(),
@@ -222,7 +252,8 @@ impl<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp>
         );
 
         let egui_app = (self.egui_app_factory)(self.egui_context.clone());
-        let fullscreen = self.config.viewport_builder.fullscreen.unwrap_or_default();
+        let fullscreen =
+            self.config.viewport_builder.fullscreen.unwrap_or_default();
         let visible = self.config.viewport_builder.visible.unwrap_or(true);
 
         Ok(RunningEguiAppState {
@@ -281,7 +312,8 @@ enum UserEvent {
     },
 }
 
-impl<EguiApp: App, InitSurface: FnMut(Context) -> EguiApp> ApplicationHandler<UserEvent>
+impl<EguiApp: App, InitSurface: FnMut(Context) -> EguiApp>
+    ApplicationHandler<UserEvent>
     for WinitAppStateMachine<EguiApp, InitSurface>
 {
     fn resumed(&mut self, el: &ActiveEventLoop) {
@@ -332,7 +364,8 @@ impl<EguiApp: App, InitSurface: FnMut(Context) -> EguiApp> ApplicationHandler<Us
                     when,
                     cumulative_pass_nr,
                 } => {
-                    let current_pass_nr = state.egui_context.cumulative_pass_nr_for(viewport_id);
+                    let current_pass_nr =
+                        state.egui_context.cumulative_pass_nr_for(viewport_id);
                     if current_pass_nr == cumulative_pass_nr
                         || current_pass_nr == cumulative_pass_nr + 1
                     {
@@ -359,9 +392,10 @@ impl<EguiApp: App, InitSurface: FnMut(Context) -> EguiApp> ApplicationHandler<Us
                 event_loop.set_control_flow(ControlFlow::Wait);
             }
             Self::Running(state) => {
-                if let Err(e) =
-                    state.handle_event(Event::WindowEvent { window_id, event }, event_loop)
-                {
+                if let Err(e) = state.handle_event(
+                    Event::WindowEvent { window_id, event },
+                    event_loop,
+                ) {
                     *self = Self::Dead(Some(e));
                     event_loop.exit();
                 }
@@ -382,7 +416,9 @@ impl<EguiApp: App, InitSurface: FnMut(Context) -> EguiApp> ApplicationHandler<Us
                 event_loop.set_control_flow(ControlFlow::Wait);
             }
             Self::Running(state) => {
-                if let Err(e) = state.handle_event(Event::AboutToWait, event_loop) {
+                if let Err(e) =
+                    state.handle_event(Event::AboutToWait, event_loop)
+                {
                     *self = Self::Dead(Some(e));
                     event_loop.exit();
                 }
@@ -419,7 +455,9 @@ impl<EguiApp: App, InitSurface: FnMut(Context) -> EguiApp> ApplicationHandler<Us
 impl<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp>
     RunningEguiAppState<EguiApp, EguiAppFactory>
 {
-    pub(crate) fn suspend(self) -> WindowInitializedAppState<EguiApp, EguiAppFactory> {
+    pub(crate) fn suspend(
+        self,
+    ) -> WindowInitializedAppState<EguiApp, EguiAppFactory> {
         WindowInitializedAppState {
             config: self.config,
             software_backend: self.software_backend,
@@ -466,10 +504,13 @@ impl<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp>
                 let height = NonZeroU32::new(size.height).unwrap_or(ONE_PIXEL);
 
                 self.surface.resize(width, height).map_err(
-                    SoftwareBackendAppError::soft_buffer("softbuffer::Surface::resize"),
+                    SoftwareBackendAppError::soft_buffer(
+                        "softbuffer::Surface::resize",
+                    ),
                 )?;
 
-                let mut raw_input = self.egui_winit.take_egui_input(&self.window);
+                let mut raw_input =
+                    self.egui_winit.take_egui_input(&self.window);
 
                 raw_input
                     .events
@@ -690,19 +731,21 @@ impl<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp>
                 });
 
                 //Makes the clipboard work.
-                self.egui_winit
-                    .handle_platform_output(&self.window, full_output.platform_output);
+                self.egui_winit.handle_platform_output(
+                    &self.window,
+                    full_output.platform_output,
+                );
 
-                let clipped_primitives = self
-                    .egui_context
-                    .tessellate(full_output.shapes, full_output.pixels_per_point);
+                let clipped_primitives = self.egui_context.tessellate(
+                    full_output.shapes,
+                    full_output.pixels_per_point,
+                );
 
-                let mut buffer =
-                    self.surface
-                        .buffer_mut()
-                        .map_err(SoftwareBackendAppError::soft_buffer(
-                            "softbuffer::Surface::buffer_mut",
-                        ))?;
+                let mut buffer = self.surface.buffer_mut().map_err(
+                    SoftwareBackendAppError::soft_buffer(
+                        "softbuffer::Surface::buffer_mut",
+                    ),
+                )?;
                 buffer.fill(0); // CLEAR
 
                 let buffer_ref = &mut BufferMutRef::new(
@@ -718,13 +761,14 @@ impl<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp>
                     full_output.pixels_per_point,
                 );
 
-                buffer
-                    .present()
-                    .map_err(SoftwareBackendAppError::soft_buffer(
+                buffer.present().map_err(
+                    SoftwareBackendAppError::soft_buffer(
                         "softbuffer::Buffer::present",
-                    ))?;
+                    ),
+                )?;
 
-                self.software_backend.last_frame_time = start.map(|a| a.elapsed());
+                self.software_backend.last_frame_time =
+                    start.map(|a| a.elapsed());
             }
 
             WindowEvent::CloseRequested => {
@@ -880,7 +924,10 @@ impl SoftwareBackendAppConfiguration {
     }
 
     /// This sets the egui viewport builder to the given builder. This replaces most settings.
-    pub fn viewport_builder(mut self, viewport_builder: ViewportBuilder) -> Self {
+    pub fn viewport_builder(
+        mut self,
+        viewport_builder: ViewportBuilder,
+    ) -> Self {
         self.viewport_builder = viewport_builder;
         self
     }
@@ -910,13 +957,19 @@ impl SoftwareBackendAppConfiguration {
     }
 
     /// See `egui::viewport::ViewportBuilder`. This is a convenience function that sets the field.
-    pub const fn min_inner_size(mut self, min_inner_size: Option<Vec2>) -> Self {
+    pub const fn min_inner_size(
+        mut self,
+        min_inner_size: Option<Vec2>,
+    ) -> Self {
         self.viewport_builder.min_inner_size = min_inner_size;
         self
     }
 
     /// See `egui::viewport::ViewportBuilder`. This is a convenience function that sets the field.
-    pub const fn max_inner_size(mut self, max_inner_size: Option<Vec2>) -> Self {
+    pub const fn max_inner_size(
+        mut self,
+        max_inner_size: Option<Vec2>,
+    ) -> Self {
         self.viewport_builder.max_inner_size = max_inner_size;
         self
     }
@@ -926,7 +979,8 @@ impl SoftwareBackendAppConfiguration {
         mut self,
         clamp_size_to_monitor_size: Option<bool>,
     ) -> Self {
-        self.viewport_builder.clamp_size_to_monitor_size = clamp_size_to_monitor_size;
+        self.viewport_builder.clamp_size_to_monitor_size =
+            clamp_size_to_monitor_size;
         self
     }
 
@@ -979,7 +1033,10 @@ impl SoftwareBackendAppConfiguration {
     }
 
     /// See `egui::viewport::ViewportBuilder`. This is a convenience function that sets the field.
-    pub fn fullsize_content_view(mut self, fullsize_content_view: Option<bool>) -> Self {
+    pub fn fullsize_content_view(
+        mut self,
+        fullsize_content_view: Option<bool>,
+    ) -> Self {
         self.viewport_builder.fullsize_content_view = fullsize_content_view;
         self
     }
@@ -989,7 +1046,8 @@ impl SoftwareBackendAppConfiguration {
         mut self,
         movable_by_window_background: Option<bool>,
     ) -> Self {
-        self.viewport_builder.movable_by_window_background = movable_by_window_background;
+        self.viewport_builder.movable_by_window_background =
+            movable_by_window_background;
         self
     }
 
@@ -1000,7 +1058,10 @@ impl SoftwareBackendAppConfiguration {
     }
 
     /// See `egui::viewport::ViewportBuilder`. This is a convenience function that sets the field.
-    pub fn titlebar_buttons_shown(mut self, titlebar_buttons_shown: Option<bool>) -> Self {
+    pub fn titlebar_buttons_shown(
+        mut self,
+        titlebar_buttons_shown: Option<bool>,
+    ) -> Self {
         self.viewport_builder.titlebar_buttons_shown = titlebar_buttons_shown;
         self
     }
@@ -1036,31 +1097,46 @@ impl SoftwareBackendAppConfiguration {
     }
 
     /// See `egui::viewport::ViewportBuilder`. This is a convenience function that sets the field.
-    pub const fn minimize_button(mut self, minimize_button: Option<bool>) -> Self {
+    pub const fn minimize_button(
+        mut self,
+        minimize_button: Option<bool>,
+    ) -> Self {
         self.viewport_builder.minimize_button = minimize_button;
         self
     }
 
     /// See `egui::viewport::ViewportBuilder`. This is a convenience function that sets the field.
-    pub const fn maximize_button(mut self, maximize_button: Option<bool>) -> Self {
+    pub const fn maximize_button(
+        mut self,
+        maximize_button: Option<bool>,
+    ) -> Self {
         self.viewport_builder.maximize_button = maximize_button;
         self
     }
 
     /// See `egui::viewport::ViewportBuilder`. This is a convenience function that sets the field.
-    pub const fn window_level(mut self, window_level: Option<WindowLevel>) -> Self {
+    pub const fn window_level(
+        mut self,
+        window_level: Option<WindowLevel>,
+    ) -> Self {
         self.viewport_builder.window_level = window_level;
         self
     }
 
     /// See `egui::viewport::ViewportBuilder`. This is a convenience function that sets the field.
-    pub const fn mouse_passthrough(mut self, mouse_passthrough: Option<bool>) -> Self {
+    pub const fn mouse_passthrough(
+        mut self,
+        mouse_passthrough: Option<bool>,
+    ) -> Self {
         self.viewport_builder.mouse_passthrough = mouse_passthrough;
         self
     }
 
     /// See `egui::viewport::ViewportBuilder`. This is a convenience function that sets the field.
-    pub const fn window_type(mut self, window_type: Option<X11WindowType>) -> Self {
+    pub const fn window_type(
+        mut self,
+        window_type: Option<X11WindowType>,
+    ) -> Self {
         self.viewport_builder.window_type = window_type;
         self
     }
@@ -1078,7 +1154,10 @@ impl SoftwareBackendAppConfiguration {
     ///   Things *should* look the same with this set to `true` while rendering faster.
     ///
     /// Default is true!
-    pub const fn convert_tris_to_rects(mut self, convert_tris_to_rects: bool) -> Self {
+    pub const fn convert_tris_to_rects(
+        mut self,
+        convert_tris_to_rects: bool,
+    ) -> Self {
         self.convert_tris_to_rects = convert_tris_to_rects;
         self
     }
@@ -1116,9 +1195,10 @@ pub fn run_app_with_software_backend<T: App>(
         .build()
         .map_err(|e| SoftwareBackendAppError::EventLoop(Box::new(e)))?;
 
-    let softbuffer_context = softbuffer::Context::new(event_loop.owned_display_handle()).map_err(
-        SoftwareBackendAppError::soft_buffer("softbuffer::Context::new"),
-    )?;
+    let softbuffer_context =
+        softbuffer::Context::new(event_loop.owned_display_handle()).map_err(
+            SoftwareBackendAppError::soft_buffer("softbuffer::Context::new"),
+        )?;
 
     let egui_ctx = Context::default();
 

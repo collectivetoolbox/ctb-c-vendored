@@ -3,7 +3,8 @@
 // These bindings are public domain.
 
 use super::xlib::{
-    Atom, Bool, Display, Drawable, Status, Time, Visual, Window, XEvent, XSetWindowAttributes, XID,
+    Atom, Bool, Display, Drawable, Status, Time, Visual, Window, XEvent,
+    XSetWindowAttributes, XID,
 };
 use std::os::raw::{c_int, c_uint, c_ulong};
 

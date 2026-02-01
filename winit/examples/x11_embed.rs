@@ -24,7 +24,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .with_inner_size(winit::dpi::LogicalSize::new(128.0, 128.0))
                 .with_embed_parent_window(self.parent_window_id);
 
-            self.window = Some(event_loop.create_window(window_attributes).unwrap());
+            self.window =
+                Some(event_loop.create_window(window_attributes).unwrap());
         }
 
         fn window_event(
@@ -39,7 +40,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 WindowEvent::RedrawRequested => {
                     window.pre_present_notify();
                     fill::fill_window(window);
-                },
+                }
                 _ => (),
             }
         }
@@ -58,7 +59,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     tracing_subscriber::fmt::init();
     let event_loop = EventLoop::new()?;
 
-    let mut app = XEmbedDemo { parent_window_id, window: None };
+    let mut app = XEmbedDemo {
+        parent_window_id,
+        window: None,
+    };
     event_loop.run_app(&mut app).map_err(Into::into)
 }
 

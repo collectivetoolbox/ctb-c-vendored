@@ -48,10 +48,13 @@ mod tests {
                 for allow_raster_opt in [false, true] {
                     for convert_tris_to_rects in [false, true] {
                         // --- Render on CPU
-                        let egui_software_render = EguiSoftwareRender::new(ColorFieldOrder::Rgba)
-                            .with_allow_raster_opt(allow_raster_opt)
-                            .with_convert_tris_to_rects(convert_tris_to_rects)
-                            .with_caching(use_cache);
+                        let egui_software_render =
+                            EguiSoftwareRender::new(ColorFieldOrder::Rgba)
+                                .with_allow_raster_opt(allow_raster_opt)
+                                .with_convert_tris_to_rects(
+                                    convert_tris_to_rects,
+                                )
+                                .with_caching(use_cache);
 
                         let mut harness = HarnessBuilder::default()
                             .with_size(RESOLUTION)
@@ -72,10 +75,14 @@ mod tests {
                         ) {
                             if pixels_failed > failed_px_count_thresold {
                                 diff_image
-                                    .save(format!("tests/tmp/diff_{name} - FAIL.png"))
+                                    .save(format!(
+                                        "tests/tmp/diff_{name} - FAIL.png"
+                                    ))
                                     .unwrap();
                                 cpu_render_image
-                                    .save(format!("tests/tmp/cpu_{name} - FAIL.png"))
+                                    .save(format!(
+                                        "tests/tmp/cpu_{name} - FAIL.png"
+                                    ))
                                     .unwrap();
                                 panic!("pixels_failed {pixels_failed}: {name}")
                             } else {
