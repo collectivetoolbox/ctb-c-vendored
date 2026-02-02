@@ -24,6 +24,7 @@ for pkg in "${packages[@]}"; do
     if [[ "$pkg" == "x11" ]] ; then
         rm ./original-x11/build.rs
         rm -r ./x11/c_src
+        rm -r ./x11/tmp
         rm ./x11/build.rs
         rm ./x11/build_support.rs
     elif [[ "$pkg" == "egui_software_backend" ]] ; then
