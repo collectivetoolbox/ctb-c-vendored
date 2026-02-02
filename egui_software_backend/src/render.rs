@@ -49,20 +49,10 @@ pub fn draw_egui_mesh<const SUBPIX_BITS: i32>(
         )
     }
 
-    #[cfg(all(feature = "std", not(any(target_arch = "x86_64", target_arch = "aarch64"))))]
-    draw_egui_mesh_impl::<SUBPIX_BITS, false>(
-        textures,
-        buffer,
-        clip_rect,
-        mesh,
-        vert_offset,
-        allow_raster_opt,
-        convert_tris_to_rects,
-        #[cfg(all(feature = "raster_stats", not(feature = "rayon")))]
-        stats,
-    );
-
-    #[cfg(not(feature = "std"))]
+    #[cfg(any(
+        not(feature = "std"),
+        not(any(target_arch = "x86_64", target_arch = "aarch64"))
+    ))]
     draw_egui_mesh_impl::<SUBPIX_BITS, false>(
         textures,
         buffer,
