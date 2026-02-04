@@ -507,7 +507,8 @@ impl<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp>
                 );
 
                 // Make the window visible after the adapter is ready.
-                let visible = self.config.viewport_builder.visible.unwrap_or(true);
+                let visible =
+                    self.config.viewport_builder.visible.unwrap_or(true);
                 self.window.set_visible(visible);
 
                 self.accesskit_initialized = true;
@@ -520,21 +521,36 @@ impl<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp>
             None
         };
 
-        elwt.set_control_flow(ControlFlow::Wait);
+        match event {
+            Event::AboutToWait => {
+                let has_pending_winit_events = !self
+                    .egui_winit
+                    .egui_input()
+                    .events
+                    .is_empty();
+                let has_pending_app_events = !self.input_events.is_empty();
 
-        let Event::WindowEvent {
-            window_id,
-            event: window_event,
-        } = event
-        else {
-            return Ok(());
-        };
+                if has_pending_winit_events || has_pending_app_events
+                {
+                    self.window.request_redraw();
+                    elwt.set_control_flow(ControlFlow::Poll);
+                } else {
+                    elwt.set_control_flow(ControlFlow::Wait);
+                }
 
-        if window_id != self.window.id() {
-            return Ok(());
-        }
+                Ok(())
+            }
+            Event::WindowEvent {
+                window_id,
+                event: window_event,
+            } => {
+                elwt.set_control_flow(ControlFlow::Wait);
 
-        match window_event {
+                if window_id != self.window.id() {
+                    return Ok(());
+                }
+
+                match window_event {
             WindowEvent::RedrawRequested => {
                 let size = self.window.inner_size();
                 let width = NonZeroU32::new(size.width).unwrap_or(ONE_PIXEL);
@@ -818,7 +834,13 @@ impl<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp>
             }
         };
 
-        Ok(())
+                Ok(())
+            }
+            _ => {
+                elwt.set_control_flow(ControlFlow::Wait);
+                Ok(())
+            }
+        }
     }
 }
 
