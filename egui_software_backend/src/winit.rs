@@ -17,8 +17,13 @@ use std::time::{Duration, Instant};
 use std::vec::Vec;
 use winit::application::ApplicationHandler;
 use winit::event::{Event, WindowEvent};
-use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop, OwnedDisplayHandle};
+use winit::event_loop::{
+    ActiveEventLoop, ControlFlow, EventLoop, EventLoopProxy, OwnedDisplayHandle,
+};
 use winit::window::{CursorGrabMode, Fullscreen, Icon, Theme, Window, WindowButtons, WindowId};
+
+#[cfg(feature = "accesskit")]
+use accesskit_winit;
 
 /// Errors that can occur when using the egui software backend with winit.
 #[derive(Debug)]
@@ -116,6 +121,7 @@ struct ConfiguredAppState<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiAp
     software_backend: SoftwareBackend,
     renderer: EguiSoftwareRender,
     egui_app_factory: EguiAppFactory,
+    event_loop_proxy: EventLoopProxy<UserEvent>,
 }
 
 struct WindowInitializedAppState<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp> {
@@ -131,6 +137,7 @@ struct WindowInitializedAppState<EguiApp: App, EguiAppFactory: FnMut(Context) ->
     software_backend: SoftwareBackend,
     renderer: EguiSoftwareRender,
     egui_app_factory: EguiAppFactory,
+    event_loop_proxy: EventLoopProxy<UserEvent>,
 }
 
 struct RunningEguiAppState<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp> {
@@ -152,6 +159,9 @@ struct RunningEguiAppState<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiA
     fullscreen: bool,
     visible: bool,
     input_events: Vec<egui::Event>,
+    #[cfg(feature = "accesskit")]
+    accesskit_initialized: bool,
+    event_loop_proxy: EventLoopProxy<UserEvent>,
 }
 
 impl<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp> Default
@@ -179,8 +189,25 @@ impl<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp>
             .take()
             .unwrap_or(true);
 
+        #[cfg(feature = "accesskit")]
+        let original_visible = self
+            .config
+            .viewport_builder
+            .visible
+            .unwrap_or(true);
+
+        #[cfg(feature = "accesskit")]
+        {
+            self.config.viewport_builder.visible = Some(false);
+        }
+
         let window =
             egui_winit::create_window(&self.egui_context, elwt, &self.config.viewport_builder);
+
+        #[cfg(feature = "accesskit")]
+        {
+            self.config.viewport_builder.visible = Some(original_visible);
+        }
 
         self.config.viewport_builder.resizable = Some(resizable);
 
@@ -198,6 +225,7 @@ impl<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp>
             egui_app_factory: self.egui_app_factory,
             softbuffer_context: self.softbuffer_context,
             window,
+            event_loop_proxy: self.event_loop_proxy,
         })
     }
 }
@@ -240,6 +268,9 @@ impl<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp>
             visible,
             input_events: Vec::new(),
             software_backend: self.software_backend,
+            #[cfg(feature = "accesskit")]
+            accesskit_initialized: false,
+            event_loop_proxy: self.event_loop_proxy,
         })
     }
 }
@@ -254,6 +285,7 @@ impl<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp>
         softbuffer_context: softbuffer::Context<OwnedDisplayHandle>,
         egui_app_factory: EguiAppFactory,
         egui_context: Context,
+        event_loop_proxy: EventLoopProxy<UserEvent>,
     ) -> Self {
         Self::Configured(ConfiguredAppState {
             config,
@@ -265,11 +297,14 @@ impl<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp>
             softbuffer_context,
             egui_context,
             egui_app_factory,
+            event_loop_proxy,
         })
     }
 }
 
 enum UserEvent {
+    #[cfg(feature = "accesskit")]
+    AccessKit(accesskit_winit::Event),
     RequestRepaint {
         /// What to repaint.
         viewport_id: egui::ViewportId,
@@ -280,6 +315,13 @@ enum UserEvent {
         /// What the cumulative pass number was when the repaint was _requested_.
         cumulative_pass_nr: u64,
     },
+}
+
+#[cfg(feature = "accesskit")]
+impl From<accesskit_winit::Event> for UserEvent {
+    fn from(value: accesskit_winit::Event) -> Self {
+        Self::AccessKit(value)
+    }
 }
 
 impl<EguiApp: App, InitSurface: FnMut(Context) -> EguiApp> ApplicationHandler<UserEvent>
@@ -328,6 +370,17 @@ impl<EguiApp: App, InitSurface: FnMut(Context) -> EguiApp> ApplicationHandler<Us
         }
         if let Self::Running(state) = self {
             match event {
+                #[cfg(feature = "accesskit")]
+                UserEvent::AccessKit(ev) => match ev.window_event {
+                    accesskit_winit::WindowEvent::InitialTreeRequested => {
+                        state.request_redraw();
+                    }
+                    accesskit_winit::WindowEvent::ActionRequested(request) => {
+                        state.egui_winit.on_accesskit_action_request(request);
+                        state.request_redraw();
+                    }
+                    accesskit_winit::WindowEvent::AccessibilityDeactivated => {}
+                },
                 UserEvent::RequestRepaint {
                     viewport_id,
                     when,
@@ -429,6 +482,7 @@ impl<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp>
             egui_app_factory: self.egui_app_factory,
             softbuffer_context: self.softbuffer_context,
             window: self.window,
+            event_loop_proxy: self.event_loop_proxy,
         }
     }
     pub(crate) fn request_redraw(&self) {
@@ -440,6 +494,26 @@ impl<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp>
         event: Event<()>,
         elwt: &ActiveEventLoop,
     ) -> Result<(), SoftwareBackendAppError> {
+        #[cfg(feature = "accesskit")]
+        {
+            // Initialize AccessKit once we have both the event loop and window.
+            if !self.accesskit_initialized {
+                self.egui_context.enable_accesskit();
+
+                self.egui_winit.init_accesskit(
+                    elwt,
+                    self.window.deref(),
+                    self.event_loop_proxy.clone(),
+                );
+
+                // Make the window visible after the adapter is ready.
+                let visible = self.config.viewport_builder.visible.unwrap_or(true);
+                self.window.set_visible(visible);
+
+                self.accesskit_initialized = true;
+            }
+        }
+
         let start = if self.software_backend.capture_frame_time {
             Some(Instant::now())
         } else {
@@ -1124,10 +1198,11 @@ pub fn run_app_with_software_backend<T: App>(
     let egui_ctx = Context::default();
 
     let event_loop_proxy = event_loop.create_proxy();
+    let repaint_proxy = event_loop_proxy.clone();
     egui_ctx.set_request_repaint_callback(move |info| {
         let when = Instant::now() + info.delay;
         let cumulative_pass_nr = info.current_cumulative_pass_nr;
-        event_loop_proxy
+        repaint_proxy
             .send_event(UserEvent::RequestRepaint {
                 viewport_id: info.viewport_id,
                 when,
@@ -1142,6 +1217,7 @@ pub fn run_app_with_software_backend<T: App>(
         softbuffer_context,
         egui_app_factory,
         egui_ctx,
+         event_loop_proxy,
     );
 
     if let Err(event_loop_error) = event_loop.run_app(&mut app) {
