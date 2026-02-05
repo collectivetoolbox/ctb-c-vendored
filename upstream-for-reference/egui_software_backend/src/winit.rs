@@ -360,6 +360,7 @@ impl<EguiApp: App, InitSurface: FnMut(Context) -> EguiApp> ApplicationHandler<Us
                 event_loop.set_control_flow(ControlFlow::Wait);
             }
             Self::Running(state) => {
+                println!("window_event() Window event: {:?}", event);
                 if let Err(e) =
                     state.handle_event(Event::WindowEvent { window_id, event }, event_loop)
                 {
@@ -383,6 +384,7 @@ impl<EguiApp: App, InitSurface: FnMut(Context) -> EguiApp> ApplicationHandler<Us
                 event_loop.set_control_flow(ControlFlow::Wait);
             }
             Self::Running(state) => {
+                println!("about_to_wait() Window event: {:?}", event);
                 if let Err(e) = state.handle_event(Event::AboutToWait, event_loop) {
                     *self = Self::Dead(Some(e));
                     event_loop.exit();
@@ -471,6 +473,8 @@ impl<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp>
                 )?;
 
                 let mut raw_input = self.egui_winit.take_egui_input(self.window.deref());
+
+                println!("Got raw_input for frame");
 
                 raw_input
                     .events

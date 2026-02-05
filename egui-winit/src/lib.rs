@@ -15,6 +15,7 @@ pub use egui;
 #[cfg(feature = "accesskit")]
 use egui::accesskit;
 use egui::{Pos2, Rect, Theme, Vec2, ViewportBuilder, ViewportCommand, ViewportId, ViewportInfo};
+use log::warn;
 pub use winit;
 
 pub mod clipboard;
@@ -256,7 +257,9 @@ impl State {
             .or_default()
             .native_pixels_per_point = Some(window.scale_factor() as f32);
 
-        self.egui_input.take()
+        let input_this_frame = self.egui_input.take();
+        warn!("Received input this frame: {:?}", input_this_frame.events);
+        input_this_frame
     }
 
     /// Call this when there is a new event.

@@ -45,6 +45,8 @@ impl Dispatch<WlKeyboard, KeyboardData, WinitState> for WinitState {
             },
         };
 
+        let timestamp = std::time::SystemTime::now();
+        warn!("Received keyboard event {event:?} at {timestamp:?}");
         match event {
             WlKeyboardEvent::Keymap { format, fd, size } => match format {
                 WEnum::Value(format) => match format {
