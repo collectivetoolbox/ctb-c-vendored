@@ -136,6 +136,7 @@ impl Dispatch<WlKeyboard, KeyboardData, WinitState> for WinitState {
             WlKeyboardEvent::Key { key, state: WEnum::Value(WlKeyState::Pressed), .. } => {
                 let key = key + 8;
 
+                warn!("Key pressed (winit keyboard mod): {}", key);
                 key_input(
                     keyboard_state,
                     &mut state.events_sink,
@@ -193,6 +194,7 @@ impl Dispatch<WlKeyboard, KeyboardData, WinitState> for WinitState {
                             None => return TimeoutAction::Drop,
                         };
 
+                        warn!("Key repeat (winit keyboard mod): {}", key);
                         key_input(
                             keyboard_state,
                             &mut state.events_sink,
@@ -213,6 +215,7 @@ impl Dispatch<WlKeyboard, KeyboardData, WinitState> for WinitState {
             WlKeyboardEvent::Key { key, state: WEnum::Value(WlKeyState::Released), .. } => {
                 let key = key + 8;
 
+                warn!("Key released (winit keyboard mod): {}", key);
                 key_input(
                     keyboard_state,
                     &mut state.events_sink,

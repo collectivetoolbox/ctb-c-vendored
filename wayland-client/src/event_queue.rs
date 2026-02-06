@@ -6,6 +6,7 @@ use std::os::unix::io::{AsFd, BorrowedFd, OwnedFd};
 use std::sync::{atomic::Ordering, Arc, Condvar, Mutex};
 use std::task;
 
+use log::log;
 use wayland_backend::{
     client::{Backend, ObjectData, ObjectId, ReadEventsGuard, WaylandError},
     protocol::{Argument, Message},
@@ -337,6 +338,7 @@ impl<State> EventQueueInner<State> {
         U: Send + Sync + 'static,
         I: Proxy + 'static,
     {
+        log::debug!("enqueue_event called");
         let func = queue_callback::<I, U, State>;
         self.queue.push_back(QueueEvent(func, msg, odata));
         if self.freeze_count == 0 {

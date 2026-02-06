@@ -63,7 +63,7 @@ version = "2"
 
 [dependencies.log]
 version = "0.4"
-optional = true
+#optional = true
 
 [dependencies.rustix]
 version = "1.0.2"

@@ -106,6 +106,7 @@ impl<T: 'static> EventLoop<T> {
         let wayland_source = WaylandSource::new(connection.clone(), event_queue);
         let wayland_dispatcher =
             calloop::Dispatcher::new(wayland_source, |_, queue, winit_state: &mut WinitState| {
+                tracing::warn!("Dispatching pending events");
                 let result = queue.dispatch_pending(winit_state);
                 if result.is_ok()
                     && (!winit_state.events_sink.is_empty()
@@ -349,6 +350,10 @@ impl<T: 'static> EventLoop<T> {
         if cause == StartCause::Init {
             callback(Event::Resumed, &self.window_target);
         }
+
+    //log the number of pending user events and the timestamp
+        tracing::warn!("Pending user events: {}, Timestamp: {:?}", self.pending_user_events.borrow().len(), std::time::SystemTime::now());
+
 
         // Handle pending user events. We don't need back buffer, since we can't dispatch
         // user events indirectly via callback to the user.
