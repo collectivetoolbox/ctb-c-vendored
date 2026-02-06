@@ -4,7 +4,6 @@ use std::num::NonZeroUsize;
 
 use ahash::{HashMap, HashSet};
 use epaint::emath::TSTransform;
-use log::warn;
 
 use crate::{
     EventFilter, Id, IdMap, LayerId, Order, Pos2, Rangef, RawInput, Rect, Style, Vec2, ViewportId,
@@ -482,16 +481,7 @@ pub(crate) struct Focus {
     last_interested: Option<Id>,
 
     /// Set when looking for widget with navigational keys like arrows, tab, shift+tab.
-    focus_direction: Vec<FocusDirection>,
-
-    /// Pending tab/shift-tab steps accumulated from [`Self::focus_direction`].
-    ///
-    /// Positive means "Next", negative means "Previous".
-    pending_tab_steps: i32,
-
-    /// Widget traversal order for the current frame (only those calling
-    /// [`Self::interested_in_focus`]).
-    interested_ids_this_frame: Vec<Id>,
+    focus_direction: FocusDirection,
 
     /// The top-most modal layer from the previous frame.
     top_modal_layer: Option<LayerId>,
@@ -544,8 +534,7 @@ impl Focus {
             self.id_requested_by_accesskit = None;
         }
 
-        self.focus_direction.clear();
-        self.interested_ids_this_frame.clear();
+        self.focus_direction = FocusDirection::None;
 
         for event in &new_input.events {
             if !event_filter.matches(event)
@@ -568,16 +557,14 @@ impl Focus {
                             Some(FocusDirection::Next)
                         }
                     }
-
                     crate::Key::Escape => {
                         self.focused_widget = None;
                         Some(FocusDirection::None)
                     }
-
                     _ => None,
                 }
             {
-                self.focus_direction.push(cardinality);
+                self.focus_direction = cardinality;
             }
 
             #[cfg(feature = "accesskit")]
@@ -595,14 +582,10 @@ impl Focus {
     }
 
     pub(crate) fn end_pass(&mut self, used_ids: &IdMap<Rect>) {
-        // Apply any pending (arrow-key) spatial navigation in FIFO order.
-        let drained = self.focus_direction.drain(..).collect::<Vec<_>>();
-        for direction in drained {
-            if direction.is_cardinal()
-                && let Some(found_widget) = self.find_widget_in_direction(used_ids, direction)
-            {
-                self.focused_widget = Some(FocusWidget::new(found_widget));
-            }
+        if self.focus_direction.is_cardinal()
+            && let Some(found_widget) = self.find_widget_in_direction(used_ids)
+        {
+            self.focused_widget = Some(FocusWidget::new(found_widget));
         }
 
         if let Some(focused_widget) = self.focused_widget {
@@ -638,74 +621,32 @@ impl Focus {
             .entry(id)
             .or_insert(Rect::EVERYTHING);
 
-        self.interested_ids_this_frame.push(id);
-
-        // Pull any queued tab navigation out of `focus_direction` so repeated
-        // tab presses buffered into one frame are not dropped.
-        self.pending_tab_steps = self
-            .pending_tab_steps
-            .saturating_add(self.take_tab_steps_from_queue());
-
-        // Forward tabbing ("Next"):
-        if self.pending_tab_steps > 0 {
-            // If nothing is focused, tab focuses the first focusable widget.
-            if self.focused_widget.is_none() && !self.give_to_next {
-                self.focused_widget = Some(FocusWidget::new(id));
-                self.pending_tab_steps = self.pending_tab_steps.saturating_sub(1);
-
-                if self.pending_tab_steps > 0 {
-                    self.focused_widget = None;
-                    self.give_to_next = true;
-                }
-            } else if self.give_to_next && !self.had_focus_last_frame(id) {
-                self.focused_widget = Some(FocusWidget::new(id));
-                self.give_to_next = false;
-                self.pending_tab_steps = self.pending_tab_steps.saturating_sub(1);
-
-                // Skip intermediate focus if multiple tabs were buffered.
-                if self.pending_tab_steps > 0 {
-                    self.focused_widget = None;
-                    self.give_to_next = true;
-                }
-            } else if self.focused() == Some(id) {
-                // Start moving away from the currently focused widget.
+        if self.give_to_next && !self.had_focus_last_frame(id) {
+            self.focused_widget = Some(FocusWidget::new(id));
+            self.give_to_next = false;
+        } else if self.focused() == Some(id) {
+            if self.focus_direction == FocusDirection::Next {
                 self.focused_widget = None;
                 self.give_to_next = true;
+                self.reset_focus();
+            } else if self.focus_direction == FocusDirection::Previous {
+                self.id_next_frame = self.last_interested; // frame-delay so gained_focus works
+                self.reset_focus();
             }
-        }
-
-        // Backward tabbing ("Previous"):
-        if self.pending_tab_steps < 0 {
-            if self.focused() == Some(id) {
-                let Some(steps_back_i32) = self.pending_tab_steps.checked_abs() else {
-                    self.pending_tab_steps = 0;
-                    self.give_to_next = false;
-                    self.last_interested = Some(id);
-                    return;
-                };
-
-                let Ok(steps_back) = usize::try_from(steps_back_i32) else {
-                    self.pending_tab_steps = 0;
-                    self.give_to_next = false;
-                    self.last_interested = Some(id);
-                    return;
-                };
-
-                // We are currently at the focused widget (which is the last element).
-                let len = self.interested_ids_this_frame.len();
-                let target_idx = len
-                    .saturating_sub(1)
-                    .saturating_sub(steps_back);
-
-                self.id_next_frame = self.interested_ids_this_frame.get(target_idx).copied();
-                self.pending_tab_steps = 0;
-                self.give_to_next = false;
-            } else if self.focused_widget.is_none() && !self.give_to_next {
-                // Best-effort behavior if nothing has focus: use whatever the
-                // previous frame remembered as the last interested widget.
-                self.focused_widget = self.last_interested.map(FocusWidget::new);
-                self.pending_tab_steps = 0;
-            }
+        } else if self.focus_direction == FocusDirection::Next
+            && self.focused_widget.is_none()
+            && !self.give_to_next
+        {
+            // nothing has focus and the user pressed tab - give focus to the first widgets that wants it:
+            self.focused_widget = Some(FocusWidget::new(id));
+            self.reset_focus();
+        } else if self.focus_direction == FocusDirection::Previous
+            && self.focused_widget.is_none()
+            && !self.give_to_next
+        {
+            // nothing has focus and the user pressed Shift+Tab - give focus to the last widgets that wants it:
+            self.focused_widget = self.last_interested.map(FocusWidget::new);
+            self.reset_focus();
         }
 
         self.last_interested = Some(id);
@@ -720,33 +661,10 @@ impl Focus {
     }
 
     fn reset_focus(&mut self) {
-        self.focus_direction.clear();
-        self.pending_tab_steps = 0;
-        self.give_to_next = false;
+        self.focus_direction = FocusDirection::None;
     }
 
-    fn take_tab_steps_from_queue(&mut self) -> i32 {
-        let mut delta = 0_i32;
-        self.focus_direction.retain(|dir| match dir {
-            FocusDirection::Next => {
-                delta = delta.saturating_add(1);
-                false
-            }
-            FocusDirection::Previous => {
-                delta = delta.saturating_sub(1);
-                false
-            }
-            FocusDirection::None => false,
-            _ => true, // keep cardinal directions for `end_pass`
-        });
-        delta
-    }
-
-    fn find_widget_in_direction(
-        &mut self,
-        new_rects: &IdMap<Rect>,
-        direction: FocusDirection,
-    ) -> Option<Id> {
+    fn find_widget_in_direction(&mut self, new_rects: &IdMap<Rect>) -> Option<Id> {
         // NOTE: `new_rects` here include some widgets _not_ interested in focus.
 
         /// * negative if `a` is left of `b`
@@ -764,7 +682,7 @@ impl Focus {
         let current_focused = self.focused_widget?;
 
         // In what direction we are looking for the next widget.
-        let search_direction = match direction {
+        let search_direction = match self.focus_direction {
             FocusDirection::Up => Vec2::UP,
             FocusDirection::Right => Vec2::RIGHT,
             FocusDirection::Down => Vec2::DOWN,
@@ -968,7 +886,7 @@ impl Memory {
 
     /// Move keyboard focus in a specific direction.
     pub fn move_focus(&mut self, direction: FocusDirection) {
-        self.focus_mut().focus_direction.push(direction);
+        self.focus_mut().focus_direction = direction;
     }
 
     /// Returns true if

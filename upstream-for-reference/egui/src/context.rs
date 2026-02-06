@@ -13,7 +13,6 @@ use epaint::{
     text::{FontInsert, FontPriority, Fonts, FontsView},
     vec2,
 };
-use log::warn;
 
 use crate::{
     Align2, CursorIcon, DeferredViewportUiCallback, FontDefinitions, Grid, Id, ImmediateViewport,
@@ -454,10 +453,6 @@ impl ContextImpl {
         let all_viewport_ids: ViewportIdSet = self.all_viewport_ids();
 
         let viewport = self.viewports.entry(self.viewport_id()).or_default();
-
-if !new_raw_input.events.is_empty() {
-        warn!("Beginning pass with non-empty RawInput: {:?}", new_raw_input.events);
-}
 
         self.memory.begin_pass(&new_raw_input, &all_viewport_ids);
 
