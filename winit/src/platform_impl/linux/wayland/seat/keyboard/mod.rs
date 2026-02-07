@@ -278,10 +278,14 @@ impl Dispatch<WlKeyboard, KeyboardData, WinitState> for WinitState {
                         return;
                     };
 
-                    // Guard against pathological values that would compute to a zero-duration
+                    // Guard against pathological values that would compute to an extremely small
                     // repeat gap and starve the event loop.
-                    let rate = u64::from(rate).min(1_000_000);
-                    let gap_micros = (1_000_000 / rate).max(1);
+                    //
+                    // Typical repeat rates are in the tens of Hz. Even values in the low
+                    // hundreds are already unusually fast for UI navigation keys (like Tab).
+                    // Clamp to a reasonable upper bound.
+                    let rate = u64::from(rate).min(1_000);
+                    let gap_micros = (1_000_000 / rate).max(1_000);
                     let gap = Duration::from_micros(gap_micros);
                     let delay = Duration::from_millis(u64::from(delay));
                     RepeatInfo::Repeat { gap, delay }
