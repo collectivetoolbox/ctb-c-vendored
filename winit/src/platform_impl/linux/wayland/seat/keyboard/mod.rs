@@ -254,7 +254,7 @@ impl Dispatch<WlKeyboard, KeyboardData, WinitState> for WinitState {
                 );
             },
             WlKeyboardEvent::RepeatInfo { rate, delay } => {
-                keyboard_state.repeat_info = if rate == 0 {
+                keyboard_state.repeat_info = if rate <= 0 || delay < 0 {
                     // Stop the repeat once we get a disable event.
                     keyboard_state.current_repeat = None;
                     if let Some(repeat_token) = keyboard_state.repeat_token.take() {
@@ -262,8 +262,28 @@ impl Dispatch<WlKeyboard, KeyboardData, WinitState> for WinitState {
                     }
                     RepeatInfo::Disable
                 } else {
-                    let gap = Duration::from_micros(1_000_000 / rate as u64);
-                    let delay = Duration::from_millis(delay as u64);
+                    let Ok(rate) = u32::try_from(rate) else {
+                        keyboard_state.current_repeat = None;
+                        if let Some(repeat_token) = keyboard_state.repeat_token.take() {
+                            keyboard_state.loop_handle.remove(repeat_token);
+                        }
+                        return;
+                    };
+
+                    let Ok(delay) = u32::try_from(delay) else {
+                        keyboard_state.current_repeat = None;
+                        if let Some(repeat_token) = keyboard_state.repeat_token.take() {
+                            keyboard_state.loop_handle.remove(repeat_token);
+                        }
+                        return;
+                    };
+
+                    // Guard against pathological values that would compute to a zero-duration
+                    // repeat gap and starve the event loop.
+                    let rate = u64::from(rate).min(1_000_000);
+                    let gap_micros = (1_000_000 / rate).max(1);
+                    let gap = Duration::from_micros(gap_micros);
+                    let delay = Duration::from_millis(u64::from(delay));
                     RepeatInfo::Repeat { gap, delay }
                 };
             },
