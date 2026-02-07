@@ -772,12 +772,25 @@ impl<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp>
                     .egui_context
                     .tessellate(full_output.shapes, full_output.pixels_per_point);
 
-                let mut buffer =
-                    self.surface
-                        .buffer_mut()
-                        .map_err(SoftwareBackendAppError::soft_buffer(
+                let mut buffer = match self.surface.buffer_mut() {
+                    Ok(buffer) => buffer,
+                    Err(SoftBufferError::PlatformError(Some(message), None))
+                        if message == "Wayland back buffer busy" =>
+                    {
+                        // The compositor hasn't released the back buffer yet.
+                        // Skip this frame and retry soon, but keep the event loop responsive.
+                        elwt.set_control_flow(ControlFlow::WaitUntil(
+                            Instant::now() + Duration::from_millis(1),
+                        ));
+                        self.window.request_redraw();
+                        return Ok(());
+                    }
+                    Err(err) => {
+                        return Err(SoftwareBackendAppError::soft_buffer(
                             "softbuffer::Surface::buffer_mut",
-                        ))?;
+                        )(err));
+                    }
+                };
                 buffer.fill(0); // CLEAR
 
                 let buffer_ref = &mut BufferMutRef::new(

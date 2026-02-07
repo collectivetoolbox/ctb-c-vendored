@@ -197,21 +197,18 @@ impl<D: HasDisplayHandle + ?Sized, W: HasWindowHandle> SurfaceInterface<D, W>
             .expect("Must set size of surface before calling `buffer_mut()`");
 
         if let Some((_front, back)) = &mut self.buffers {
-            // Block if back buffer not released yet
+            // Don't block waiting for the compositor to release the back buffer.
+            //
+            // In the common `winit` + `softbuffer` software-rendering stack, blocking here can
+            // starve the application's main event loop of input events (because it delays the
+            // handler returning to `winit`), producing symptoms like "stuck" keys.
+            //
+            // The caller can retry the frame later.
             if !back.released() {
-                let mut event_queue = self
-                    .display
-                    .event_queue
-                    .lock()
-                    .unwrap_or_else(|x| x.into_inner());
-                while !back.released() {
-                    event_queue.blocking_dispatch(&mut State).map_err(|err| {
-                        SoftBufferError::PlatformError(
-                            Some("Wayland dispatch failure".to_string()),
-                            Some(Box::new(err)),
-                        )
-                    })?;
-                }
+                return Err(SoftBufferError::PlatformError(
+                    Some("Wayland back buffer busy".to_string()),
+                    None,
+                ));
             }
 
             // Resize, if buffer isn't large enough
