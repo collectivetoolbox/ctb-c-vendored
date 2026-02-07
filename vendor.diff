@@ -1,6 +1,6 @@
 diff -uraN original-egui/Cargo.toml ./egui/Cargo.toml
---- original-egui/Cargo.toml	2026-02-07 18:20:29.572056077 -0500
-+++ ./egui/Cargo.toml	2026-02-07 18:20:29.580056286 -0500
+--- original-egui/Cargo.toml	2026-02-07 18:24:15.129598315 -0500
++++ ./egui/Cargo.toml	2026-02-07 18:24:15.133598408 -0500
 @@ -1,17 +1,18 @@
  [package]
  name = "egui"
@@ -40,7 +40,7 @@ diff -uraN original-egui/Cargo.toml ./egui/Cargo.toml
 -profiling.workspace = true
 -smallvec.workspace = true
 -unicode-segmentation.workspace = true
-+accesskit = "0.21.1"
++accesskit = { optional = true, version = "0.21.1" }
 +ahash = { version = "0.8.12", default-features = false, features = [
 +  "no-rng", # we don't need DOS-protection, so we let users opt-in to it instead
 +  "std",
@@ -67,8 +67,8 @@ diff -uraN original-egui/Cargo.toml ./egui/Cargo.toml
 +serde = { optional = true, version = "1.0.228", features = ["derive", "rc"] }
 \ No newline at end of file
 diff -uraN original-egui/src/memory/mod.rs ./egui/src/memory/mod.rs
---- original-egui/src/memory/mod.rs	2026-02-07 18:20:29.576056183 -0500
-+++ ./egui/src/memory/mod.rs	2026-02-07 18:20:29.576056183 -0500
+--- original-egui/src/memory/mod.rs	2026-02-07 18:24:15.129598315 -0500
++++ ./egui/src/memory/mod.rs	2026-02-07 18:24:15.133598408 -0500
 @@ -481,7 +481,16 @@
      last_interested: Option<Id>,
  
@@ -287,8 +287,8 @@ diff -uraN original-egui/src/memory/mod.rs ./egui/src/memory/mod.rs
  
      /// Returns true if
 diff -uraN original-egui-winit/Cargo.toml ./egui-winit/Cargo.toml
---- original-egui-winit/Cargo.toml	2026-02-07 18:20:29.756060894 -0500
-+++ ./egui-winit/Cargo.toml	2026-02-07 18:20:29.760060999 -0500
+--- original-egui-winit/Cargo.toml	2026-02-07 18:24:15.329602951 -0500
++++ ./egui-winit/Cargo.toml	2026-02-07 18:24:15.333603044 -0500
 @@ -1,17 +1,18 @@
  [package]
  name = "egui-winit"
@@ -376,8 +376,8 @@ diff -uraN original-egui-winit/Cargo.toml ./egui-winit/Cargo.toml
 +arboard = { version = "3.6.1", optional = true, features = ["image-data"] }
 \ No newline at end of file
 diff -uraN original-egui-winit/src/clipboard.rs ./egui-winit/src/clipboard.rs
---- original-egui-winit/src/clipboard.rs	2026-02-07 18:20:29.756060894 -0500
-+++ ./egui-winit/src/clipboard.rs	2026-02-07 18:20:29.760060999 -0500
+--- original-egui-winit/src/clipboard.rs	2026-02-07 18:24:15.329602951 -0500
++++ ./egui-winit/src/clipboard.rs	2026-02-07 18:24:15.333603044 -0500
 @@ -179,10 +179,15 @@
  
      profiling::function_scope!();
@@ -398,8 +398,8 @@ diff -uraN original-egui-winit/src/clipboard.rs ./egui-winit/src/clipboard.rs
          #[cfg(feature = "wayland")]
          log::debug!("Cannot init smithay clipboard without a Wayland display handle");
 diff -uraN original-egui_software_backend/Cargo.toml ./egui_software_backend/Cargo.toml
---- original-egui_software_backend/Cargo.toml	2026-02-07 18:20:29.928065396 -0500
-+++ ./egui_software_backend/Cargo.toml	2026-02-07 18:20:29.928065396 -0500
+--- original-egui_software_backend/Cargo.toml	2026-02-07 18:24:15.525607495 -0500
++++ ./egui_software_backend/Cargo.toml	2026-02-07 18:24:15.525607495 -0500
 @@ -8,6 +8,7 @@
  readme = "README.md"
  license = "MIT OR Apache-2.0"
@@ -496,8 +496,8 @@ diff -uraN original-egui_software_backend/Cargo.toml ./egui_software_backend/Car
  
  allow_attributes = "warn"
 diff -uraN original-egui_software_backend/src/lib.rs ./egui_software_backend/src/lib.rs
---- original-egui_software_backend/src/lib.rs	2026-02-07 18:20:29.924065292 -0500
-+++ ./egui_software_backend/src/lib.rs	2026-02-07 18:20:29.928065396 -0500
+--- original-egui_software_backend/src/lib.rs	2026-02-07 18:24:15.525607495 -0500
++++ ./egui_software_backend/src/lib.rs	2026-02-07 18:24:15.525607495 -0500
 @@ -231,6 +231,17 @@
          }
      }
@@ -517,8 +517,8 @@ diff -uraN original-egui_software_backend/src/lib.rs ./egui_software_backend/src
      ///
      /// # Arguments
 diff -uraN original-egui_software_backend/src/render.rs ./egui_software_backend/src/render.rs
---- original-egui_software_backend/src/render.rs	2026-02-07 18:20:29.924065292 -0500
-+++ ./egui_software_backend/src/render.rs	2026-02-07 18:20:29.928065396 -0500
+--- original-egui_software_backend/src/render.rs	2026-02-07 18:24:15.525607495 -0500
++++ ./egui_software_backend/src/render.rs	2026-02-07 18:24:15.525607495 -0500
 @@ -49,7 +49,10 @@
          )
      }
@@ -532,8 +532,8 @@ diff -uraN original-egui_software_backend/src/render.rs ./egui_software_backend/
          textures,
          buffer,
 diff -uraN original-egui_software_backend/src/winit.rs ./egui_software_backend/src/winit.rs
---- original-egui_software_backend/src/winit.rs	2026-02-07 18:20:29.928065396 -0500
-+++ ./egui_software_backend/src/winit.rs	2026-02-07 18:20:29.928065396 -0500
+--- original-egui_software_backend/src/winit.rs	2026-02-07 18:24:15.525607495 -0500
++++ ./egui_software_backend/src/winit.rs	2026-02-07 18:24:15.525607495 -0500
 @@ -17,9 +17,14 @@
  use std::vec::Vec;
  use winit::application::ApplicationHandler;
@@ -804,8 +804,8 @@ diff -uraN original-egui_software_backend/src/winit.rs ./egui_software_backend/s
  
      if let Err(event_loop_error) = event_loop.run_app(&mut app) {
 diff -uraN original-smithay-clipboard/Cargo.toml ./smithay-clipboard/Cargo.toml
---- original-smithay-clipboard/Cargo.toml	2026-02-07 18:20:30.156071363 -0500
-+++ ./smithay-clipboard/Cargo.toml	2026-02-07 18:20:30.160071467 -0500
+--- original-smithay-clipboard/Cargo.toml	2026-02-07 18:24:15.769613151 -0500
++++ ./smithay-clipboard/Cargo.toml	2026-02-07 18:24:15.769613151 -0500
 @@ -9,11 +9,12 @@
  license = "MIT"
  keywords = ["clipboard", "wayland"]
@@ -821,8 +821,8 @@ diff -uraN original-smithay-clipboard/Cargo.toml ./smithay-clipboard/Cargo.toml
  [dev-dependencies]
  sctk = { package = "smithay-client-toolkit", version = "0.20.0", default-features = false, features = ["calloop", "xkbcommon"] }
 diff -uraN original-smithay-clipboard/src/lib.rs ./smithay-clipboard/src/lib.rs
---- original-smithay-clipboard/src/lib.rs	2026-02-07 18:20:30.156071363 -0500
-+++ ./smithay-clipboard/src/lib.rs	2026-02-07 18:20:30.160071467 -0500
+--- original-smithay-clipboard/src/lib.rs	2026-02-07 18:24:15.765613059 -0500
++++ ./smithay-clipboard/src/lib.rs	2026-02-07 18:24:15.769613151 -0500
 @@ -10,7 +10,6 @@
  
  use sctk::reexports::calloop::channel::{self, Sender};
@@ -866,8 +866,8 @@ diff -uraN original-smithay-clipboard/src/lib.rs ./smithay-clipboard/src/lib.rs
          let (request_sender, rx_chan) = channel::channel();
          // Create channel to get data from the clipboard thread.
 diff -uraN original-softbuffer/Cargo.toml ./softbuffer/Cargo.toml
---- original-softbuffer/Cargo.toml	2026-02-07 18:20:30.404077850 -0500
-+++ ./softbuffer/Cargo.toml	2026-02-07 18:20:30.404077850 -0500
+--- original-softbuffer/Cargo.toml	2026-02-07 18:24:16.009618715 -0500
++++ ./softbuffer/Cargo.toml	2026-02-07 18:24:16.013618808 -0500
 @@ -11,23 +11,23 @@
  categories = ["game-development", "graphics", "gui", "multimedia", "rendering"]
  exclude = ["examples"]
@@ -919,8 +919,8 @@ diff -uraN original-softbuffer/Cargo.toml ./softbuffer/Cargo.toml
  # Run with `cargo apk r --example winit_android`
  name = "winit_android"
 diff -uraN original-softbuffer/src/backends/wayland/mod.rs ./softbuffer/src/backends/wayland/mod.rs
---- original-softbuffer/src/backends/wayland/mod.rs	2026-02-07 18:20:30.404077850 -0500
-+++ ./softbuffer/src/backends/wayland/mod.rs	2026-02-07 18:20:30.404077850 -0500
+--- original-softbuffer/src/backends/wayland/mod.rs	2026-02-07 18:24:16.009618715 -0500
++++ ./softbuffer/src/backends/wayland/mod.rs	2026-02-07 18:24:16.013618808 -0500
 @@ -9,7 +9,6 @@
      sync::{Arc, Mutex},
  };
@@ -1018,8 +1018,8 @@ diff -uraN original-softbuffer/src/backends/wayland/mod.rs ./softbuffer/src/back
  
              // Resize, if buffer isn't large enough
 diff -uraN original-winit/Cargo.toml ./winit/Cargo.toml
---- original-winit/Cargo.toml	2026-02-07 18:20:30.720086117 -0500
-+++ ./winit/Cargo.toml	2026-02-07 18:20:30.732086432 -0500
+--- original-winit/Cargo.toml	2026-02-07 18:24:16.345626501 -0500
++++ ./winit/Cargo.toml	2026-02-07 18:24:16.349626593 -0500
 @@ -10,10 +10,14 @@
  readme = "README.md"
  documentation = "https://docs.rs/winit"
@@ -1141,8 +1141,8 @@ diff -uraN original-winit/Cargo.toml ./winit/Cargo.toml
 -serde = { version = "1", features = ["serde_derive"] }
 -mint = "0.5.6"
 diff -uraN original-winit/README.md ./winit/README.md
---- original-winit/README.md	2026-02-07 18:20:30.724086222 -0500
-+++ ./winit/README.md	2026-02-07 18:20:30.732086432 -0500
+--- original-winit/README.md	2026-02-07 18:24:16.345626501 -0500
++++ ./winit/README.md	2026-02-07 18:24:16.349626593 -0500
 @@ -1,4 +1,5 @@
  # winit - Cross-platform window creation and management in Rust
 +# Vendored for ctoolbox to allow static linking
@@ -1150,8 +1150,8 @@ diff -uraN original-winit/README.md ./winit/README.md
  [![Crates.io](https://img.shields.io/crates/v/winit.svg)](https://crates.io/crates/winit)
  [![Docs.rs](https://docs.rs/winit/badge.svg)](https://docs.rs/winit)
 diff -uraN original-winit/src/keyboard.rs ./winit/src/keyboard.rs
---- original-winit/src/keyboard.rs	2026-02-07 18:20:30.720086117 -0500
-+++ ./winit/src/keyboard.rs	2026-02-07 18:20:30.732086432 -0500
+--- original-winit/src/keyboard.rs	2026-02-07 18:24:16.345626501 -0500
++++ ./winit/src/keyboard.rs	2026-02-07 18:24:16.349626593 -0500
 @@ -251,7 +251,7 @@
      #[inline]
      fn eq(&self, rhs: &KeyCode) -> bool {
@@ -1198,8 +1198,8 @@ diff -uraN original-winit/src/keyboard.rs ./winit/src/keyboard.rs
          }
      }
 diff -uraN original-winit/src/platform/startup_notify.rs ./winit/src/platform/startup_notify.rs
---- original-winit/src/platform/startup_notify.rs	2026-02-07 18:20:30.720086117 -0500
-+++ ./winit/src/platform/startup_notify.rs	2026-02-07 18:20:30.728086327 -0500
+--- original-winit/src/platform/startup_notify.rs	2026-02-07 18:24:16.341626409 -0500
++++ ./winit/src/platform/startup_notify.rs	2026-02-07 18:24:16.345626501 -0500
 @@ -86,14 +86,18 @@
  /// This is wise to do before running child processes,
  /// which may not to support the activation token.
@@ -1224,8 +1224,8 @@ diff -uraN original-winit/src/platform/startup_notify.rs ./winit/src/platform/st
 +    }
  }
 diff -uraN original-winit/src/platform/wayland.rs ./winit/src/platform/wayland.rs
---- original-winit/src/platform/wayland.rs	2026-02-07 18:20:30.720086117 -0500
-+++ ./winit/src/platform/wayland.rs	2026-02-07 18:20:30.728086327 -0500
+--- original-winit/src/platform/wayland.rs	2026-02-07 18:24:16.341626409 -0500
++++ ./winit/src/platform/wayland.rs	2026-02-07 18:24:16.345626501 -0500
 @@ -2,8 +2,8 @@
  //!
  //! **Note:** Windows don't appear on Wayland until you draw/present to them.
@@ -1238,8 +1238,8 @@ diff -uraN original-winit/src/platform/wayland.rs ./winit/src/platform/wayland.r
  //! ## Client-side decorations
  //!
 diff -uraN original-winit/src/platform_impl/linux/common/xkb/compose.rs ./winit/src/platform_impl/linux/common/xkb/compose.rs
---- original-winit/src/platform_impl/linux/common/xkb/compose.rs	2026-02-07 18:20:30.720086117 -0500
-+++ ./winit/src/platform_impl/linux/common/xkb/compose.rs	2026-02-07 18:20:30.728086327 -0500
+--- original-winit/src/platform_impl/linux/common/xkb/compose.rs	2026-02-07 18:24:16.341626409 -0500
++++ ./winit/src/platform_impl/linux/common/xkb/compose.rs	2026-02-07 18:24:16.345626501 -0500
 @@ -6,9 +6,9 @@
  use std::os::unix::ffi::OsStringExt;
  use std::ptr::NonNull;
@@ -1321,7 +1321,7 @@ diff -uraN original-winit/src/platform_impl/linux/common/xkb/compose.rs ./winit/
  }
 diff -uraN original-winit/src/platform_impl/linux/common/xkb/ffi.rs ./winit/src/platform_impl/linux/common/xkb/ffi.rs
 --- original-winit/src/platform_impl/linux/common/xkb/ffi.rs	1969-12-31 19:00:00.000000000 -0500
-+++ ./winit/src/platform_impl/linux/common/xkb/ffi.rs	2026-02-07 18:20:30.728086327 -0500
++++ ./winit/src/platform_impl/linux/common/xkb/ffi.rs	2026-02-07 18:24:16.345626501 -0500
 @@ -0,0 +1,213 @@
 +#![allow(dead_code, non_camel_case_types)]
 +
@@ -1537,8 +1537,8 @@ diff -uraN original-winit/src/platform_impl/linux/common/xkb/ffi.rs ./winit/src/
 +    ) -> *mut xkb_state;
 +}
 diff -uraN original-winit/src/platform_impl/linux/common/xkb/keymap.rs ./winit/src/platform_impl/linux/common/xkb/keymap.rs
---- original-winit/src/platform_impl/linux/common/xkb/keymap.rs	2026-02-07 18:20:30.720086117 -0500
-+++ ./winit/src/platform_impl/linux/common/xkb/keymap.rs	2026-02-07 18:20:30.728086327 -0500
+--- original-winit/src/platform_impl/linux/common/xkb/keymap.rs	2026-02-07 18:24:16.341626409 -0500
++++ ./winit/src/platform_impl/linux/common/xkb/keymap.rs	2026-02-07 18:24:16.345626501 -0500
 @@ -5,20 +5,20 @@
  use std::ptr::{self, NonNull};
  
@@ -1654,8 +1654,8 @@ diff -uraN original-winit/src/platform_impl/linux/common/xkb/keymap.rs ./winit/s
              None
          } else {
 diff -uraN original-winit/src/platform_impl/linux/common/xkb/mod.rs ./winit/src/platform_impl/linux/common/xkb/mod.rs
---- original-winit/src/platform_impl/linux/common/xkb/mod.rs	2026-02-07 18:20:30.720086117 -0500
-+++ ./winit/src/platform_impl/linux/common/xkb/mod.rs	2026-02-07 18:20:30.728086327 -0500
+--- original-winit/src/platform_impl/linux/common/xkb/mod.rs	2026-02-07 18:24:16.341626409 -0500
++++ ./winit/src/platform_impl/linux/common/xkb/mod.rs	2026-02-07 18:24:16.345626501 -0500
 @@ -3,26 +3,27 @@
  use std::ptr::{self, NonNull};
  use std::sync::atomic::{AtomicBool, Ordering};
@@ -1768,8 +1768,8 @@ diff -uraN original-winit/src/platform_impl/linux/common/xkb/mod.rs ./winit/src/
      }
  }
 diff -uraN original-winit/src/platform_impl/linux/common/xkb/state.rs ./winit/src/platform_impl/linux/common/xkb/state.rs
---- original-winit/src/platform_impl/linux/common/xkb/state.rs	2026-02-07 18:20:30.720086117 -0500
-+++ ./winit/src/platform_impl/linux/common/xkb/state.rs	2026-02-07 18:20:30.728086327 -0500
+--- original-winit/src/platform_impl/linux/common/xkb/state.rs	2026-02-07 18:24:16.341626409 -0500
++++ ./winit/src/platform_impl/linux/common/xkb/state.rs	2026-02-07 18:24:16.345626501 -0500
 @@ -4,16 +4,16 @@
  use std::ptr::NonNull;
  
@@ -1909,8 +1909,8 @@ diff -uraN original-winit/src/platform_impl/linux/common/xkb/state.rs ./winit/sr
      }
  }
 diff -uraN original-winit/src/platform_impl/linux/mod.rs ./winit/src/platform_impl/linux/mod.rs
---- original-winit/src/platform_impl/linux/mod.rs	2026-02-07 18:20:30.720086117 -0500
-+++ ./winit/src/platform_impl/linux/mod.rs	2026-02-07 18:20:30.728086327 -0500
+--- original-winit/src/platform_impl/linux/mod.rs	2026-02-07 18:24:16.341626409 -0500
++++ ./winit/src/platform_impl/linux/mod.rs	2026-02-07 18:24:16.349626593 -0500
 @@ -251,7 +251,7 @@
      }
  
@@ -1970,8 +1970,8 @@ diff -uraN original-winit/src/platform_impl/linux/mod.rs ./winit/src/platform_im
                  .into())
              },
 diff -uraN original-winit/src/platform_impl/linux/wayland/event_loop/mod.rs ./winit/src/platform_impl/linux/wayland/event_loop/mod.rs
---- original-winit/src/platform_impl/linux/wayland/event_loop/mod.rs	2026-02-07 18:20:30.720086117 -0500
-+++ ./winit/src/platform_impl/linux/wayland/event_loop/mod.rs	2026-02-07 18:20:30.728086327 -0500
+--- original-winit/src/platform_impl/linux/wayland/event_loop/mod.rs	2026-02-07 18:24:16.341626409 -0500
++++ ./winit/src/platform_impl/linux/wayland/event_loop/mod.rs	2026-02-07 18:24:16.345626501 -0500
 @@ -106,6 +106,7 @@
          let wayland_source = WaylandSource::new(connection.clone(), event_queue);
          let wayland_dispatcher =
@@ -2017,8 +2017,8 @@ diff -uraN original-winit/src/platform_impl/linux/wayland/event_loop/mod.rs ./wi
  
                      awakener.ping();
 diff -uraN original-winit/src/platform_impl/linux/wayland/mod.rs ./winit/src/platform_impl/linux/wayland/mod.rs
---- original-winit/src/platform_impl/linux/wayland/mod.rs	2026-02-07 18:20:30.720086117 -0500
-+++ ./winit/src/platform_impl/linux/wayland/mod.rs	2026-02-07 18:20:30.728086327 -0500
+--- original-winit/src/platform_impl/linux/wayland/mod.rs	2026-02-07 18:24:16.341626409 -0500
++++ ./winit/src/platform_impl/linux/wayland/mod.rs	2026-02-07 18:24:16.345626501 -0500
 @@ -5,7 +5,8 @@
  
  use sctk::reexports::client::globals::{BindError, GlobalError};
@@ -2044,8 +2044,8 @@ diff -uraN original-winit/src/platform_impl/linux/wayland/mod.rs ./winit/src/pla
  
  /// The default routine does floor, but we need round on Wayland.
 diff -uraN original-winit/src/platform_impl/linux/wayland/seat/keyboard/mod.rs ./winit/src/platform_impl/linux/wayland/seat/keyboard/mod.rs
---- original-winit/src/platform_impl/linux/wayland/seat/keyboard/mod.rs	2026-02-07 18:20:30.720086117 -0500
-+++ ./winit/src/platform_impl/linux/wayland/seat/keyboard/mod.rs	2026-02-07 18:20:30.728086327 -0500
+--- original-winit/src/platform_impl/linux/wayland/seat/keyboard/mod.rs	2026-02-07 18:24:16.341626409 -0500
++++ ./winit/src/platform_impl/linux/wayland/seat/keyboard/mod.rs	2026-02-07 18:24:16.345626501 -0500
 @@ -5,7 +5,6 @@
  
  use calloop::timer::{TimeoutAction, Timer};
@@ -2107,8 +2107,8 @@ diff -uraN original-winit/src/platform_impl/linux/wayland/seat/keyboard/mod.rs .
                              keyboard_state,
                              &mut state.events_sink,
 diff -uraN original-winit/src/platform_impl/linux/wayland/window/mod.rs ./winit/src/platform_impl/linux/wayland/window/mod.rs
---- original-winit/src/platform_impl/linux/wayland/window/mod.rs	2026-02-07 18:20:30.720086117 -0500
-+++ ./winit/src/platform_impl/linux/wayland/window/mod.rs	2026-02-07 18:20:30.728086327 -0500
+--- original-winit/src/platform_impl/linux/wayland/window/mod.rs	2026-02-07 18:24:16.341626409 -0500
++++ ./winit/src/platform_impl/linux/wayland/window/mod.rs	2026-02-07 18:24:16.345626501 -0500
 @@ -5,9 +5,8 @@
  use std::sync::atomic::{AtomicBool, Ordering};
  use std::sync::{Arc, Mutex};
@@ -2214,8 +2214,8 @@ diff -uraN original-winit/src/platform_impl/linux/wayland/window/mod.rs ./winit/
  
      #[inline]
 diff -uraN original-winit/src/platform_impl/linux/x11/event_processor.rs ./winit/src/platform_impl/linux/x11/event_processor.rs
---- original-winit/src/platform_impl/linux/x11/event_processor.rs	2026-02-07 18:20:30.720086117 -0500
-+++ ./winit/src/platform_impl/linux/x11/event_processor.rs	2026-02-07 18:20:30.728086327 -0500
+--- original-winit/src/platform_impl/linux/x11/event_processor.rs	2026-02-07 18:24:16.341626409 -0500
++++ ./winit/src/platform_impl/linux/x11/event_processor.rs	2026-02-07 18:24:16.349626593 -0500
 @@ -4,11 +4,11 @@
  use std::slice;
  use std::sync::{Arc, Mutex};
@@ -2350,8 +2350,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/event_processor.rs ./winit
              {
                  xkb_state.update_modifiers(
 diff -uraN original-winit/src/platform_impl/linux/x11/ffi.rs ./winit/src/platform_impl/linux/x11/ffi.rs
---- original-winit/src/platform_impl/linux/x11/ffi.rs	2026-02-07 18:20:30.720086117 -0500
-+++ ./winit/src/platform_impl/linux/x11/ffi.rs	2026-02-07 18:20:30.728086327 -0500
+--- original-winit/src/platform_impl/linux/x11/ffi.rs	2026-02-07 18:24:16.341626409 -0500
++++ ./winit/src/platform_impl/linux/x11/ffi.rs	2026-02-07 18:24:16.349626593 -0500
 @@ -1,5 +1,4 @@
 -pub use x11_dl::error::OpenError;
 -pub use x11_dl::xcursor::*;
@@ -2363,8 +2363,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/ffi.rs ./winit/src/platfor
 +pub use x11::xlib::*;
 +pub use x11::xlib_xcb::*;
 diff -uraN original-winit/src/platform_impl/linux/x11/ime/callbacks.rs ./winit/src/platform_impl/linux/x11/ime/callbacks.rs
---- original-winit/src/platform_impl/linux/x11/ime/callbacks.rs	2026-02-07 18:20:30.720086117 -0500
-+++ ./winit/src/platform_impl/linux/x11/ime/callbacks.rs	2026-02-07 18:20:30.728086327 -0500
+--- original-winit/src/platform_impl/linux/x11/ime/callbacks.rs	2026-02-07 18:24:16.341626409 -0500
++++ ./winit/src/platform_impl/linux/x11/ime/callbacks.rs	2026-02-07 18:24:16.345626501 -0500
 @@ -17,7 +17,7 @@
  ) -> Result<(), XError> {
      // It's advisable to wrap variadic FFI functions in our own functions, as we want to minimize
@@ -2393,8 +2393,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/ime/callbacks.rs ./winit/s
              ptr::null_mut(),
              ptr::null_mut(),
 diff -uraN original-winit/src/platform_impl/linux/x11/ime/context.rs ./winit/src/platform_impl/linux/x11/ime/context.rs
---- original-winit/src/platform_impl/linux/x11/ime/context.rs	2026-02-07 18:20:30.720086117 -0500
-+++ ./winit/src/platform_impl/linux/x11/ime/context.rs	2026-02-07 18:20:30.728086327 -0500
+--- original-winit/src/platform_impl/linux/x11/ime/context.rs	2026-02-07 18:24:16.341626409 -0500
++++ ./winit/src/platform_impl/linux/x11/ime/context.rs	2026-02-07 18:24:16.345626501 -0500
 @@ -3,7 +3,7 @@
  use std::sync::Arc;
  use std::{mem, ptr};
@@ -2501,8 +2501,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/ime/context.rs ./winit/src
                  ffi::XNPreeditAttributes_0.as_ptr() as *const _,
                  preedit_attr.ptr,
 diff -uraN original-winit/src/platform_impl/linux/x11/ime/inner.rs ./winit/src/platform_impl/linux/x11/ime/inner.rs
---- original-winit/src/platform_impl/linux/x11/ime/inner.rs	2026-02-07 18:20:30.720086117 -0500
-+++ ./winit/src/platform_impl/linux/x11/ime/inner.rs	2026-02-07 18:20:30.728086327 -0500
+--- original-winit/src/platform_impl/linux/x11/ime/inner.rs	2026-02-07 18:24:16.341626409 -0500
++++ ./winit/src/platform_impl/linux/x11/ime/inner.rs	2026-02-07 18:24:16.345626501 -0500
 @@ -9,12 +9,12 @@
  use crate::platform_impl::platform::x11::ime::ImeEventSender;
  
@@ -2519,8 +2519,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/ime/inner.rs ./winit/src/p
  }
  
 diff -uraN original-winit/src/platform_impl/linux/x11/ime/input_method.rs ./winit/src/platform_impl/linux/x11/ime/input_method.rs
---- original-winit/src/platform_impl/linux/x11/ime/input_method.rs	2026-02-07 18:20:30.720086117 -0500
-+++ ./winit/src/platform_impl/linux/x11/ime/input_method.rs	2026-02-07 18:20:30.728086327 -0500
+--- original-winit/src/platform_impl/linux/x11/ime/input_method.rs	2026-02-07 18:24:16.341626409 -0500
++++ ./winit/src/platform_impl/linux/x11/ime/input_method.rs	2026-02-07 18:24:16.345626501 -0500
 @@ -17,11 +17,9 @@
      // * The new locale modifiers if we succeeded in setting them.
      // * NULL if the locale modifiers string is malformed or if the current locale is not supported
@@ -2587,8 +2587,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/ime/input_method.rs ./wini
      }
      xconn.check_errors().map_err(GetXimServersError::XError)?;
 diff -uraN original-winit/src/platform_impl/linux/x11/mod.rs ./winit/src/platform_impl/linux/x11/mod.rs
---- original-winit/src/platform_impl/linux/x11/mod.rs	2026-02-07 18:20:30.720086117 -0500
-+++ ./winit/src/platform_impl/linux/x11/mod.rs	2026-02-07 18:20:30.728086327 -0500
+--- original-winit/src/platform_impl/linux/x11/mod.rs	2026-02-07 18:24:16.341626409 -0500
++++ ./winit/src/platform_impl/linux/x11/mod.rs	2026-02-07 18:24:16.349626593 -0500
 @@ -190,12 +190,12 @@
              // Remember default locale to restore it if target locale is unsupported
              // by Xlib
@@ -2631,8 +2631,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/mod.rs ./winit/src/platfor
  }
  
 diff -uraN original-winit/src/platform_impl/linux/x11/util/cookie.rs ./winit/src/platform_impl/linux/x11/util/cookie.rs
---- original-winit/src/platform_impl/linux/x11/util/cookie.rs	2026-02-07 18:20:30.720086117 -0500
-+++ ./winit/src/platform_impl/linux/x11/util/cookie.rs	2026-02-07 18:20:30.728086327 -0500
+--- original-winit/src/platform_impl/linux/x11/util/cookie.rs	2026-02-07 18:24:16.341626409 -0500
++++ ./winit/src/platform_impl/linux/x11/util/cookie.rs	2026-02-07 18:24:16.345626501 -0500
 @@ -1,7 +1,7 @@
  use std::ffi::c_int;
  use std::sync::Arc;
@@ -2661,8 +2661,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/util/cookie.rs ./winit/src
      }
  }
 diff -uraN original-winit/src/platform_impl/linux/x11/util/cursor.rs ./winit/src/platform_impl/linux/x11/util/cursor.rs
---- original-winit/src/platform_impl/linux/x11/util/cursor.rs	2026-02-07 18:20:30.720086117 -0500
-+++ ./winit/src/platform_impl/linux/x11/util/cursor.rs	2026-02-07 18:20:30.728086327 -0500
+--- original-winit/src/platform_impl/linux/x11/util/cursor.rs	2026-02-07 18:24:16.341626409 -0500
++++ ./winit/src/platform_impl/linux/x11/util/cursor.rs	2026-02-07 18:24:16.345626501 -0500
 @@ -30,9 +30,9 @@
      fn create_empty_cursor(&self) -> ffi::Cursor {
          let data = 0;
@@ -2740,8 +2740,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/util/cursor.rs ./winit/src
      }
  }
 diff -uraN original-winit/src/platform_impl/linux/x11/util/input.rs ./winit/src/platform_impl/linux/x11/util/input.rs
---- original-winit/src/platform_impl/linux/x11/util/input.rs	2026-02-07 18:20:30.720086117 -0500
-+++ ./winit/src/platform_impl/linux/x11/util/input.rs	2026-02-07 18:20:30.728086327 -0500
+--- original-winit/src/platform_impl/linux/x11/util/input.rs	2026-02-07 18:24:16.341626409 -0500
++++ ./winit/src/platform_impl/linux/x11/util/input.rs	2026-02-07 18:24:16.345626501 -0500
 @@ -33,8 +33,7 @@
          mask: xkb::EventType,
      ) -> Result<bool, X11Error> {
@@ -2762,8 +2762,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/util/input.rs ./winit/src/
                  key_event,
                  buffer as *mut c_char,
 diff -uraN original-winit/src/platform_impl/linux/x11/util/keys.rs ./winit/src/platform_impl/linux/x11/util/keys.rs
---- original-winit/src/platform_impl/linux/x11/util/keys.rs	2026-02-07 18:20:30.720086117 -0500
-+++ ./winit/src/platform_impl/linux/x11/util/keys.rs	2026-02-07 18:20:30.728086327 -0500
+--- original-winit/src/platform_impl/linux/x11/util/keys.rs	2026-02-07 18:24:16.341626409 -0500
++++ ./winit/src/platform_impl/linux/x11/util/keys.rs	2026-02-07 18:24:16.345626501 -0500
 @@ -63,7 +63,7 @@
          let mut keys = [0; 32];
  
@@ -2774,8 +2774,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/util/keys.rs ./winit/src/p
  
          Keymap { keys }
 diff -uraN original-winit/src/platform_impl/linux/x11/util/memory.rs ./winit/src/platform_impl/linux/x11/util/memory.rs
---- original-winit/src/platform_impl/linux/x11/util/memory.rs	2026-02-07 18:20:30.720086117 -0500
-+++ ./winit/src/platform_impl/linux/x11/util/memory.rs	2026-02-07 18:20:30.728086327 -0500
+--- original-winit/src/platform_impl/linux/x11/util/memory.rs	2026-02-07 18:24:16.341626409 -0500
++++ ./winit/src/platform_impl/linux/x11/util/memory.rs	2026-02-07 18:24:16.345626501 -0500
 @@ -3,6 +3,7 @@
  use super::*;
  
@@ -2794,8 +2794,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/util/memory.rs ./winit/src
      }
  }
 diff -uraN original-winit/src/platform_impl/linux/x11/util/modifiers.rs ./winit/src/platform_impl/linux/x11/util/modifiers.rs
---- original-winit/src/platform_impl/linux/x11/util/modifiers.rs	2026-02-07 18:20:30.720086117 -0500
-+++ ./winit/src/platform_impl/linux/x11/util/modifiers.rs	2026-02-07 18:20:30.728086327 -0500
+--- original-winit/src/platform_impl/linux/x11/util/modifiers.rs	2026-02-07 18:24:16.341626409 -0500
++++ ./winit/src/platform_impl/linux/x11/util/modifiers.rs	2026-02-07 18:24:16.345626501 -0500
 @@ -57,7 +57,7 @@
  
              self.reset_from_x_keymap(&*keymap);
@@ -2806,8 +2806,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/util/modifiers.rs ./winit/
      }
  
 diff -uraN original-winit/src/platform_impl/linux/x11/util/mod.rs ./winit/src/platform_impl/linux/x11/util/mod.rs
---- original-winit/src/platform_impl/linux/x11/util/mod.rs	2026-02-07 18:20:30.720086117 -0500
-+++ ./winit/src/platform_impl/linux/x11/util/mod.rs	2026-02-07 18:20:30.728086327 -0500
+--- original-winit/src/platform_impl/linux/x11/util/mod.rs	2026-02-07 18:24:16.341626409 -0500
++++ ./winit/src/platform_impl/linux/x11/util/mod.rs	2026-02-07 18:24:16.345626501 -0500
 @@ -62,7 +62,7 @@
      //    and waits.
      // All util functions that abstract an async function will return a `Flusher`.
@@ -2827,8 +2827,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/util/mod.rs ./winit/src/pl
          self.check_errors()
      }
 diff -uraN original-winit/src/platform_impl/linux/x11/util/xmodmap.rs ./winit/src/platform_impl/linux/x11/util/xmodmap.rs
---- original-winit/src/platform_impl/linux/x11/util/xmodmap.rs	2026-02-07 18:20:30.720086117 -0500
-+++ ./winit/src/platform_impl/linux/x11/util/xmodmap.rs	2026-02-07 18:20:30.728086327 -0500
+--- original-winit/src/platform_impl/linux/x11/util/xmodmap.rs	2026-02-07 18:24:16.341626409 -0500
++++ ./winit/src/platform_impl/linux/x11/util/xmodmap.rs	2026-02-07 18:24:16.349626593 -0500
 @@ -1,7 +1,7 @@
  use std::collections::HashSet;
  use std::slice;
@@ -2857,8 +2857,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/util/xmodmap.rs ./winit/sr
      }
  
 diff -uraN original-winit/src/platform_impl/linux/x11/window.rs ./winit/src/platform_impl/linux/x11/window.rs
---- original-winit/src/platform_impl/linux/x11/window.rs	2026-02-07 18:20:30.720086117 -0500
-+++ ./winit/src/platform_impl/linux/x11/window.rs	2026-02-07 18:20:30.728086327 -0500
+--- original-winit/src/platform_impl/linux/x11/window.rs	2026-02-07 18:24:16.341626409 -0500
++++ ./winit/src/platform_impl/linux/x11/window.rs	2026-02-07 18:24:16.349626593 -0500
 @@ -517,7 +517,7 @@
              // Attempt to make keyboard input repeat detectable
              unsafe {
@@ -2869,8 +2869,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/window.rs ./winit/src/plat
                      ffi::True,
                      &mut supported_ptr,
 diff -uraN original-winit/src/platform_impl/linux/x11/xdisplay.rs ./winit/src/platform_impl/linux/x11/xdisplay.rs
---- original-winit/src/platform_impl/linux/x11/xdisplay.rs	2026-02-07 18:20:30.720086117 -0500
-+++ ./winit/src/platform_impl/linux/x11/xdisplay.rs	2026-02-07 18:20:30.728086327 -0500
+--- original-winit/src/platform_impl/linux/x11/xdisplay.rs	2026-02-07 18:24:16.341626409 -0500
++++ ./winit/src/platform_impl/linux/x11/xdisplay.rs	2026-02-07 18:24:16.349626593 -0500
 @@ -17,13 +17,6 @@
  
  /// A connection to an X server.
@@ -2982,8 +2982,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/xdisplay.rs ./winit/src/pl
              _ => None,
          }
 diff -uraN original-x11/Cargo.toml ./x11/Cargo.toml
---- original-x11/Cargo.toml	2026-02-07 18:20:31.388103587 -0500
-+++ ./x11/Cargo.toml	2026-02-07 18:20:31.464105574 -0500
+--- original-x11/Cargo.toml	2026-02-07 18:24:17.021642164 -0500
++++ ./x11/Cargo.toml	2026-02-07 18:24:17.093643832 -0500
 @@ -1,16 +1,4 @@
 -# THIS FILE IS AUTOMATICALLY GENERATED BY CARGO
 -#
@@ -3034,8 +3034,8 @@ diff -uraN original-x11/Cargo.toml ./x11/Cargo.toml
  all = [
      "dpms",
 diff -uraN original-x11/examples/hello-world.rs ./x11/examples/hello-world.rs
---- original-x11/examples/hello-world.rs	2026-02-07 18:20:31.388103587 -0500
-+++ ./x11/examples/hello-world.rs	2026-02-07 18:20:31.464105574 -0500
+--- original-x11/examples/hello-world.rs	2026-02-07 18:24:17.021642164 -0500
++++ ./x11/examples/hello-world.rs	2026-02-07 18:24:17.089643739 -0500
 @@ -33,7 +33,8 @@
          let screen = xlib::XDefaultScreen(display);
          let root = xlib::XRootWindow(display, screen);
@@ -3067,6 +3067,6 @@ diff -uraN original-x11/examples/hello-world.rs ./x11/examples/hello-world.rs
                          let protocol = xclient.data.get_long(0) as xlib::Atom;
 diff -uraN original-x11/.gitignore ./x11/.gitignore
 --- original-x11/.gitignore	1969-12-31 19:00:00.000000000 -0500
-+++ ./x11/.gitignore	2026-02-07 18:20:31.464105574 -0500
++++ ./x11/.gitignore	2026-02-07 18:24:17.093643832 -0500
 @@ -0,0 +1 @@
 +/target
