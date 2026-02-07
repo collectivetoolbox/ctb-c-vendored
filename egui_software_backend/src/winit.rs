@@ -55,7 +55,7 @@ impl Display for SoftwareBackendAppError {
                 f.write_str("error calling ")?;
                 f.write_str(function)
             }
-            SoftwareBackendAppError::EventLoop(_) => f.write_str("winit event loop has errored"),
+            SoftwareBackendAppError::EventLoop(e) => f.write_str(format!("winit event loop has errored: {}", e).as_str()),
             SoftwareBackendAppError::SuppressedEventLoop { .. } => {
                 f.write_str("software renderer and winit event loop have both errored")
             }
