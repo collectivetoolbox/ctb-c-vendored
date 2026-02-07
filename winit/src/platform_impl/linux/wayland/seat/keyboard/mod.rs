@@ -145,12 +145,7 @@ impl Dispatch<WlKeyboard, KeyboardData, WinitState> for WinitState {
                     RepeatInfo::Disable => return,
                 };
 
-                let Some(keymap) = keyboard_state.xkb_context.keymap_mut() else {
-                    tracing::warn!("Received key press before keymap was set");
-                    return;
-                };
-
-                if !keymap.key_repeats(key) {
+                if !keyboard_state.xkb_context.keymap_mut().unwrap().key_repeats(key) {
                     return;
                 }
 
@@ -206,6 +201,7 @@ impl Dispatch<WlKeyboard, KeyboardData, WinitState> for WinitState {
             },
             WlKeyboardEvent::Key { key, state: WEnum::Value(WlKeyState::Released), .. } => {
                 let key = key + 8;
+
                 key_input(
                     keyboard_state,
                     &mut state.events_sink,
@@ -216,11 +212,9 @@ impl Dispatch<WlKeyboard, KeyboardData, WinitState> for WinitState {
                 );
 
                 if keyboard_state.repeat_info != RepeatInfo::Disable
+                    && keyboard_state.xkb_context.keymap_mut().unwrap().key_repeats(key)
                     && Some(key) == keyboard_state.current_repeat
                 {
-                    // We only set `current_repeat` when a repeat timer was started.
-                    // Always cancel it on key release, even if the keymap has been
-                    // replaced/cleared in the meantime.
                     keyboard_state.current_repeat = None;
                     if let Some(token) = keyboard_state.repeat_token.take() {
                         keyboard_state.loop_handle.remove(token);
@@ -254,7 +248,7 @@ impl Dispatch<WlKeyboard, KeyboardData, WinitState> for WinitState {
                 );
             },
             WlKeyboardEvent::RepeatInfo { rate, delay } => {
-                keyboard_state.repeat_info = if rate <= 0 || delay < 0 {
+                keyboard_state.repeat_info = if rate == 0 {
                     // Stop the repeat once we get a disable event.
                     keyboard_state.current_repeat = None;
                     if let Some(repeat_token) = keyboard_state.repeat_token.take() {
@@ -262,32 +256,8 @@ impl Dispatch<WlKeyboard, KeyboardData, WinitState> for WinitState {
                     }
                     RepeatInfo::Disable
                 } else {
-                    let Ok(rate) = u32::try_from(rate) else {
-                        keyboard_state.current_repeat = None;
-                        if let Some(repeat_token) = keyboard_state.repeat_token.take() {
-                            keyboard_state.loop_handle.remove(repeat_token);
-                        }
-                        return;
-                    };
-
-                    let Ok(delay) = u32::try_from(delay) else {
-                        keyboard_state.current_repeat = None;
-                        if let Some(repeat_token) = keyboard_state.repeat_token.take() {
-                            keyboard_state.loop_handle.remove(repeat_token);
-                        }
-                        return;
-                    };
-
-                    // Guard against pathological values that would compute to an extremely small
-                    // repeat gap and starve the event loop.
-                    //
-                    // Typical repeat rates are in the tens of Hz. Even values in the low
-                    // hundreds are already unusually fast for UI navigation keys (like Tab).
-                    // Clamp to a reasonable upper bound.
-                    let rate = u64::from(rate).min(1_000);
-                    let gap_micros = (1_000_000 / rate).max(1_000);
-                    let gap = Duration::from_micros(gap_micros);
-                    let delay = Duration::from_millis(u64::from(delay));
+                    let gap = Duration::from_micros(1_000_000 / rate as u64);
+                    let delay = Duration::from_millis(delay as u64);
                     RepeatInfo::Repeat { gap, delay }
                 };
             },
