@@ -5,7 +5,6 @@ use std::time::Duration;
 
 use calloop::timer::{TimeoutAction, Timer};
 use calloop::{LoopHandle, RegistrationToken};
-use tracing::warn;
 
 use sctk::reexports::client::protocol::wl_keyboard::{
     Event as WlKeyboardEvent, KeyState as WlKeyState, KeymapFormat as WlKeymapFormat, WlKeyboard,
@@ -33,25 +32,22 @@ impl Dispatch<WlKeyboard, KeyboardData, WinitState> for WinitState {
         let seat_state = match state.seats.get_mut(&data.seat.id()) {
             Some(seat_state) => seat_state,
             None => {
-                warn!("Received keyboard event {event:?} without seat");
+                tracing::warn!("Received keyboard event {event:?} without seat");
                 return;
             },
         };
         let keyboard_state = match seat_state.keyboard_state.as_mut() {
             Some(keyboard_state) => keyboard_state,
             None => {
-                warn!("Received keyboard event {event:?} without keyboard");
+                tracing::warn!("Received keyboard event {event:?} without keyboard");
                 return;
             },
         };
-
-        let timestamp = std::time::SystemTime::now();
-        warn!("Received keyboard event {event:?} at {timestamp:?}");
         match event {
             WlKeyboardEvent::Keymap { format, fd, size } => match format {
                 WEnum::Value(format) => match format {
                     WlKeymapFormat::NoKeymap => {
-                        warn!("non-xkb compatible keymap")
+                        tracing::warn!("non-xkb compatible keymap")
                     },
                     WlKeymapFormat::XkbV1 => {
                         let context = &mut keyboard_state.xkb_context;
@@ -60,7 +56,7 @@ impl Dispatch<WlKeyboard, KeyboardData, WinitState> for WinitState {
                     _ => unreachable!(),
                 },
                 WEnum::Unknown(value) => {
-                    warn!("unknown keymap format 0x{:x}", value)
+                    tracing::warn!("unknown keymap format 0x{:x}", value)
                 },
             },
             WlKeyboardEvent::Enter { surface, .. } => {
@@ -135,8 +131,6 @@ impl Dispatch<WlKeyboard, KeyboardData, WinitState> for WinitState {
             },
             WlKeyboardEvent::Key { key, state: WEnum::Value(WlKeyState::Pressed), .. } => {
                 let key = key + 8;
-
-                warn!("Key pressed (winit keyboard mod): {}", key);
                 key_input(
                     keyboard_state,
                     &mut state.events_sink,
@@ -152,7 +146,7 @@ impl Dispatch<WlKeyboard, KeyboardData, WinitState> for WinitState {
                 };
 
                 let Some(keymap) = keyboard_state.xkb_context.keymap_mut() else {
-                    warn!("Received key press before keymap was set");
+                    tracing::warn!("Received key press before keymap was set");
                     return;
                 };
 
@@ -193,8 +187,6 @@ impl Dispatch<WlKeyboard, KeyboardData, WinitState> for WinitState {
                             Some(repeat_keycode) => repeat_keycode,
                             None => return TimeoutAction::Drop,
                         };
-
-                        warn!("Key repeat (winit keyboard mod): {}", key);
                         key_input(
                             keyboard_state,
                             &mut state.events_sink,
@@ -214,8 +206,6 @@ impl Dispatch<WlKeyboard, KeyboardData, WinitState> for WinitState {
             },
             WlKeyboardEvent::Key { key, state: WEnum::Value(WlKeyState::Released), .. } => {
                 let key = key + 8;
-
-                warn!("Key released (winit keyboard mod): {}", key);
                 key_input(
                     keyboard_state,
                     &mut state.events_sink,
@@ -228,17 +218,12 @@ impl Dispatch<WlKeyboard, KeyboardData, WinitState> for WinitState {
                 if keyboard_state.repeat_info != RepeatInfo::Disable
                     && Some(key) == keyboard_state.current_repeat
                 {
-                    let repeats = keyboard_state
-                        .xkb_context
-                        .keymap_mut()
-                        .map(|keymap| keymap.key_repeats(key))
-                        .unwrap_or(false);
-
-                    if repeats {
-                        keyboard_state.current_repeat = None;
-                        if let Some(token) = keyboard_state.repeat_token.take() {
-                            keyboard_state.loop_handle.remove(token);
-                        }
+                    // We only set `current_repeat` when a repeat timer was started.
+                    // Always cancel it on key release, even if the keymap has been
+                    // replaced/cleared in the meantime.
+                    keyboard_state.current_repeat = None;
+                    if let Some(token) = keyboard_state.repeat_token.take() {
+                        keyboard_state.loop_handle.remove(token);
                     }
                 }
             },

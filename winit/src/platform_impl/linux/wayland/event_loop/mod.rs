@@ -351,10 +351,6 @@ impl<T: 'static> EventLoop<T> {
             callback(Event::Resumed, &self.window_target);
         }
 
-    //log the number of pending user events and the timestamp
-        tracing::warn!("Pending user events: {}, Timestamp: {:?}", self.pending_user_events.borrow().len(), std::time::SystemTime::now());
-
-
         // Handle pending user events. We don't need back buffer, since we can't dispatch
         // user events indirectly via callback to the user.
         for user_event in self.pending_user_events.borrow_mut().drain(..) {

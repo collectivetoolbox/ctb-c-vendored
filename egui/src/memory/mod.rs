@@ -4,7 +4,6 @@ use std::num::NonZeroUsize;
 
 use ahash::{HashMap, HashSet};
 use epaint::emath::TSTransform;
-use log::warn;
 
 use crate::{
     EventFilter, Id, IdMap, LayerId, Order, Pos2, Rangef, RawInput, Rect, Style, Vec2, ViewportId,

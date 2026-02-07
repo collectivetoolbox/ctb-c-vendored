@@ -2,8 +2,6 @@
 
 use std::vec::Drain;
 
-use tracing::warn;
-
 use crate::event::{DeviceEvent, DeviceId as RootDeviceId, Event, WindowEvent};
 use crate::platform_impl::platform::DeviceId as PlatformDeviceId;
 use crate::window::WindowId as RootWindowId;
@@ -40,7 +38,6 @@ impl EventSink {
     /// Add new window event to a queue.
     #[inline]
     pub fn push_window_event(&mut self, event: WindowEvent, window_id: WindowId) {
-        warn!("Pushed event: {event:?} to window_id: {window_id:?}");
         self.window_events.push(Event::WindowEvent { event, window_id: RootWindowId(window_id) });
     }
 
