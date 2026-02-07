@@ -231,6 +231,17 @@ impl EguiSoftwareRender {
         }
     }
 
+    /// Applies an [`egui::TexturesDelta`] without rendering.
+    ///
+    /// This is useful when a frame cannot be presented (for example, on Wayland
+    /// when the back buffer is temporarily busy) but the renderer still needs to
+    /// keep its texture state synchronized with egui to avoid corrupt or
+    /// distorted text rendering on subsequent frames.
+    pub fn handle_textures_delta(&mut self, textures_delta: &egui::TexturesDelta) {
+        self.set_textures(textures_delta);
+        self.free_textures(textures_delta);
+    }
+
     /// Renders the given paint jobs to an intermediate canvas.
     ///
     /// # Arguments

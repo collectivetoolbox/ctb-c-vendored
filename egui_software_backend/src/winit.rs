@@ -779,6 +779,12 @@ impl<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp>
                     {
                         // The compositor hasn't released the back buffer yet.
                         // Skip this frame and retry soon, but keep the event loop responsive.
+                        //
+                        // IMPORTANT: still apply the `textures_delta` so our software renderer's
+                        // texture state stays synchronized with egui. Otherwise, the next frame
+                        // can end up sampling the wrong font atlas contents/sizes, which shows up
+                        // as distorted or clipped text.
+                        self.renderer.handle_textures_delta(&full_output.textures_delta);
                         elwt.set_control_flow(ControlFlow::WaitUntil(
                             Instant::now() + Duration::from_millis(1),
                         ));
