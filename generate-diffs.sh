@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 packages=(
+  "egui"
   "egui-winit"
   "egui_software_backend"
   "smithay-clipboard"
