@@ -15,28 +15,41 @@ documentation = "https://docs.rs/x11"
 workspace = "../.."
 edition = "2021"
 
+[dependencies.libc]
+version = "0.2"
+
+[build-dependencies.pkg-config]
+version = "0.3.24"
+
+[build-dependencies.anyhow]
+version = "1"
+
+[build-dependencies.cc]
+version = "1"
+
 [features]
 all = [
-    "dpms", 
-    "glx", 
-    "xcursor", 
-    "xf86vmode", 
+    "dpms",
+    "glx",
+    "xcursor",
+    "xf86vmode",
     "xfixes",
-    "xft", 
-    "xinerama", 
-    "xinput", 
-    "xlib", 
-    "xlib_xcb", 
-    "xmu", 
-    "xrandr", 
+    "xft",
+    "xinerama",
+    "xinput",
+    "xlib",
+    "xlib_xcb",
+    "xmu",
+    "xrandr",
     "xrecord",
-    "xrender", 
-    "xss", 
-    "xt", 
-    "xtest", 
-    "xtst", 
-    "dox"
+    "xrender",
+    "xss",
+    "xt",
+    "xtest",
+    "xtst",
+    "dox",
 ]
+dox = []
 dpms = []
 glx = []
 xcursor = []
@@ -55,16 +68,3 @@ xss = []
 xt = []
 xtest = ["xtst"]
 xtst = []
-dox = []
-
-[dependencies]
-libc = "0.2"
-
-[build-dependencies]
-pkg-config = "0.3.24"
-
-[build-dependencies.anyhow]
-version = "1"
-
-[build-dependencies.cc]
-version = "1"
