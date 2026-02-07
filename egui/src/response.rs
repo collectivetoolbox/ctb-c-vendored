@@ -6,6 +6,7 @@ use crate::{
     emath::{Align, Pos2, Rect, Vec2},
     pass_state,
 };
+use crate::data::input::EventFilter;
 // ----------------------------------------------------------------------------
 
 /// The result of adding a widget to a [`Ui`].
@@ -336,6 +337,15 @@ impl Response {
     /// Surrender keyboard focus for this widget.
     pub fn surrender_focus(&self) {
         self.ctx.memory_mut(|mem| mem.surrender_focus(self.id));
+    }
+
+    /// Set an event filter for this widget while it has focus.
+    ///
+    /// This controls whether tab, arrow keys, or escape will move focus
+    /// away from the widget or be consumed by it instead.
+    pub fn set_focus_lock_filter(&self, event_filter: EventFilter) {
+        self.ctx
+            .memory_mut(|mem| mem.set_focus_lock_filter(self.id, event_filter));
     }
 
     /// Did a drag on this widget begin this frame?
