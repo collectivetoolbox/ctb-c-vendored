@@ -197,6 +197,19 @@ impl<D: HasDisplayHandle + ?Sized, W: HasWindowHandle> SurfaceInterface<D, W>
             .expect("Must set size of surface before calling `buffer_mut()`");
 
         if let Some((_front, back)) = &mut self.buffers {
+            // Ensure this queue makes progress even though our main app is likely
+            // dispatching Wayland events on a different `EventQueue`.
+            //
+            // The `wl_buffer.release` event that flips `back.released()` is delivered to the
+            // queue that created the buffer (this queue), so we must process any pending events
+            // here or we can get stuck thinking the back buffer is perpetually busy.
+            let _ = self
+                .display
+                .event_queue
+                .lock()
+                .unwrap_or_else(|x| x.into_inner())
+                .dispatch_pending(&mut State);
+
             // Don't block waiting for the compositor to release the back buffer.
             //
             // In the common `winit` + `softbuffer` software-rendering stack, blocking here can
