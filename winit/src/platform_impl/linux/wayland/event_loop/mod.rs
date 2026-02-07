@@ -106,7 +106,7 @@ impl<T: 'static> EventLoop<T> {
         let wayland_source = WaylandSource::new(connection.clone(), event_queue);
         let wayland_dispatcher =
             calloop::Dispatcher::new(wayland_source, |_, queue, winit_state: &mut WinitState| {
-                tracing::warn!("Dispatching pending events");
+                // tracing::warn!("Dispatching pending events");
                 let result = queue.dispatch_pending(winit_state);
                 if result.is_ok()
                     && (!winit_state.events_sink.is_empty()

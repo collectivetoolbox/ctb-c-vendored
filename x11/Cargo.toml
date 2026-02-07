@@ -16,25 +16,27 @@ workspace = "../.."
 edition = "2021"
 
 [features]
-all = ["dpms", 
-        "glx", 
-        "xcursor", 
-        "xf86vmode", 
-        "xfixes",
-        "xft", 
-        "xinerama", 
-        "xinput", 
-        "xlib", 
-        "xlib_xcb", 
-        "xmu", 
-        "xrandr", 
-        "xrecord",
-        "xrender", 
-        "xss", 
-        "xt", 
-        "xtest", 
-        "xtst", 
-        "dox"]
+all = [
+    "dpms", 
+    "glx", 
+    "xcursor", 
+    "xf86vmode", 
+    "xfixes",
+    "xft", 
+    "xinerama", 
+    "xinput", 
+    "xlib", 
+    "xlib_xcb", 
+    "xmu", 
+    "xrandr", 
+    "xrecord",
+    "xrender", 
+    "xss", 
+    "xt", 
+    "xtest", 
+    "xtst", 
+    "dox"
+]
 dpms = []
 glx = []
 xcursor = []
