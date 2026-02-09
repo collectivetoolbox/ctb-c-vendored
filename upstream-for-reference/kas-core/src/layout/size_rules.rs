@@ -1,0 +1,829 @@
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License in the LICENSE-APACHE file or at:
+//     https://www.apache.org/licenses/LICENSE-2.0
+
+//! [`SizeRules`] type
+
+use smallvec::SmallVec;
+use std::iter::Sum;
+
+use super::Stretch;
+use crate::cast::{Cast, Conv};
+
+// for doc use
+#[allow(unused)] use super::FrameRules;
+#[allow(unused)] use crate::theme::SizeCx;
+
+/// Widget sizing information
+///
+/// This is the return value of [`crate::Layout::size_rules`] and is used to
+/// describe size and margin requirements for widgets. This type only concerns
+/// size requirements along a *single* axis.
+///
+/// All units are in pixels. Sizes usually come directly from [`SizeCx`]
+/// or from a fixed quantity multiplied by [`SizeCx::scale_factor`].
+///
+/// ### Sizes
+///
+/// The widget size model is simple: a rectangular box, plus a margin on each
+/// side. The `SizeRules` type represents expectations along a single axis:
+///
+/// -   The minimum acceptable size (almost always met)
+/// -   The ideal size (often the same size; this distinction is most useful for
+///     scrollable regions which are *ideally* large enough not to require
+///     scrolling, but can be much smaller)
+/// -   A [`Stretch`] priority, used to prioritize allocation of excess space
+///
+/// Note that `Stretch::None` does not *prevent* stretching, but simply states
+/// that it is undesired (lowest priority). Actually preventing stretching
+/// requires alignment.
+///
+/// ### Margins
+///
+/// Required margin sizes are handled separately for each side of a widget.
+/// Since [`SizeRules`] concerns only one axis, it stores only two margin sizes:
+/// "pre" (left/top) and "post" (right/bottom). These are stored as `u16` values
+/// on the assumption that no margin need exceed 65536.
+///
+/// When widgets are placed next to each other, their margins may be combined;
+/// e.g. if a widget with margin of 6px is followed by another with margin 2px,
+/// the required margin between the two is the maximum, 6px.
+///
+/// Only the layout engine and parent widgets need consider margins (beyond
+/// their specification). For these cases, one needs to be aware that due to
+/// margin-merging behaviour, one cannot simply "add" two `SizeRules`. Instead,
+/// when placing one widget next to another, use [`SizeRules::append`] or
+/// [`SizeRules::appended`]; when placing a widget within a frame, use
+/// [`FrameRules::surround`].
+/// When calculating the size of a sequence of
+/// widgets, one may use the [`Sum`] implementation (this assumes that the
+/// sequence is in left-to-right or top-to-bottom order).
+///
+/// ### Alignment
+///
+/// `SizeRules` concerns calculations of size requirements, which the layout
+/// engine uses to assign each widget a [`Rect`]; it is up to the widget itself
+/// to either fill this rect or align itself within the given space.
+/// See [`crate::Layout::set_rect`] for more information.
+///
+/// For widgets with a stretch priority of [`Stretch::None`], it is still
+/// possible for layout code to assign a size larger than the preference. It is
+/// up to the widget to align itself within this space: see
+/// [`crate::Layout::set_rect`] and [`crate::layout::AlignHints`].
+///
+/// [`Rect`]: crate::geom::Rect
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+pub struct SizeRules {
+    // minimum good size
+    a: i32,
+    // ideal size; b >= a
+    b: i32,
+    // (pre, post) margins
+    m: (u16, u16),
+    stretch: Stretch,
+}
+
+impl SizeRules {
+    /// Empty (zero size) widget
+    ///
+    /// Warning: appending another size to `EMPTY` *does* include margins
+    /// even though `EMPTY` itself has zero size. However, `EMPTY` itself has
+    /// zero-size margins, so this only affects appending an `EMPTY` with a
+    /// non-empty `SizeRules`.
+    pub const EMPTY: Self = SizeRules::empty(Stretch::None);
+
+    /// Empty space with the given stretch priority
+    ///
+    /// See warning on [`SizeRules::EMPTY`].
+    #[inline]
+    pub const fn empty(stretch: Stretch) -> Self {
+        SizeRules {
+            a: 0,
+            b: 0,
+            m: (0, 0),
+            stretch,
+        }
+    }
+
+    /// Construct for a fixed size
+    ///
+    /// Margins are zero-sized by default; use [`Self::with_margin`] or
+    /// [`Self::with_margins`] to set.
+    #[inline]
+    pub fn fixed(size: i32) -> Self {
+        debug_assert!(size >= 0);
+        SizeRules {
+            a: size,
+            b: size,
+            m: (0, 0),
+            stretch: Stretch::None,
+        }
+    }
+
+    /// Construct with custom rules
+    ///
+    /// Region size should meet the given `min`-imum size and has a given
+    /// `ideal` size, plus a given `stretch` priority.
+    ///
+    /// Expected: `ideal >= min` (if not, ideal is clamped to min).
+    ///
+    /// Margins are zero-sized by default; use [`Self::with_margin`] or
+    /// [`Self::with_margins`] to set.
+    #[inline]
+    pub fn new(min: i32, ideal: i32, stretch: Stretch) -> Self {
+        debug_assert!(0 <= min && 0 <= ideal);
+        SizeRules {
+            a: min,
+            b: ideal.max(min),
+            m: (0, 0),
+            stretch,
+        }
+    }
+
+    /// Set both margins (symmetric)
+    ///
+    /// Both margins are set to the same value. By default these are 0.
+    #[inline]
+    pub fn with_margin(mut self, margin: u16) -> Self {
+        self.m = (margin, margin);
+        self
+    }
+
+    /// Set both margins (top/left, bottom/right)
+    ///
+    /// By default these are 0.
+    #[inline]
+    pub fn with_margins(mut self, (first, second): (u16, u16)) -> Self {
+        self.m = (first, second);
+        self
+    }
+
+    /// Set stretch factor, inline
+    #[inline]
+    pub fn with_stretch(mut self, stretch: Stretch) -> Self {
+        self.stretch = stretch;
+        self
+    }
+
+    /// Get the minimum size
+    #[inline]
+    pub fn min_size(self) -> i32 {
+        self.a
+    }
+
+    /// Get the ideal size
+    #[inline]
+    pub fn ideal_size(self) -> i32 {
+        self.b
+    }
+
+    /// Get the `(pre, post)` margin sizes
+    #[inline]
+    pub fn margins(self) -> (u16, u16) {
+        self.m
+    }
+
+    /// Get the `(pre, post)` margin sizes, cast to `i32`
+    #[inline]
+    pub fn margins_i32(self) -> (i32, i32) {
+        (self.m.0.into(), self.m.1.into())
+    }
+
+    /// Get the stretch priority
+    #[inline]
+    pub fn stretch(self) -> Stretch {
+        self.stretch
+    }
+
+    /// Set the stretch priority
+    #[inline]
+    pub fn set_stretch(&mut self, stretch: Stretch) {
+        self.stretch = stretch;
+    }
+
+    /// Set margins
+    #[inline]
+    pub fn set_margins(&mut self, margins: (u16, u16)) {
+        self.m = margins;
+    }
+
+    /// Use the maximum size of `self` and `rhs`.
+    #[must_use = "method does not modify self but returns a new value"]
+    pub fn max(self, rhs: Self) -> SizeRules {
+        SizeRules {
+            a: self.a.max(rhs.a),
+            b: self.b.max(rhs.b),
+            m: (self.m.0.max(rhs.m.0), self.m.1.max(rhs.m.1)),
+            stretch: self.stretch.max(rhs.stretch),
+        }
+    }
+
+    /// Set `self = self.max(rhs);`
+    #[inline]
+    pub fn max_with(&mut self, rhs: Self) {
+        *self = self.max(rhs);
+    }
+
+    /// Multiply the `(min, ideal)` size, including internal margins
+    ///
+    /// E.g. given `margin = margins.0 + margins.1` and factors `(2, 5)`, the
+    /// minimum size is set to `min * 2 + margin` and the ideal to
+    /// `ideal * 5 + 4 * margin`.
+    ///
+    /// Panics if either factor is 0.
+    pub fn multiply_with_margin(&mut self, min_factor: i32, ideal_factor: i32) {
+        let margin = i32::from(self.m.0).max(i32::from(self.m.1));
+        assert!(min_factor > 0);
+        assert!(ideal_factor > 0);
+        self.a = min_factor * self.a + (min_factor - 1) * margin;
+        self.b = ideal_factor * self.b + (ideal_factor - 1) * margin;
+    }
+
+    /// Append the rules for `rhs` to self
+    ///
+    /// This implies that `rhs` rules concern an element to the right of or
+    /// below self. Note that order matters since margins may be combined.
+    ///
+    /// Note also that appending [`SizeRules::EMPTY`] does include interior
+    /// margins (those between `EMPTY` and the other rules) within the result.
+    pub fn append(&mut self, rhs: SizeRules) {
+        let c: i32 = self.m.1.max(rhs.m.0).into();
+        self.a += rhs.a + c;
+        self.b += rhs.b + c;
+        self.m.1 = rhs.m.1;
+        self.stretch = self.stretch.max(rhs.stretch);
+    }
+
+    /// Return the rules for self appended by `rhs`
+    ///
+    ///
+    /// This implies that `rhs` rules concern an element to the right of or
+    /// below self. Note that order matters since margins may be combined.
+    ///
+    /// Note also that appending [`SizeRules::EMPTY`] does include interior
+    /// margins (those between `EMPTY` and the other rules) within the result.
+    #[must_use = "method does not modify self but returns a new value"]
+    pub fn appended(self, rhs: SizeRules) -> Self {
+        let c: i32 = self.m.1.max(rhs.m.0).into();
+        SizeRules {
+            a: self.a + rhs.a + c,
+            b: self.b + rhs.b + c,
+            m: (self.m.0, rhs.m.1),
+            stretch: self.stretch.max(rhs.stretch),
+        }
+    }
+
+    /// Return the result of appending all given ranges
+    pub fn sum(range: &[SizeRules]) -> SizeRules {
+        range.iter().sum()
+    }
+
+    /// Return the result of appending all given ranges (min only)
+    ///
+    /// This is a specialised version of sum: only the minimum is calculated
+    pub fn min_sum(range: &[SizeRules]) -> SizeRules {
+        if range.is_empty() {
+            return SizeRules::EMPTY;
+        }
+
+        let mut rules = range[0];
+        for r in &range[1..] {
+            rules.a += i32::from(rules.m.1.max(r.m.0)) + r.a;
+        }
+        rules.b = rules.a;
+        rules.m.1 = range[range.len() - 1].m.1;
+        rules
+    }
+
+    /// Set self to `self - x + y`, clamped to 0 or greater
+    ///
+    /// This is a specialised operation to join two spans, subtracing the
+    /// common overlap (`x`), thus margins are `self.m.0` and `y.m.1`.
+    pub fn sub_add(&mut self, x: Self, y: Self) {
+        self.a = (self.a - x.a + y.a).max(0);
+        self.b = (self.b - x.b + y.b).max(0);
+        self.m.1 = y.m.1;
+        self.stretch = self.stretch.max(y.stretch);
+    }
+
+    /// Reduce the minimum size
+    ///
+    /// If `min` is greater than the current minimum size, this has no effect.
+    #[inline]
+    pub fn reduce_min_to(&mut self, min: i32) {
+        self.a = self.a.min(min);
+    }
+
+    /// Solve a sequence of rules with even distribution
+    ///
+    /// Given a sequence of width (or height) `rules` from children and a
+    /// `target` size, find an appropriate size for each child.
+    /// The method attempts to ensure the following, in order of priority:
+    ///
+    /// 1.  All widths are at least their minimum size requirement
+    /// 2.  The sum of widths plus margins between items equals `target`
+    /// 3.  No width exceeds its ideal size while other widths are below their
+    ///     own ideal size
+    /// 4.  No item with a [`Stretch`] priority less than the highest in `rules`
+    ///     exceeds its ideal size
+    /// 5.  When extra space is available and some widgets are below their ideal
+    ///     size, extra space is divided evenly between these widgets until they
+    ///     have reached their ideal size
+    /// 6.  If all rules use `Stretch::None`, then widths are not increased over
+    ///     their ideal size.
+    /// 7.  Extra space (after all widths are at least their ideal size) is
+    ///     shared equally between all widgets with the highest stretch priority
+    ///
+    /// Input requirements: `rules.len() == widths.len()`.
+    ///
+    /// This method is idempotent: if input widths already match the above
+    /// requirements then they will not be modified.
+    /// Moreover, this method attempts to ensure that if `target`
+    /// is increased, then decreased back to the previous value, this will
+    /// revert to the previous solution. (The reverse may not hold if widths
+    /// had previously been affected by a different agent.)
+    #[inline]
+    pub fn solve_widths(widths: &mut [i32], rules: &[Self], target: i32) {
+        let total = SizeRules::sum(rules);
+        Self::solve_widths_with_total(widths, rules, total, target);
+    }
+
+    /// Solve a sequence of rules
+    ///
+    /// This is the same as [`SizeRules::solve_widths`] except that the rules' sum
+    /// is passed explicitly.
+    ///
+    /// Input requirements:
+    /// - `rules.len() == widths.len()`
+    /// - `SizeRules::sum(rules) == total`
+    pub fn solve_widths_with_total(widths: &mut [i32], rules: &[Self], total: Self, target: i32) {
+        Self::solve_widths_impl(widths, rules, total, target, Even)
+    }
+
+    /// Solve a sequence of rules with priority distribution
+    ///
+    /// Given a sequence of width (or height) `rules` from children and a
+    /// `target` size, find an appropriate size for each child.
+    /// The method attempts to ensure that:
+    ///
+    /// 1.  All widths are at least their minimum size requirement
+    /// 2.  The sum of widths plus margins between items equals `target`
+    /// 3.  No width exceeds its ideal size while other widths are below their
+    ///     own ideal size
+    /// 4.  No item with a [`Stretch`] priority less than the highest in `rules`
+    ///     exceeds its ideal size
+    /// 5.  When extra space is available and some widgets are below their ideal
+    ///     size, extra space is divided evenly between these widgets until they
+    ///     have reached their ideal size
+    /// 6.  If all rules use `Stretch::None`, then widths are not increased over
+    ///     their ideal size.
+    /// 7.  Extra space (after all widths are at least their ideal size) is
+    ///     allocated to the first (or `last`) item with the highest stretch
+    ///     priority
+    ///
+    /// Input requirements: `rules.len() == widths.len()`.
+    ///
+    /// This method is idempotent: given satisfactory input widths, these will
+    /// be preserved. Moreover, this method attempts to ensure that if target
+    /// is increased, then decreased back to the previous value, this will
+    /// revert to the previous solution. (The reverse may not hold if widths
+    /// had previously been affected by a different agent.)
+    #[allow(clippy::collapsible_if, clippy::needless_return)]
+    pub fn solve_widths_with_priority(widths: &mut [i32], rules: &[Self], target: i32, last: bool) {
+        let total = SizeRules::sum(rules);
+        Self::solve_widths_impl(widths, rules, total, target, Prioritize { last })
+    }
+
+    #[allow(
+        clippy::comparison_chain,
+        clippy::needless_range_loop,
+        clippy::needless_return
+    )]
+    #[inline(always)]
+    fn solve_widths_impl(
+        out: &mut [i32],
+        rules: &[Self],
+        total: Self,
+        target: i32,
+        pri: impl SolvePriority,
+    ) {
+        #[allow(non_snake_case)]
+        let N = out.len();
+        assert_eq!(rules.len(), N);
+        if N == 0 {
+            return;
+        }
+        #[cfg(debug_assertions)]
+        {
+            assert!(out.iter().all(|w| *w >= 0));
+            let mut sum = SizeRules::sum(rules);
+            sum.m = total.m; // external margins are unimportant here
+            assert_eq!(sum, total);
+        }
+
+        if target <= total.a {
+            // Below minimum size: ignore target and use minimum sizes.
+            for n in 0..N {
+                out[n] = rules[n].a;
+            }
+            return;
+        }
+        let highest_stretch = total.stretch;
+
+        // All minimum sizes can be met.
+        out[0] = out[0].max(rules[0].a);
+        let mut margin_sum = 0;
+        let mut sum = out[0];
+        let mut dist_under_b = (rules[0].b - out[0]).max(0);
+        let mut dist_over_b = (out[0] - rules[0].b).max(0);
+        let mut dist_over_b_lower_stretch = 0;
+        if rules[0].stretch < highest_stretch {
+            dist_over_b_lower_stretch = dist_over_b;
+        }
+        for i in 1..N {
+            out[i] = out[i].max(rules[i].a);
+            margin_sum += i32::from((rules[i - 1].m.1).max(rules[i].m.0));
+            sum += out[i];
+            dist_under_b += (rules[i].b - out[i]).max(0);
+            let over = (out[i] - rules[i].b).max(0);
+            dist_over_b += over;
+            if rules[i].stretch < highest_stretch {
+                dist_over_b_lower_stretch += over;
+            }
+        }
+        let target = target - margin_sum;
+
+        // Shrink: sum - target
+        // + dist_under_b because this lets us increase targets under b
+        let mut to_shrink = sum + dist_under_b - target;
+        if dist_over_b <= to_shrink {
+            // Ensure nothing exceeds the ideal and consider shrinking anything over min:
+            let mut targets = Targets::new();
+            sum = 0;
+            for i in 0..N {
+                out[i] = out[i].min(rules[i].b);
+                sum += out[i];
+                if out[i] > rules[i].a {
+                    targets.push(i.cast());
+                }
+            }
+
+            if sum > target {
+                let avail = target + margin_sum - total.a;
+                reduce_targets(out, &mut targets, |i| rules[i].a, avail);
+                debug_assert_eq!(target, (0..N).fold(0, |x, i| x + out[i]));
+                return;
+            }
+        } else if dist_over_b_lower_stretch >= to_shrink {
+            // Ensure only highest-stretch-priority items exceed the ideal:
+            sum = 0;
+            for i in 0..N {
+                if rules[i].stretch < highest_stretch {
+                    out[i] = out[i].min(rules[i].b);
+                }
+                sum += out[i];
+            }
+        } else if to_shrink > 0 {
+            // we do not go below ideal, and will keep at least one above
+            if let Some(prioritize_last) = pri.priority() {
+                if !prioritize_last {
+                    for i in 0..N {
+                        if out[i] > rules[i].b {
+                            let decr = to_shrink.min((out[i] - rules[i].b).max(0));
+                            to_shrink -= decr;
+                            out[i] -= decr;
+                        }
+                    }
+                } else {
+                    for i in (0..N).rev() {
+                        if out[i] > rules[i].b {
+                            let decr = to_shrink.min((out[i] - rules[i].b).max(0));
+                            to_shrink -= decr;
+                            out[i] -= decr;
+                        }
+                    }
+                }
+                debug_assert_eq!(to_shrink, 0);
+            } else {
+                // calculate distance over for each stretch priority
+                const MAX_STRETCH: usize = Stretch::Maximize as usize + 1;
+                let mut dists = [0; MAX_STRETCH];
+                for i in 0..N {
+                    dists[rules[i].stretch as usize] += (out[i] - rules[i].b).max(0);
+                }
+                let mut accum = 0;
+                let mut highest_affected = 0;
+                for i in 0..MAX_STRETCH {
+                    highest_affected = i;
+                    dists[i] += accum;
+                    accum = dists[i];
+                    if accum >= to_shrink {
+                        break;
+                    }
+                }
+
+                sum = 0;
+                let mut avail = 0;
+                let mut targets = Targets::new();
+                for i in 0..N {
+                    let stretch = rules[i].stretch as usize;
+                    if out[i] > rules[i].b {
+                        let over = (out[i] - rules[i].b).max(0);
+                        if stretch < highest_affected {
+                            out[i] = rules[i].b;
+                        } else if stretch == highest_affected {
+                            avail += over;
+                            targets.push(i.cast());
+                        }
+                    }
+                    sum += out[i];
+                }
+                let to_shrink = sum + dist_under_b - target;
+                if 0 < to_shrink && to_shrink <= avail {
+                    avail -= to_shrink;
+                    reduce_targets(out, &mut targets, |i| rules[i].b, avail);
+                    sum -= to_shrink;
+                }
+            }
+        }
+
+        if sum < target {
+            if target - sum >= dist_under_b {
+                // We can increase all sizes to their ideal. Since this may
+                // not be enough, we also count the number with highest
+                // stretch factor and how far these are over their ideal.
+                // If highest stretch is None, do not expand beyond ideal.
+                sum = 0;
+                if let Some(prioritize_last) = pri.priority() {
+                    let mut pick = None;
+                    for i in 0..N {
+                        out[i] = out[i].max(rules[i].b);
+                        sum += out[i];
+                        if highest_stretch > Stretch::None && rules[i].stretch == highest_stretch {
+                            if prioritize_last || pick.is_none() {
+                                pick = Some(i);
+                            }
+                        }
+                    }
+
+                    if let Some(i) = pick {
+                        out[i] += target - sum;
+                    }
+                } else {
+                    let mut targets = Targets::new();
+                    let mut over = 0;
+                    for i in 0..N {
+                        out[i] = out[i].max(rules[i].b);
+                        sum += out[i];
+                        if highest_stretch > Stretch::None && rules[i].stretch == highest_stretch {
+                            over += out[i] - rules[i].b;
+                            targets.push(i.cast());
+                        }
+                    }
+
+                    let avail = target - sum + over;
+                    increase_targets(out, &mut targets, |i| rules[i].b, avail);
+                }
+
+                debug_assert!(target >= (0..N).fold(0, |x, i| x + out[i]));
+                return;
+            } else {
+                // We cannot increase sizes as far as their ideal: instead
+                // increase over minimum size and under ideal
+                let mut targets = Targets::new();
+                let mut over = 0;
+                for i in 0..N {
+                    if out[i] < rules[i].b {
+                        over += out[i] - rules[i].a;
+                        targets.push(i.cast());
+                    }
+                }
+
+                let avail = target - sum + over;
+                increase_targets(out, &mut targets, |i| rules[i].a, avail);
+            }
+        }
+
+        debug_assert_eq!(
+            target,
+            (0..N).fold(0, |x, i| x + out[i]),
+            "widths {out:?} not equal to target {target}"
+        );
+    }
+
+    /// Ensure at least one of `rules` has stretch priority at least as high as self
+    ///
+    /// The stretch policies are increased according to the highest `scores`.
+    /// Required: `rules.len() == scores.len()`.
+    pub(crate) fn distribute_stretch_over_by(self, rules: &mut [Self], scores: &[u32]) {
+        assert_eq!(rules.len(), scores.len());
+        if rules.iter().any(|r| r.stretch >= self.stretch) {
+            return;
+        }
+
+        let highest = scores.iter().cloned().max().unwrap_or(0);
+        for i in 0..rules.len() {
+            if scores[i] == highest {
+                rules[i].stretch = self.stretch;
+            }
+        }
+    }
+
+    /// Adjust a sequence of `rules` to ensure that the total is at least `self`
+    ///
+    /// This is a cheap hack used by grids to ensure that cell spans are sufficiently large.
+    pub(crate) fn distribute_span_over(self, rules: &mut [Self]) {
+        let len = rules.len();
+        assert!(len > 0);
+        let len1 = len - 1;
+        let sum: SizeRules = rules.iter().sum();
+
+        rules[0].m.0 = rules[0].m.0.max(self.m.0);
+        rules[len1].m.1 = rules[len1].m.1.max(self.m.1);
+
+        let excess_a = (self.a - sum.a).max(0);
+        let excess_b = (self.b - sum.b).max(0);
+        if excess_a == 0 && excess_b == 0 {
+            return;
+        }
+
+        let highest_stretch = sum.stretch;
+        let count = i32::conv(
+            (0..len)
+                .filter(|i| rules[*i].stretch == highest_stretch)
+                .count(),
+        );
+        let a_per_elt = excess_a / count;
+        let b_per_elt = excess_b / count;
+        let mut extra_a = excess_a - count * a_per_elt;
+        let mut extra_b = excess_b - count * b_per_elt;
+        for rules in rules.iter_mut() {
+            if rules.stretch == highest_stretch {
+                rules.a += a_per_elt;
+                rules.b += b_per_elt;
+                if extra_a > 0 {
+                    rules.a += 1;
+                    extra_a -= 1;
+                }
+                if extra_b > 0 {
+                    rules.b += 1;
+                    extra_b -= 1;
+                }
+                if highest_stretch < self.stretch {
+                    rules.stretch = self.stretch;
+                }
+            }
+        }
+    }
+}
+
+trait SolvePriority: std::fmt::Debug {
+    /// Are we giving priority to some widget when increasing/decreasing size?
+    ///
+    /// - `None` means even distribution
+    /// - `Some(true)` means give priority to the *last* item
+    /// - `Some(false)` means give priority to the *first* item
+    fn priority(&self) -> Option<bool>;
+}
+
+#[derive(Debug)]
+struct Even;
+impl SolvePriority for Even {
+    #[inline]
+    fn priority(&self) -> Option<bool> {
+        None
+    }
+}
+
+#[derive(Debug)]
+struct Prioritize {
+    last: bool,
+}
+impl SolvePriority for Prioritize {
+    #[inline]
+    fn priority(&self) -> Option<bool> {
+        Some(self.last)
+    }
+}
+
+/// Return the sum over a sequence of rules, assuming these are ordered
+///
+/// Uses [`SizeRules::appended`] on all rules in sequence.
+impl Sum for SizeRules {
+    fn sum<I: Iterator<Item = Self>>(mut iter: I) -> Self {
+        if let Some(first) = iter.next() {
+            iter.fold(first, |x, y| x.appended(y))
+        } else {
+            SizeRules::EMPTY
+        }
+    }
+}
+
+/// Return the sum over a sequence of rules, assuming these are ordered
+///
+/// Uses [`SizeRules::appended`] on all rules in sequence.
+impl<'a> Sum<&'a Self> for SizeRules {
+    fn sum<I: Iterator<Item = &'a Self>>(mut iter: I) -> Self {
+        if let Some(first) = iter.next() {
+            iter.fold(*first, |x, y| x.appended(*y))
+        } else {
+            SizeRules::EMPTY
+        }
+    }
+}
+
+type Targets = SmallVec<[i32; 16]>;
+
+fn increase_targets(
+    out: &mut [i32],
+    targets: &mut Targets,
+    base: impl Fn(usize) -> i32,
+    mut avail: i32,
+) {
+    if targets.is_empty() {
+        return;
+    }
+
+    // Calculate ceiling above which sizes will not be increased
+    let mut any_removed = true;
+    while any_removed {
+        any_removed = false;
+        let count = i32::conv(targets.len());
+        let ceil = (avail + count - 1) / count; // round up
+        let mut t = 0;
+        while t < targets.len() {
+            let i = usize::conv(targets[t]);
+            if out[i] >= base(i) + ceil {
+                avail -= out[i] - base(i);
+                targets.remove(t);
+                any_removed = true;
+                continue;
+            }
+            t += 1;
+        }
+        if targets.is_empty() {
+            return;
+        }
+    }
+
+    // Since no more are removed by a ceiling, all remaining
+    // targets will be (approx) equal. Arbitrarily distribute
+    // rounding errors to the first ones.
+    let count = i32::conv(targets.len());
+    let per_elt = avail / count;
+    let extra = usize::conv(avail - per_elt * count);
+    assert!(extra < targets.len());
+    for t in 0..extra {
+        let i = usize::conv(targets[t]);
+        out[i] = base(i) + per_elt + 1;
+    }
+    for t in extra..targets.len() {
+        let i = usize::conv(targets[t]);
+        out[i] = base(i) + per_elt;
+    }
+}
+
+/// Reduce targets such that the sum over `i in targets` of `out[i] + base(i)` is `avail`.
+///
+/// Assumption: for `i in targets`, each `out[i] >= base(i)`.
+fn reduce_targets<F: Fn(usize) -> i32>(
+    out: &mut [i32],
+    targets: &mut Targets,
+    base: F,
+    mut avail: i32,
+) {
+    debug_assert!(avail >= 0);
+    // We can ignore everything below the floor
+    let mut any_removed = true;
+    while any_removed {
+        any_removed = false;
+        let floor = avail / i32::conv(targets.len());
+        let mut t = 0;
+        while t < targets.len() {
+            let i = usize::conv(targets[t]);
+            let base = base(i);
+            debug_assert!(out[i] >= base);
+            if out[i] <= base + floor {
+                avail -= out[i] - base;
+                targets.remove(t);
+                any_removed = true;
+                continue;
+            }
+            t += 1;
+        }
+    }
+
+    // All targets remaining must be reduced to floor, bar rounding errors
+    let floor = avail / i32::conv(targets.len());
+    let extra = usize::conv(avail) - usize::conv(floor) * targets.len();
+    assert!(extra < targets.len());
+    for t in 0..extra {
+        let i = usize::conv(targets[t]);
+        out[i] = base(i) + floor + 1;
+    }
+    for t in extra..targets.len() {
+        let i = usize::conv(targets[t]);
+        out[i] = base(i) + floor;
+    }
+}

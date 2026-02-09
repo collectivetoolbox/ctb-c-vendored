@@ -1,0 +1,121 @@
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License in the LICENSE-APACHE file or at:
+//     https://www.apache.org/licenses/LICENSE-2.0
+
+//! Event handling: IsUsed and Scroll types
+
+#[allow(unused)] use super::EventCx;
+use super::components::KineticStart;
+#[allow(unused)] use crate::Events;
+use crate::geom::{Offset, Rect, Vec2};
+
+pub use IsUsed::{Unused, Used};
+
+/// Return type of event-handling methods
+///
+/// This type is convertible to/from `bool` and supports the expected bit-wise
+/// OR operator (`a | b`, `*a |= b`).
+///
+/// The type also implements negation with output type `bool`, thus allowing
+/// `if is_used.into() { ... }` and `if !is_used { ... }`. An implementation of
+/// `Deref` would be preferred, but the trait can only output a reference.
+#[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
+pub enum IsUsed {
+    /// Event was unused
+    ///
+    /// Unused events may be used by a parent/ancestor widget or passed to
+    /// another handler until used.
+    Unused,
+    /// Event is used, no other result
+    Used,
+}
+
+impl From<bool> for IsUsed {
+    fn from(is_used: bool) -> Self {
+        match is_used {
+            false => Self::Unused,
+            true => Self::Used,
+        }
+    }
+}
+
+impl From<IsUsed> for bool {
+    fn from(is_used: IsUsed) -> bool {
+        is_used == Used
+    }
+}
+
+impl std::ops::BitOr for IsUsed {
+    type Output = Self;
+    #[inline]
+    fn bitor(self, rhs: Self) -> Self {
+        match (self, rhs) {
+            (Unused, Unused) => Unused,
+            _ => Used,
+        }
+    }
+}
+impl std::ops::BitOrAssign for IsUsed {
+    #[inline]
+    fn bitor_assign(&mut self, rhs: Self) {
+        *self = *self | rhs;
+    }
+}
+
+impl std::ops::Not for IsUsed {
+    type Output = bool;
+    #[inline]
+    fn not(self) -> bool {
+        self != Used
+    }
+}
+
+/// Scroll notification and requests
+///
+/// This is used by [`EventCx::set_scroll`] and [`Events::handle_scroll`].
+#[derive(Clone, Debug, Default, PartialEq)]
+#[must_use]
+pub enum Scroll {
+    /// No scrolling
+    #[default]
+    None,
+    /// A child has scrolled
+    ///
+    /// No further scrolling is needed but external scroll bars may need to
+    /// update themselves.
+    Scrolled,
+    /// Pan by the given offset
+    ///
+    /// This is returned when pointer motion should cause scrolling but the
+    /// widget handling the motion event is unable to scroll itself.
+    /// The handler should attempt to scroll itself by this offset then set
+    /// `Scroll::Offset(remainder)` (if non-zero) or `Scroll::Scrolled`.
+    ///
+    /// With the usual scroll offset conventions, this delta must be subtracted
+    /// from the scroll offset.
+    Offset(Vec2),
+    /// Start kinetic scrolling
+    ///
+    /// This is returned when pointer motion should cause kinetic scrolling but
+    /// the widget handling the motion event is unable to scroll itself.
+    Kinetic(KineticStart),
+    /// Focus the given rect
+    ///
+    /// This is specified in the child's coordinate space. It is assumed that
+    /// any parent with non-zero translation will intercept this value and
+    /// either consume or translate it.
+    Rect(Rect),
+}
+
+impl std::ops::Sub<Offset> for Scroll {
+    type Output = Self;
+
+    #[inline]
+    fn sub(self, rhs: Offset) -> Self {
+        match self {
+            Scroll::Rect(rect) => Scroll::Rect(rect - rhs),
+            other => other,
+        }
+    }
+}
