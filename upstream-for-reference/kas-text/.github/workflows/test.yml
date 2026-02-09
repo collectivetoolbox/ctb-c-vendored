@@ -1,0 +1,66 @@
+name: Tests
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+permissions:
+  contents: read
+
+jobs:
+  nightly:
+    name: Nightly
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfontconfig1-dev
+      - name: Install toolchain
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rustfmt, clippy
+      - name: Rustfmt check
+        run: |
+          cargo fmt --all -- --check
+      - name: doc
+        run: RUSTDOCFLAGS="--cfg doc_cfg" cargo doc --all-features --no-deps
+      - name: Clippy
+        run: cargo +nightly clippy --all-features
+      - name: Test (all features including GAT)
+        run: cargo test --all-features
+
+  test:
+    name: Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+        toolchain: [stable]
+        include:
+          - os: ubuntu-latest
+            toolchain: "1.88.0"
+          - os: ubuntu-latest
+            toolchain: beta
+
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install dependencies
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfontconfig1-dev
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.toolchain }}
+          override: true
+      - name: Test (reduced features)
+        run: cargo test --all-targets --features markdown
+      - name: Test (all features except GAT)
+        run: cargo test --features markdown,shaping,serde,num_glyphs
