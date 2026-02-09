@@ -61,7 +61,8 @@ rustdoc-args = ["--cfg", "docsrs"]
 
 # Features are documented in either `lib.rs` or under `winit::platform`.
 [features]
-default = ["rwh_06", "x11", "wayland", "wayland-csd-adwaita"]
+# I can't figure out how to make the `wayland-csd-adwaita` feature turn off so I just deleted it.
+default = ["rwh_06", "x11", "wayland"]
 x11 = ["dep:x11", "bytemuck", "percent-encoding", "x11rb"]
 wayland = [
     "wayland-client",
@@ -72,9 +73,9 @@ wayland = [
     "ahash",
     "memmap2",
 ]
-wayland-csd-adwaita = ["sctk-adwaita", "sctk-adwaita/ab_glyph"]
-wayland-csd-adwaita-crossfont = ["sctk-adwaita", "sctk-adwaita/crossfont"]
-wayland-csd-adwaita-notitle = ["sctk-adwaita"]
+#wayland-csd-adwaita = ["sctk-adwaita", "sctk-adwaita/ab_glyph"]
+#wayland-csd-adwaita-crossfont = ["sctk-adwaita", "sctk-adwaita/crossfont"]
+#wayland-csd-adwaita-notitle = ["sctk-adwaita"]
 android-native-activity = ["android-activity/native-activity"]
 android-game-activity = ["android-activity/game-activity"]
 serde = ["dep:serde", "cursor-icon/serde", "smol_str/serde", "dpi/serde"]

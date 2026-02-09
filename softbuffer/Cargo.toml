@@ -37,6 +37,7 @@ x11 = [
     "x11rb",
 ]
 x11-dlopen = ["tiny-xlib/dlopen", "x11rb/dl-libxcb"]
+wayland-dlopen=[] # does nothing, but lets dependent packages not worry about it
 
 [dependencies]
 raw_window_handle = { package = "raw-window-handle", version = "0.6", features = [
