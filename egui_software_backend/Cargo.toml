@@ -9,6 +9,11 @@ readme = "README.md"
 license = "MIT OR Apache-2.0"
 keywords = ["egui", "raster", "software", "render", "softbuffer"]
 workspace = "../.."
+autotests = false
+
+[lib]
+test = false
+doctest = false
 
 [dependencies]
 egui = { version = "0.33", default-features = false }
