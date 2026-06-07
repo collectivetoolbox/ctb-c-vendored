@@ -130,7 +130,7 @@ use std::marker::PhantomData;
 use std::mem::{self, ManuallyDrop};
 use std::os::raw::{c_int, c_void};
 use std::ptr::{self, NonNull};
-use std::sync::{Mutex, MutexGuard, Once, PoisonError};
+use std::sync::{Mutex, MutexGuard, Once, OnceLock, PoisonError};
 
 macro_rules! lock {
     ($e:expr) => {{
@@ -144,61 +144,55 @@ macro_rules! lock {
     }};
 }
 
-ctor::declarative::ctor! {
-    #[ctor(unsafe)]
-    static XLIB: io::Result<ffi::Xlib> = {
-        #[cfg_attr(coverage, coverage(off))]
-        unsafe fn load_xlib_with_error_hook() -> io::Result<ffi::Xlib> {
-            // Here's a puzzle: how do you *safely* add an error hook to Xlib? Like signal handling, there
-            // is a single global error hook. Therefore, we need to make sure that we economize on the
-            // single slot that we have by offering a way to set it. However, unlike signal handling, there
-            // is no way to tell if we're replacing an existing error hook. If we replace another library's
-            // error hook, we could cause unsound behavior if it assumes that it is the only error hook.
-            //
-            // However, we don't want to call the default error hook, because it exits the program. So, in
-            // order to tell if the error hook is the default one, we need to compare it to the default
-            // error hook. However, we can't just compare the function pointers, because the default error
-            // hook is a private function that we can't access.
-            //
-            // In order to access it, before anything else runs, this function is called. It loads Xlib,
-            // sets the error hook to a dummy function, reads the resulting error hook into a static
-            // variable, and then resets the error hook to the default function. This allows us to read
-            // the default error hook and compare it to the one that we're setting.
-            #[cfg_attr(coverage, coverage(off))]
-            fn error(e: impl std::error::Error) -> io::Error {
-                io::Error::new(io::ErrorKind::Other, format!("failed to load Xlib: {}", e))
-            }
-            let xlib = ffi::Xlib::load().map_err(error)?;
+static XLIB: OnceLock<io::Result<ffi::Xlib>> = OnceLock::new();
 
-            // Dummy function we use to set the error hook.
-            #[cfg_attr(coverage, coverage(off))]
-            unsafe extern "C" fn dummy(
-                _display: *mut ffi::Display,
-                _error: *mut ffi::XErrorEvent,
-            ) -> std::os::raw::c_int {
-                0
-            }
+#[cfg_attr(coverage, coverage(off))]
+unsafe fn load_xlib_with_error_hook() -> io::Result<ffi::Xlib> {
+    // Here's a puzzle: how do you *safely* add an error hook to Xlib? Like signal handling, there
+    // is a single global error hook. Therefore, we need to make sure that we economize on the
+    // single slot that we have by offering a way to set it. However, unlike signal handling, there
+    // is no way to tell if we're replacing an existing error hook. If we replace another library's
+    // error hook, we could cause unsound behavior if it assumes that it is the only error hook.
+    //
+    // However, we don't want to call the default error hook, because it exits the program. So, in
+    // order to tell if the error hook is the default one, we need to compare it to the default
+    // error hook. However, we can't just compare the function pointers, because the default error
+    // hook is a private function that we can't access.
+    //
+    // Instead of doing this at process start, initialize lazily on first real Xlib use so merely
+    // linking the crate does not force an X11 load attempt.
+    #[cfg_attr(coverage, coverage(off))]
+    fn error(_e: impl std::error::Error) -> io::Error {
+        io::Error::new(io::ErrorKind::Other, "failed to load Xlib")
+    }
+    let xlib = ffi::Xlib::load().map_err(error)?;
 
-            // Set the error hook to the dummy function.
-            let default_hook = xlib.set_error_handler(Some(dummy));
+    // Dummy function we use to set the error hook.
+    #[cfg_attr(coverage, coverage(off))]
+    unsafe extern "C" fn dummy(
+        _display: *mut ffi::Display,
+        _error: *mut ffi::XErrorEvent,
+    ) -> std::os::raw::c_int {
+        0
+    }
 
-            // Read the error hook into a static variable.
-            // SAFETY: This should only run once at the start of the program, no need to worry about
-            // multithreading.
-            DEFAULT_ERROR_HOOK.set(default_hook);
+    // Set the error hook to the dummy function.
+    let default_hook = xlib.set_error_handler(Some(dummy));
 
-            // Set the error hook back to the default function.
-            xlib.set_error_handler(default_hook);
+    // Read the error hook into a static variable.
+    // SAFETY: `OnceLock` ensures initialization only happens once.
+    DEFAULT_ERROR_HOOK.set(default_hook);
 
-            Ok(xlib)
-        }
+    // Set the error hook back to the default function.
+    xlib.set_error_handler(default_hook);
 
-        unsafe { load_xlib_with_error_hook() }
-    };
+    Ok(xlib)
 }
 
 #[inline]
-fn get_xlib(sym: &io::Result<ffi::Xlib>) -> io::Result<&ffi::Xlib> {
+fn get_xlib() -> io::Result<&'static ffi::Xlib> {
+    let sym = XLIB.get_or_init(|| unsafe { load_xlib_with_error_hook() });
+
     // Eat coverage on the error branch.
     #[cfg_attr(coverage, coverage(off))]
     fn error(e: &io::Error) -> io::Error {
@@ -387,7 +381,7 @@ impl fmt::Debug for Display {
 impl Display {
     /// Open a new display.
     pub fn new(name: Option<&CStr>) -> io::Result<Self> {
-        let xlib = get_xlib(&XLIB)?;
+        let xlib = get_xlib()?;
 
         // Make sure the error handler is registered.
         setup_error_handler(xlib);
@@ -424,7 +418,7 @@ impl Display {
 
     /// Get the default screen index for this display.
     pub fn screen_index(&self) -> usize {
-        let xlib = get_xlib(&XLIB).expect("failed to load Xlib");
+        let xlib = get_xlib().expect("failed to load Xlib");
 
         // SAFETY: Valid display pointer.
         let index = unsafe { xlib.default_screen(self.ptr.as_ptr()) };
@@ -442,7 +436,7 @@ impl Display {
 
 unsafe impl as_raw_xcb_connection::AsRawXcbConnection for Display {
     fn as_raw_xcb_connection(&self) -> *mut as_raw_xcb_connection::xcb_connection_t {
-        let xlib = get_xlib(&XLIB).expect("failed to load Xlib");
+        let xlib = get_xlib().expect("failed to load Xlib");
         unsafe { xlib.get_xcb_connection(self.ptr.as_ptr()) }
     }
 }
@@ -450,7 +444,7 @@ unsafe impl as_raw_xcb_connection::AsRawXcbConnection for Display {
 impl Drop for Display {
     fn drop(&mut self) {
         // SAFETY: We own the display pointer, so we can drop it.
-        if let Ok(xlib) = get_xlib(&XLIB) {
+        if let Ok(xlib) = get_xlib() {
             unsafe {
                 xlib.close_display(self.ptr.as_ptr());
             }
@@ -461,7 +455,7 @@ impl Drop for Display {
 /// Insert an error handler into the list.
 pub fn register_error_handler(handler: ErrorHook) -> io::Result<HandlerKey> {
     // Make sure the error handler is registered.
-    setup_error_handler(get_xlib(&XLIB)?);
+    setup_error_handler(get_xlib()?);
 
     // Insert the handler into the list.
     let mut handlers = lock!(ERROR_HANDLERS);

@@ -31,6 +31,7 @@ repository = "https://github.com/rust-windowing/tiny-xlib"
 [features]
 default = ["tracing"]
 dlopen = ["libloading"]
+x11-integration-tests = []
 
 [lib]
 name = "tiny_xlib"
@@ -39,10 +40,12 @@ path = "src/lib.rs"
 [[test]]
 name = "display"
 path = "tests/display.rs"
+required-features = ["x11-integration-tests"]
 
 [[test]]
 name = "prev"
 path = "tests/prev.rs"
+required-features = ["x11-integration-tests"]
 
 [dependencies.as-raw-xcb-connection]
 version = "1.0.0"
