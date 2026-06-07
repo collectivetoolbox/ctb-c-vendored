@@ -872,6 +872,13 @@ pub struct SoftwareBackend {
 }
 
 impl SoftwareBackend {
+    pub const fn new() -> Self {
+        Self {
+            capture_frame_time: false,
+            last_frame_time: None,
+        }
+    }
+
     /// Returns true if the frame time for the next frame is captured.
     pub fn is_capture_frame_time(&self) -> bool {
         self.capture_frame_time

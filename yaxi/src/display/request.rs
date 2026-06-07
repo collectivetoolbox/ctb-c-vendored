@@ -619,6 +619,43 @@ pub struct ConfigureWindow {
 
 #[repr(packed, C)]
 #[derive(Debug)]
+pub struct CreateGC {
+    pub opcode: u8,
+    pub pad0: u8,
+    pub length: u16,
+    pub cid: u32,
+    pub drawable: u32,
+    pub value_mask: u32,
+}
+
+#[repr(packed, C)]
+#[derive(Debug)]
+pub struct FreeGC {
+    pub opcode: u8,
+    pub pad0: u8,
+    pub length: u16,
+    pub gc: u32,
+}
+
+#[repr(packed, C)]
+#[derive(Debug)]
+pub struct PutImage {
+    pub opcode: u8,
+    pub format: u8,
+    pub length: u16,
+    pub drawable: u32,
+    pub gc: u32,
+    pub width: u16,
+    pub height: u16,
+    pub dst_x: i16,
+    pub dst_y: i16,
+    pub left_pad: u8,
+    pub depth: u8,
+    pub pad0: [u8; 2],
+}
+
+#[repr(packed, C)]
+#[derive(Debug)]
 pub struct KillClient {
     pub opcode: u8,
     pub pad0: u8,

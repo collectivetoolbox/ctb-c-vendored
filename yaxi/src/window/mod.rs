@@ -221,6 +221,13 @@ pub enum PropMode {
     Append = 2,
 }
 
+#[derive(Clone, Copy)]
+pub enum ImageFormat {
+    Bitmap = 0,
+    XyPixmap = 1,
+    ZPixmap = 2,
+}
+
 #[derive(Clone)]
 pub struct Window {
     stream: Stream,
@@ -756,6 +763,67 @@ impl Window {
             ]
             .concat(),
         )?;
+
+        self.replies.poll_error()
+    }
+
+    /// Upload raw image bytes into the window using a temporary graphics context.
+    pub fn put_image(
+        &self,
+        format: ImageFormat,
+        width: u16,
+        height: u16,
+        dst_x: i16,
+        dst_y: i16,
+        data: &[u8],
+    ) -> Result<(), Error> {
+        self.sequence.skip();
+
+        let gc = xid::next()?;
+
+        self.stream.send_encode(CreateGC {
+            opcode: Opcode::CREATE_GC,
+            pad0: 0,
+            length: 4,
+            cid: gc,
+            drawable: self.id(),
+            value_mask: 0,
+        })?;
+
+        self.replies.poll_error()?;
+
+        let request = PutImage {
+            opcode: Opcode::PUT_IMAGE,
+            format: format as u8,
+            length: 6 + (data.len() as u16 + request::pad(data.len()) as u16) / 4,
+            drawable: self.id(),
+            gc,
+            width,
+            height,
+            dst_x,
+            dst_y,
+            left_pad: 0,
+            depth: self.depth(),
+            pad0: [0; 2],
+        };
+
+        self.stream.send(
+            &[
+                request::encode(&request).to_vec(),
+                data.to_vec(),
+                vec![0u8; request::pad(data.len())],
+            ]
+            .concat(),
+        )?;
+
+        self.replies.poll_error()?;
+
+        self.stream.send_encode(FreeGC {
+            opcode: Opcode::FREE_GC,
+            pad0: 0,
+            length: 2,
+            gc,
+        })?;
 
         self.replies.poll_error()
     }
