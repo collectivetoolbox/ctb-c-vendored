@@ -18,7 +18,7 @@ name = "buffer_mut"
 harness = false
 
 [features]
-default = ["kms", "x11", "x11-dlopen", "wayland"]
+default = ["kms", "x11", "wayland"]
 kms = ["bytemuck", "drm", "rustix"]
 wayland = [
     "wayland-backend",
