@@ -555,7 +555,7 @@ impl Window {
         };
 
         self.stream
-            .send(&[window_values_request, request::encode(&request).to_vec()].concat())?;
+            .send(&[request::encode(&request).to_vec(), window_values_request].concat())?;
 
         self.replies.poll_error()?;
 
@@ -795,7 +795,16 @@ impl Window {
         let request = PutImage {
             opcode: Opcode::PUT_IMAGE,
             format: format as u8,
-            length: 6 + (data.len() as u16 + request::pad(data.len()) as u16) / 4,
+            length: {
+                let padded_len = data.len() + request::pad(data.len());
+                let request_words = 6 + padded_len / 4;
+                u16::try_from(request_words).map_err(|_| Error::InvalidProtocol {
+                    protocol: format!(
+                        "PutImage request too large: {} bytes of payload",
+                        data.len()
+                    ),
+                })?
+            },
             drawable: self.id(),
             gc,
             width,
