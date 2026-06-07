@@ -2,12 +2,18 @@
 
 packages=(
   "egui"
-  "egui-winit"
   "egui_software_backend"
+  "egui-winit"
+  "kas-core"
+  "kas-text"
   "smithay-clipboard"
   "softbuffer"
+  "tiny-xlib"
   "winit"
   "x11"
+  "x11-dl"
+  "x11rb"
+  "yaxi"
 )
 
 find diff-tmp -exec chmod u+w {} \;

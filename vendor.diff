@@ -1,6 +1,6 @@
 diff -uraN original-egui/Cargo.toml ./egui/Cargo.toml
---- original-egui/Cargo.toml	2026-02-07 18:26:21.156443005 -0500
-+++ ./egui/Cargo.toml	2026-02-07 18:26:21.160443093 -0500
+--- original-egui/Cargo.toml	2026-06-07 12:42:31.980598795 -0400
++++ ./egui/Cargo.toml	2026-06-07 12:42:31.984598907 -0400
 @@ -1,17 +1,18 @@
  [package]
  name = "egui"
@@ -67,8 +67,8 @@ diff -uraN original-egui/Cargo.toml ./egui/Cargo.toml
 +serde = { optional = true, version = "1.0.228", features = ["derive", "rc"] }
 \ No newline at end of file
 diff -uraN original-egui/src/memory/mod.rs ./egui/src/memory/mod.rs
---- original-egui/src/memory/mod.rs	2026-02-07 18:26:21.156443005 -0500
-+++ ./egui/src/memory/mod.rs	2026-02-07 18:26:21.160443093 -0500
+--- original-egui/src/memory/mod.rs	2026-06-07 12:42:31.976598683 -0400
++++ ./egui/src/memory/mod.rs	2026-06-07 12:42:31.980598795 -0400
 @@ -481,7 +481,16 @@
      last_interested: Option<Id>,
  
@@ -287,8 +287,8 @@ diff -uraN original-egui/src/memory/mod.rs ./egui/src/memory/mod.rs
  
      /// Returns true if
 diff -uraN original-egui/src/response.rs ./egui/src/response.rs
---- original-egui/src/response.rs	2026-02-07 18:26:21.156443005 -0500
-+++ ./egui/src/response.rs	2026-02-07 18:26:21.160443093 -0500
+--- original-egui/src/response.rs	2026-06-07 12:42:31.980598795 -0400
++++ ./egui/src/response.rs	2026-06-07 12:42:31.984598907 -0400
 @@ -6,6 +6,7 @@
      emath::{Align, Pos2, Rect, Vec2},
      pass_state,
@@ -313,136 +313,30 @@ diff -uraN original-egui/src/response.rs ./egui/src/response.rs
      /// Did a drag on this widget begin this frame?
      ///
      /// This is only true if the widget sense drags.
-diff -uraN original-egui-winit/Cargo.toml ./egui-winit/Cargo.toml
---- original-egui-winit/Cargo.toml	2026-02-07 18:26:21.340447054 -0500
-+++ ./egui-winit/Cargo.toml	2026-02-07 18:26:21.340447054 -0500
-@@ -1,17 +1,18 @@
- [package]
- name = "egui-winit"
--version.workspace = true
-+version = "0.33.3"
- authors = ["Emil Ernerfeldt <emil.ernerfeldt@gmail.com>"]
- description = "Bindings for using egui with winit"
--edition.workspace = true
--rust-version.workspace = true
-+edition = "2024"
-+rust-version = "1.88"
- homepage = "https://github.com/emilk/egui/tree/main/crates/egui-winit"
--license.workspace = true
-+license = "MIT OR Apache-2.0"
- readme = "README.md"
- repository = "https://github.com/emilk/egui/tree/main/crates/egui-winit"
- categories = ["gui", "game-development"]
- keywords = ["winit", "egui", "gui", "gamedev"]
- include = ["../LICENSE-APACHE", "../LICENSE-MIT", "**/*.rs", "Cargo.toml"]
-+workspace = "../.."
- 
- [lints]
- workspace = true
-@@ -55,31 +56,31 @@
- x11 = ["winit/x11", "bytemuck"]
- 
- [dependencies]
--egui = { workspace = true, default-features = false }
-+egui = { version = "0.33.3", default-features = false }
- 
--log.workspace = true
--profiling.workspace = true
--raw-window-handle.workspace = true
--web-time.workspace = true
--winit = { workspace = true, default-features = false }
-+log = { version = "0.4.28", features = ["std"] }
-+profiling = { version = "1.0.17", default-features = false }
-+raw-window-handle = "0.6.2"
-+web-time = "1.1.0"
-+winit = { version = "0.30.12", default-features = false }
- 
- #! ### Optional dependencies
- 
- # feature accesskit
--accesskit_winit = { workspace = true, optional = true }
-+accesskit_winit = { version = "0.29.1", optional = true }
- 
--bytemuck = { workspace = true, optional = true }
-+bytemuck = { version = "1.24.0", optional = true }
- 
- ## Enable this when generating docs.
--document-features = { workspace = true, optional = true }
-+document-features = { version = "0.2.11", optional = true }
- 
--serde = { workspace = true, optional = true }
--webbrowser = { workspace = true, optional = true }
-+serde = { version = "1.0.228", optional = true }
-+webbrowser = { version = "1.0.5", optional = true }
- 
- [target.'cfg(target_os = "ios")'.dependencies]
--objc2.workspace = true
--objc2-foundation = { workspace = true, features = ["std", "NSThread"] }
--objc2-ui-kit = { workspace = true, features = [
-+objc2 = "0.5.2"
-+objc2-foundation = { version = "0.2.2", features = ["std", "NSThread"] }
-+objc2-ui-kit = { version = "0.2.2", features = [
-   "std",
-   "UIApplication",
-   "UIGeometry",
-@@ -92,12 +93,12 @@
- ] }
- 
- [target.'cfg(any(target_os="linux", target_os="dragonfly", target_os="freebsd", target_os="netbsd", target_os="openbsd"))'.dependencies]
--smithay-clipboard = { workspace = true, optional = true }
-+smithay-clipboard = { version = "0.7.2", optional = true }
- 
- # The wayland-cursor normally selected doesn't properly enable all the features it uses
- # and thus doesn't compile as it is used in egui-winit. This is fixed upstream, so force
- # a slightly newer version. Remove this when winit upgrades past this version.
--wayland-cursor = { workspace = true, optional = true }
-+wayland-cursor = { version = "0.31.11", optional = true }
- 
- [target.'cfg(not(target_os = "android"))'.dependencies]
--arboard = { workspace = true, optional = true, features = ["image-data"] }
-+arboard = { version = "3.6.1", optional = true, features = ["image-data"] }
-\ No newline at end of file
-diff -uraN original-egui-winit/src/clipboard.rs ./egui-winit/src/clipboard.rs
---- original-egui-winit/src/clipboard.rs	2026-02-07 18:26:21.340447054 -0500
-+++ ./egui-winit/src/clipboard.rs	2026-02-07 18:26:21.340447054 -0500
-@@ -179,10 +179,15 @@
- 
-     profiling::function_scope!();
- 
--    if let Some(RawDisplayHandle::Wayland(display)) = raw_display_handle {
-+    if let Some(RawDisplayHandle::Wayland(_display)) = raw_display_handle {
-         log::trace!("Initializing smithay clipboard…");
--        #[expect(unsafe_code)]
--        Some(unsafe { smithay_clipboard::Clipboard::new(display.display.as_ptr()) })
-+        match smithay_clipboard::Clipboard::new_from_env() {
-+            Ok(clipboard) => Some(clipboard),
-+            Err(err) => {
-+                log::warn!("Failed to initialize smithay clipboard: {err}");
-+                None
-+            }
-+        }
-     } else {
-         #[cfg(feature = "wayland")]
-         log::debug!("Cannot init smithay clipboard without a Wayland display handle");
 diff -uraN original-egui_software_backend/Cargo.toml ./egui_software_backend/Cargo.toml
---- original-egui_software_backend/Cargo.toml	2026-02-07 18:26:21.504450663 -0500
-+++ ./egui_software_backend/Cargo.toml	2026-02-07 18:26:21.504450663 -0500
-@@ -8,6 +8,7 @@
+--- original-egui_software_backend/Cargo.toml	2026-06-07 12:42:32.176604260 -0400
++++ ./egui_software_backend/Cargo.toml	2026-06-07 12:42:32.176604260 -0400
+@@ -8,6 +8,12 @@
  readme = "README.md"
  license = "MIT OR Apache-2.0"
  keywords = ["egui", "raster", "software", "render", "softbuffer"]
 +workspace = "../.."
++autotests = false
++
++[lib]
++test = false
++doctest = false
  
  [dependencies]
  egui = { version = "0.33", default-features = false }
-@@ -16,32 +17,26 @@
+@@ -16,32 +22,26 @@
  
  rayon = { version = "1.11.0", optional = true }
  log = { version = "0.4.28", optional = true }
 -winit = {version = "0.30", optional = true }
 -softbuffer = { version = "0.4", optional = true }
 +winit = {version = "0.30", optional = true, features = ["rwh_06", "x11", "wayland"],  default-features = false }
-+softbuffer = { version = "0.4", optional = true, features = ["wayland", "x11", "kms"], default-features = false }
++softbuffer = { version = "0.4", optional = true, features = ["wayland", "x11", "x11-dlopen", "kms"], default-features = false }
  egui-winit = { version = "0.33", default-features = false, optional = true}
  bytemuck = { version = "1.23", optional = true }
  
@@ -462,7 +356,7 @@ diff -uraN original-egui_software_backend/Cargo.toml ./egui_software_backend/Car
 -epaint_default_fonts = "0.33"
  
 -softbuffer = { version = "0.4" }
-+softbuffer = { version = "0.4", features = ["wayland", "x11", "kms"], default-features = false }
++softbuffer = { version = "0.4", features = ["wayland", "x11", "x11-dlopen", "kms"], default-features = false }
  image = { version = "0.25", features = ["jpeg", "png"] }
 -winit = { version = "0.30" }
 +winit = { version = "0.30", features = ["rwh_06", "x11", "wayland"], default-features = false }
@@ -474,7 +368,7 @@ diff -uraN original-egui_software_backend/Cargo.toml ./egui_software_backend/Car
  # Enable optimization in debug mode
  [profile.dev]
  opt-level = 3
-@@ -50,9 +45,6 @@
+@@ -50,9 +50,6 @@
  [profile.dev.package."*"]
  opt-level = 3
  
@@ -484,7 +378,7 @@ diff -uraN original-egui_software_backend/Cargo.toml ./egui_software_backend/Car
  [features]
  default = ["std", "winit"]
  
-@@ -61,6 +53,8 @@
+@@ -61,6 +58,8 @@
  ## Turn on the `log` feature, that makes egui_software_backend log some errors using the [`log`](https://docs.rs/log) crate.
  log = ["dep:log"]
  
@@ -493,7 +387,7 @@ diff -uraN original-egui_software_backend/Cargo.toml ./egui_software_backend/Car
  ## Enable parallel rasterization and compositing using [`rayon`](https://docs.rs/rayon).
  rayon = ["dep:rayon"]
  
-@@ -78,8 +72,10 @@
+@@ -78,8 +77,10 @@
  # cargo test --features rayon,raster_stats
  # cargo deny check
  
@@ -506,7 +400,7 @@ diff -uraN original-egui_software_backend/Cargo.toml ./egui_software_backend/Car
  
  elided_lifetimes_in_paths = "warn"
  future_incompatible = { level = "warn", priority = -1 }
-@@ -97,13 +93,13 @@
+@@ -97,13 +98,13 @@
  trivial_casts = "allow"
  unused_qualifications = "allow"
  
@@ -523,8 +417,8 @@ diff -uraN original-egui_software_backend/Cargo.toml ./egui_software_backend/Car
  
  allow_attributes = "warn"
 diff -uraN original-egui_software_backend/src/lib.rs ./egui_software_backend/src/lib.rs
---- original-egui_software_backend/src/lib.rs	2026-02-07 18:26:21.504450663 -0500
-+++ ./egui_software_backend/src/lib.rs	2026-02-07 18:26:21.504450663 -0500
+--- original-egui_software_backend/src/lib.rs	2026-06-07 12:42:32.176604260 -0400
++++ ./egui_software_backend/src/lib.rs	2026-06-07 12:42:32.176604260 -0400
 @@ -231,6 +231,17 @@
          }
      }
@@ -544,8 +438,8 @@ diff -uraN original-egui_software_backend/src/lib.rs ./egui_software_backend/src
      ///
      /// # Arguments
 diff -uraN original-egui_software_backend/src/render.rs ./egui_software_backend/src/render.rs
---- original-egui_software_backend/src/render.rs	2026-02-07 18:26:21.504450663 -0500
-+++ ./egui_software_backend/src/render.rs	2026-02-07 18:26:21.504450663 -0500
+--- original-egui_software_backend/src/render.rs	2026-06-07 12:42:32.176604260 -0400
++++ ./egui_software_backend/src/render.rs	2026-06-07 12:42:32.176604260 -0400
 @@ -49,7 +49,10 @@
          )
      }
@@ -559,8 +453,8 @@ diff -uraN original-egui_software_backend/src/render.rs ./egui_software_backend/
          textures,
          buffer,
 diff -uraN original-egui_software_backend/src/winit.rs ./egui_software_backend/src/winit.rs
---- original-egui_software_backend/src/winit.rs	2026-02-07 18:26:21.504450663 -0500
-+++ ./egui_software_backend/src/winit.rs	2026-02-07 18:26:21.504450663 -0500
+--- original-egui_software_backend/src/winit.rs	2026-06-07 12:42:32.176604260 -0400
++++ ./egui_software_backend/src/winit.rs	2026-06-07 12:42:32.176604260 -0400
 @@ -17,9 +17,14 @@
  use std::vec::Vec;
  use winit::application::ApplicationHandler;
@@ -830,9 +724,651 @@ diff -uraN original-egui_software_backend/src/winit.rs ./egui_software_backend/s
      );
  
      if let Err(event_loop_error) = event_loop.run_app(&mut app) {
+diff -uraN original-egui-winit/Cargo.toml ./egui-winit/Cargo.toml
+--- original-egui-winit/Cargo.toml	2026-06-07 12:42:32.380609947 -0400
++++ ./egui-winit/Cargo.toml	2026-06-07 12:42:32.380609947 -0400
+@@ -1,17 +1,18 @@
+ [package]
+ name = "egui-winit"
+-version.workspace = true
++version = "0.33.3"
+ authors = ["Emil Ernerfeldt <emil.ernerfeldt@gmail.com>"]
+ description = "Bindings for using egui with winit"
+-edition.workspace = true
+-rust-version.workspace = true
++edition = "2024"
++rust-version = "1.88"
+ homepage = "https://github.com/emilk/egui/tree/main/crates/egui-winit"
+-license.workspace = true
++license = "MIT OR Apache-2.0"
+ readme = "README.md"
+ repository = "https://github.com/emilk/egui/tree/main/crates/egui-winit"
+ categories = ["gui", "game-development"]
+ keywords = ["winit", "egui", "gui", "gamedev"]
+ include = ["../LICENSE-APACHE", "../LICENSE-MIT", "**/*.rs", "Cargo.toml"]
++workspace = "../.."
+ 
+ [lints]
+ workspace = true
+@@ -55,31 +56,31 @@
+ x11 = ["winit/x11", "bytemuck"]
+ 
+ [dependencies]
+-egui = { workspace = true, default-features = false }
++egui = { version = "0.33.3", default-features = false }
+ 
+-log.workspace = true
+-profiling.workspace = true
+-raw-window-handle.workspace = true
+-web-time.workspace = true
+-winit = { workspace = true, default-features = false }
++log = { version = "0.4.28", features = ["std"] }
++profiling = { version = "1.0.17", default-features = false }
++raw-window-handle = "0.6.2"
++web-time = "1.1.0"
++winit = { version = "0.30.12", default-features = false }
+ 
+ #! ### Optional dependencies
+ 
+ # feature accesskit
+-accesskit_winit = { workspace = true, optional = true }
++accesskit_winit = { version = "0.29.1", optional = true }
+ 
+-bytemuck = { workspace = true, optional = true }
++bytemuck = { version = "1.24.0", optional = true }
+ 
+ ## Enable this when generating docs.
+-document-features = { workspace = true, optional = true }
++document-features = { version = "0.2.11", optional = true }
+ 
+-serde = { workspace = true, optional = true }
+-webbrowser = { workspace = true, optional = true }
++serde = { version = "1.0.228", optional = true }
++webbrowser = { version = "1.0.5", optional = true }
+ 
+ [target.'cfg(target_os = "ios")'.dependencies]
+-objc2.workspace = true
+-objc2-foundation = { workspace = true, features = ["std", "NSThread"] }
+-objc2-ui-kit = { workspace = true, features = [
++objc2 = "0.5.2"
++objc2-foundation = { version = "0.2.2", features = ["std", "NSThread"] }
++objc2-ui-kit = { version = "0.2.2", features = [
+   "std",
+   "UIApplication",
+   "UIGeometry",
+@@ -92,12 +93,12 @@
+ ] }
+ 
+ [target.'cfg(any(target_os="linux", target_os="dragonfly", target_os="freebsd", target_os="netbsd", target_os="openbsd"))'.dependencies]
+-smithay-clipboard = { workspace = true, optional = true }
++smithay-clipboard = { version = "0.7.2", optional = true }
+ 
+ # The wayland-cursor normally selected doesn't properly enable all the features it uses
+ # and thus doesn't compile as it is used in egui-winit. This is fixed upstream, so force
+ # a slightly newer version. Remove this when winit upgrades past this version.
+-wayland-cursor = { workspace = true, optional = true }
++wayland-cursor = { version = "0.31.11", optional = true }
+ 
+ [target.'cfg(not(target_os = "android"))'.dependencies]
+-arboard = { workspace = true, optional = true, features = ["image-data"] }
++arboard = { version = "3.6.1", optional = true, features = ["image-data"] }
+\ No newline at end of file
+diff -uraN original-egui-winit/src/clipboard.rs ./egui-winit/src/clipboard.rs
+--- original-egui-winit/src/clipboard.rs	2026-06-07 12:42:32.380609947 -0400
++++ ./egui-winit/src/clipboard.rs	2026-06-07 12:42:32.380609947 -0400
+@@ -179,10 +179,15 @@
+ 
+     profiling::function_scope!();
+ 
+-    if let Some(RawDisplayHandle::Wayland(display)) = raw_display_handle {
++    if let Some(RawDisplayHandle::Wayland(_display)) = raw_display_handle {
+         log::trace!("Initializing smithay clipboard…");
+-        #[expect(unsafe_code)]
+-        Some(unsafe { smithay_clipboard::Clipboard::new(display.display.as_ptr()) })
++        match smithay_clipboard::Clipboard::new_from_env() {
++            Ok(clipboard) => Some(clipboard),
++            Err(err) => {
++                log::warn!("Failed to initialize smithay clipboard: {err}");
++                None
++            }
++        }
+     } else {
+         #[cfg(feature = "wayland")]
+         log::debug!("Cannot init smithay clipboard without a Wayland display handle");
+diff -uraN original-kas-text/Cargo.toml ./kas-text/Cargo.toml
+--- original-kas-text/Cargo.toml	2026-06-07 12:42:32.980626672 -0400
++++ ./kas-text/Cargo.toml	2026-06-07 12:42:32.980626672 -0400
+@@ -1,123 +1,70 @@
+-# THIS FILE IS AUTOMATICALLY GENERATED BY CARGO
+-#
+-# When uploading crates to the registry Cargo will automatically
+-# "normalize" Cargo.toml files for maximal compatibility
+-# with all versions of Cargo and also rewrite `path` dependencies
+-# to registry (e.g., crates.io) dependencies.
+-#
+-# If you are reading this file be aware that the original Cargo.toml
+-# will likely look very different (and much more reasonable).
+-# See Cargo.toml.orig for the original contents.
+-
+ [package]
+-edition = "2024"
+-rust-version = "1.88.0"
+ name = "kas-text"
+ version = "0.9.0"
+ authors = ["Diggory Hardy <git@dhardy.name>"]
+-build = false
+-exclude = ["design"]
+-autolib = false
+-autobins = false
+-autoexamples = false
+-autotests = false
+-autobenches = false
++edition = "2024"
++license = "Apache-2.0"
+ description = "Text layout and font management"
+-documentation = "https://docs.rs/kas-text/"
+ readme = "README.md"
+-keywords = [
+-    "text",
+-    "bidi",
+-    "shaping",
+-]
++documentation = "https://docs.rs/kas-text/"
++keywords = ["text", "bidi", "shaping"]
+ categories = ["text-processing"]
+-license = "Apache-2.0"
+ repository = "https://github.com/kas-gui/kas-text"
++exclude = ["design"]
++rust-version = "1.88.0"
+ 
+ [package.metadata.docs.rs]
++# To build locally:
++# cargo +nightly doc --all-features --no-deps --open
+ all-features = true
+ 
+ [features]
+-ab_glyph = ["dep:ab_glyph"]
+-markdown = ["pulldown-cmark"]
++# Support num_glyphs method
+ num_glyphs = []
+-rustybuzz = ["dep:rustybuzz"]
+-serde = [
+-    "dep:serde",
+-    "bitflags/serde",
+-]
+-shaping = ["rustybuzz"]
+-
+-[lib]
+-name = "kas_text"
+-path = "src/lib.rs"
+-
+-[[test]]
+-name = "json"
+-path = "tests/json.rs"
+ 
+-[dependencies.ab_glyph]
+-version = "0.2.10"
+-optional = true
+-
+-[dependencies.bitflags]
+-version = "2.4.2"
+-
+-[dependencies.cfg-if]
+-version = "1.0.0"
++# Enable shaping with the default dependency.
++shaping = ["rustybuzz"]
++# Enable shaping via rustybuzz.
++rustybuzz = ["dep:rustybuzz"]
+ 
+-[dependencies.easy-cast]
+-version = "0.5.0"
++# Enable Markdown parsing
++markdown = ["pulldown-cmark"]
+ 
+-[dependencies.fontique]
+-version = "0.7.0"
++# Serialization is optionally supported for some types:
++serde = ["dep:serde", "bitflags/serde"]
+ 
+-[dependencies.log]
+-version = "0.4"
++# Optional: expose ab_glyph font face
++ab_glyph = ["dep:ab_glyph"]
+ 
+-[dependencies.pulldown-cmark]
+-version = "0.13.0"
+-optional = true
++[dependencies]
++cfg-if = "1.0.0"
++easy-cast = "0.5.0"
++bitflags = "2.4.2"
++ttf-parser = "0.25.1"
++smallvec = "1.6.1"
++tinyvec = { version = "1.9.0", features = ["alloc"] }
++unicode-bidi = "0.3.4"
++unicode-bidi-mirroring = "0.4.0"
++thiserror = "2.0.12"
++pulldown-cmark = { version = "0.13.0", optional = true }
++log = "0.4"
++serde = { version = "1.0.123", features = ["derive"], optional = true }
++ab_glyph = { version = "0.2.10", optional = true }
++swash = "0.2.4"
++fontique = { version = "0.7.0", features = ["std"], default-features = false }
+ 
+ [dependencies.rustybuzz]
+ version = "0.20.1"
+ optional = true
+ 
+-[dependencies.serde]
+-version = "1.0.123"
+-features = ["derive"]
+-optional = true
+-
+-[dependencies.smallvec]
+-version = "1.6.1"
+-
+-[dependencies.swash]
+-version = "0.2.4"
+-
+-[dependencies.thiserror]
+-version = "2.0.12"
+-
+-[dependencies.tinyvec]
+-version = "1.9.0"
+-features = ["alloc"]
+-
+-[dependencies.ttf-parser]
+-version = "0.25.1"
+-
+-[dependencies.unicode-bidi]
+-version = "0.3.4"
+-
+-[dependencies.unicode-bidi-mirroring]
+-version = "0.4.0"
+-
+-[dev-dependencies.serde_json]
+-version = "1.0"
++[dev-dependencies]
++serde_json = "1.0"
+ 
+ [lints.clippy]
+ len_zero = "allow"
+-manual_is_multiple_of = "allow"
+-manual_range_contains = "allow"
+-needless_lifetimes = "allow"
+-neg_cmp_op_on_partial_ord = "allow"
+ type_complexity = "allow"
+ unit_arg = "allow"
++needless_lifetimes = "allow"
++neg_cmp_op_on_partial_ord = "allow"
++manual_range_contains = "allow"
++manual_is_multiple_of = "allow"
+diff -uraN original-kas-text/CHANGELOG.md ./kas-text/CHANGELOG.md
+--- original-kas-text/CHANGELOG.md	2026-06-07 12:42:32.980626672 -0400
++++ ./kas-text/CHANGELOG.md	2026-06-07 12:42:32.980626672 -0400
+@@ -1,70 +1,289 @@
+-[package]
+-name = "kas-text"
+-version = "0.9.0"
+-authors = ["Diggory Hardy <git@dhardy.name>"]
+-edition = "2024"
+-license = "Apache-2.0"
+-description = "Text layout and font management"
+-readme = "README.md"
+-documentation = "https://docs.rs/kas-text/"
+-keywords = ["text", "bidi", "shaping"]
+-categories = ["text-processing"]
+-repository = "https://github.com/kas-gui/kas-text"
+-exclude = ["design"]
+-rust-version = "1.88.0"
+-
+-[package.metadata.docs.rs]
+-# To build locally:
+-# cargo +nightly doc --all-features --no-deps --open
+-all-features = true
+-
+-[features]
+-# Support num_glyphs method
+-num_glyphs = []
+-
+-# Enable shaping with the default dependency.
+-shaping = ["rustybuzz"]
+-# Enable shaping via rustybuzz.
+-rustybuzz = ["dep:rustybuzz"]
+-
+-# Enable Markdown parsing
+-markdown = ["pulldown-cmark"]
+-
+-# Serialization is optionally supported for some types:
+-serde = ["dep:serde", "bitflags/serde"]
+-
+-# Optional: expose ab_glyph font face
+-ab_glyph = ["dep:ab_glyph"]
+-
+-[dependencies]
+-cfg-if = "1.0.0"
+-easy-cast = "0.5.0"
+-bitflags = "2.4.2"
+-ttf-parser = "0.25.1"
+-smallvec = "1.6.1"
+-tinyvec = { version = "1.9.0", features = ["alloc"] }
+-unicode-bidi = "0.3.4"
+-unicode-bidi-mirroring = "0.4.0"
+-thiserror = "2.0.12"
+-pulldown-cmark = { version = "0.13.0", optional = true }
+-log = "0.4"
+-serde = { version = "1.0.123", features = ["derive"], optional = true }
+-ab_glyph = { version = "0.2.10", optional = true }
+-swash = "0.2.4"
+-fontique = "0.7.0"
+-
+-[dependencies.rustybuzz]
+-version = "0.20.1"
+-optional = true
+-
+-[dev-dependencies]
+-serde_json = "1.0"
+-
+-[lints.clippy]
+-len_zero = "allow"
+-type_complexity = "allow"
+-unit_arg = "allow"
+-needless_lifetimes = "allow"
+-neg_cmp_op_on_partial_ord = "allow"
+-manual_range_contains = "allow"
+-manual_is_multiple_of = "allow"
++# Changelog
++The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
++and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
++
++## [0.9.0] — 2026-01-26
++
++-   Bump MSRV to 1.88 (#104)
++-   Bump fontique to 0.7.0 (#106, #107)
++-   Remove `Range` from pub API (#105)
++-   Remove fn `TextDisplay::line_range` (#105)
++-   Add fns `{TextDisplay, Text}::{get_line, lines}` (#105)
++-   Add fns `Line::{text_range, top, bottom}` (#105)
++-   Add parameter `max_lines` to fn `measure_height` (#105)
++-   Add fns `FaceStore::{read_name, name_family, name_subfamily, name_full}` (#110)
++-   Add struct `LineIterator` (#112)
++-   Support `serde` for `FamilySelector` and `FontSelector` (#113)
++-   Fixes for run-breaking and font selection (#104, #106, #107, #110)
++
++## [0.8.1] — 2025-09-17
++
++-   Fix sizing of empty lines by prefering to match some font than nothing (#102)
++
++## [0.8.0] — 2025-09-12
++
++-   Remove `raster` module (#91)
++-   Removed `FontLibrary::init` and `Text::configure` (#94)
++-   Remove support for `harfbuzz_rs` and `fontdue` (#95)
++-   Remove trait `EditableText` (#98)
++-   Replace `fontdb` with `fontique`, replacing usage of hard-coded font families and removing configuration of font aliases (#93, #94)
++-   Revise `FontSelector` type: make into a small `Copy` type and embed in `Text` objects. Replaces usage of pre-resolved `FontId`, allowing font selection to be delayed until run-breaking and to use inferred script. (#94)
++-   Replace field `Effect::aux` with `Effect::e` (#99)
++-   Support Swash in font library (#91) and use for text analysis (#94)
++-   Support font synthesis (#95)
++-   Add `GlyphRun` type, replacing fns `Text{,Display}::glyphs{,_with_effects}` with `runs` (#96, #99)
++-   Add fn `TextDisplay::apply_offset` (#98, #100)
++-   Fix behaviour of `Align::Stretch` in some cases (#100)
++
++## [0.7.0] — 2024-12-02
++
++-   Add `Direction::AutoRtl`, `text_is_rtl` (#80)
++-   Set the default font size to 16px (#80)
++-   `Text` API: do not expose `prepare_runs`, `required_action` (#81); more tweaks (#84)
++-   Move status tracking and `Env` fields into `Text` (#82)
++-   Remove `TextApi`, `TextApiExt` and `EditableTextApi` traits (#85)
++-   Revise `fonts` module: rename `selector::Database` to `Resolver`, separate out `fontdb::Database`, revise `init` (#87, #88)
++-   Bump MSRV to 1.80.0 (#87)
++
++## [0.6.0] — 2022-12-13
++
++Stabilise support for Generic Associated Types (GATs). This requires Rust 1.65.0,
++removes the `gat` feature flag and affects the `FormattableText` trait. #75
++
++Bump dependency versions: `ttf-parser` v0.17.1, `rustybuzz` v0.6.0 (#76),
++`fontdb` v0.10.0 (#77).
++
++## [0.5.0] — 2022-08-20
++
++Error handling (#65):
++
++-   Add `NotReady` error type
++-   Most methods now return `Result<T, NotReady>` instead of panicking
++
++Text environment (#68):
++
++-   Remove `UpdateEnv` type
++-   Rename `Text::new` to `new_env`, `Text::new_multi` to `Text::new` and
++    remove `Text::new_single`. Note: in usage, the `Environment::wrap` flag
++    is usually set anyway.
++-   `Environment` is now `Copy`
++-   `Text::env` returns `Environment` by copy not reference
++-   `Text::env_mut` replaced with `Text::set_env`, which sets required actions
++-   `Environment::dir` renamed to `direction`
++-   Enum `Direction` adjusted to include bidi and non-bidi modes.
++-   `Environment::flags` and its type `EnvFlags` removed.
++    `Environment::wrap: bool` added and `Direction` adjusted (see above).
++    `PX_PALIGN` option removed (behaviour is now always enabled).
++-   Parameters `dpp` and `pt_size` of `Environment`, `TextDisplay::prepare_runs`
++    and `FormattableText::font_tokens` are replaced with the single `dpem`.
++
++Text preparation:
++
++-   Add `Action::VAlign` requiring only `TextDisplay::vertically_align` action
++-   Remove `TextDisplay::prepare` (but `TextApi::prepare` remains)
++-   `TextDisplay::resize_runs` is no longer a public method
++-   `TextDisplay::prepare_runs` may call `resize_runs` automatically depending
++    on preparation status
++-   Remove `TextApi::resize_runs` and `TextApi::prepare_lines`
++-   All `TextApi` and `TextApiExt` methods doing any preparation now do all
++    required preparation, and avoid unnecessary steps.
++
++Text measurements (#68):
++
++-   Add `TextDisplay::bounding_box` and `TextApiExt::bounding_box` (#68, #69)
++-   Add `TextDisplay::measure_width` and `TextDisplay::vertically_align`
++-   Add `TextApi::measure_width` and `TextApi::measure_height`
++-   Remove `TextDisplay::line_is_ltr` and `TextApiExt::line_is_ltr`
++-   Add `TextApiExt::text_is_rtl`
++-   `TextDisplay::line_is_rtl` and `TextApiExt::line_is_rtl` now return type
++    `Result<Option<bool>, NotReady>`, returning `Ok(None)` if text is empty
++-   `TextDisplay::prepare_lines` returns the bottom-right corner of the bounding
++    box around content instead of the size of content.
++
++Font fallback:
++
++-   `FontLibrary::face_for_char` and `face_for_char_or_first` take an extra
++    parameter: `last_face_id: Option<FaceId>`. This allows the font fallback
++    mechanism to avoid switching the font unnecessarily. In usage, letters and
++    numbers are selected as before while other characters are selected from the
++    last font face used if possible, resulting in longer runs being passed to
++    the shaper when using fallback fonts.
++
++Misc:
++
++-   CI: test stable and check Clippy lints (#69).
++-   Add `Range::is_empty`
++-   Add `num_glyphs` feature flag (#69)
++-   Memory optimisations for `TextDisplay`: remove `line_runs` (#71)
++-   Replace `highlight_lines` with `highlight_range` (#72)
++-   Add `fonts::any_loaded` (#73)
++
++Fixes:
++
++-   Do not add "line gap" before first line. (In practice this is often 0 anyway.)
++-   Do not vertically align text too tall for the input bounds.
++-   Markdown formatter: use heading level sizes as defined by CSS
++-   Fix position of text highlights on vertically aligned text (#67).
++-   Fix `r_bound` for trailing space (#71)
++
++## [0.4.2] — 2022-02-10
++
++-   Spellcheck documentation (#62)
++-   Fix selection of best font from a family (#63)
++
++## [0.4.1] — 2021-09-07
++
++-   Document loading order requirements (#59)
++-   Additional logging of loaded fonts (#59)
++
++## [0.4.0] — 2021-09-03
++
++This is a minor release (mostly non-breaking). The primary motivation is to
++enable `resvg` to access the loaded font database. See PR #58:
++
++-   **Breaking:** update dependencies: `bitflags = 1.3.1`, `fontdb = 0.6.0`,
++    `harfbuzz_rs = 2.0`, `rustybuzz = 0.4.0`
++-   Make `fontdb::Database` externally readable and set font families
++-   Additional control over loading fonts
++-   Performance improvements for alias lookups (trim and capitalise earlier)
++
++## [0.3.4] — 2021-07-28
++
++-   Fix sub-pixel positioning (#57)
++
++## [0.3.3] — 2021-07-19
++
++-   Document `raster` module and `Markdown` formatter (#56)
++-   Export `DPU` (#56)
++-   `Default`, `Debug` and `PartialEq` impls for some `raster` types (#56)
++
++## [0.3.2] — 2021-06-30
++
++-   Minor optimisations to `SpriteDescriptor::new` (#53)
++
++## [0.3.1] — 2021-06-17
++
++-   Make all families fall back to "sans-serif" fonts.
++-   Cache `FontLibrary::face_for_char` glyph lookups.
++
++## [0.3.0] — 2021-06-15
++
++This release replaces all non-Rust dependencies allowing easier build/deployment
++(though HarfBuzz is kept as an optional dependency). There is also direct
++support for glyph rastering and some tweaks to improve raster quality making
++even very small font sizes quite legible.
++
++-   Add `Effect::default` method and `default_aux` param to `glyphs_with_effects` (#45)
++-   Replace `font-kit` dependency with the pure-Rust `fontdb` using custom font-family lists (#46),
++    with support for run-time configuration (#48)
++-   Support font fallbacks (#47)
++-   Support [rustybuzz](https://github.com/RazrFalcon/rustybuzz) for pure-Rust shaping (#47)
++-   Vertical pixel alignment (#49)
++-   Extend public API relating to fonts (#49)
++-   Add (glyph) `raster` module with `Config` struct and `SpriteDescriptor` cache key (#50)
++-   Use pixels-per-Em (dpem) for most glyph sizing, not pixels-per-font-unit (DPU) or height (#50)
++
++## [0.2.1] — 2021-03-31
++
++-   Add `Option<Vec2>` return value to `TextDisplay::prepare` and `TextApi::prepare` (#41)
++-   Fix missing run for empty text lines
++-   Fix justified text layout (#44)
++-   Explicitly avoid justifying last line of justified text (#44)
++-   Update `smallvec` to 0.6.1
++-   Update `ttf-parser` to 0.12.0
++
++## [0.2.0] — 2020-11-23
++
++This release changes a *very large* part of the API. Both `prepared` and `rich`
++modules are removed/hidden; three new modules `conv`, `fonts` and `format`
++are added/exposed. Formatted text traits are added. The API around the main
++`Text` type changes massively.
++
++### Text type
++
++-   Export `prepared::Text` directly and hide the `prepared` module (#30)
++-   Split what was `prepared::Text` into `TextDisplay` (which excludes the text,
++    environment and formatting data but includes positioned glyph information),
++    and `Text` struct which wraps `TextDisplay` along with text and environment (#32)
++-   Add `TextApi` trait for run-time polymorphism over `FormattableText` texts (#32, #33)
++-   Add `TextApiExt` auto-implemented extension-trait (#33)
++-   Add `EditableTextApi` trait (#33)
++-   Replace `prepared::Prepare` with `Action` (#30, #33)
++-   Rename `Text::positioned_glyphs` → `glyphs` (#31)
++-   Add `Text::glyphs_with_effects` for glyph-drawing with underline/strikethrough (#31, #32)
++-   Make `TextDisplay::prepare_runs` and `prepare_lines` functions public (#33)
++-   Support indentation with tab character `\t` (#34)
++
++### Parsing and representation
++
++-   Add `Markdown` parser (#29 - #37)
++-   Add `FontToken` struct, `FormattableText` and `EditableText` traits with
++    impls for `&str`, `String` and `Markdown`; these allow custom
++    representations of formatted text (#32)
++-   Add `FormattableTextDyn` for run-time polymorphism (#33)
++-   Add `FormattableText::effect_tokens` for custom underlike/strikethrough effects (#34)
++
++### Fonts API
++
++-   All font API is moved into the public `fonts` module (#28)
++-   Add `FontSelector` and `FontLibrary::load_font`, `load_pathbuf` functions (#28)
++-   Adjust how loaded fonts are exposed; instead of an `ab_glyph` font we
++    expose the font file data and font index (#30, #31)
++-   Adjust use of font-size units and add documentation (#31, #33)
++-   Switch dependency from `ab_glyph` to `ttf-parser`, but keep compatibility
++    with `ab_glyph` (#31)
++-   Remove `FontScale` data type (unused; #30)
++
++### Miscellaneous
++
++-   Add type-conversion helpers `conv::to_32` and `to_usize` (#31)
++-   Add `Effect` and `EffectFlags` types used for underline and strikethrough (#31)
++-   Add `gat` (Generic Associated Types) experimental feature (#33)
++-   Move `Environment::bidi` and `wrap` fields to new `flags` field; combine
++    `halign` and `valign` to into `align` field (#33)
++-   Update `xi-unicode` dependency, allowing cleaner code (#34)
++
++## [0.1.5] — 2020-09-21
++
++-   Rewrite line-wrapping code, supporting must-not-wrap-at-end runs and
++    resulting in much cleaner code (#24)
++-   Do not allow selection of the position after a space causing a line-wrap (#25)
++-   Fix alignment for wrapped RTL text with multiple spaces at wrap point (#26)
++
++## [0.1.4] — 2020-09-09
++
++-   Fixes for empty RTL lines (#21, #23)
++-   When wrapping text against paragraph's direction, do not force a line break (#22)
++
++## [0.1.3] — 2020-08-14
++
++-   Fix re-ordering of runs on a line (#18)
++
++## [0.1.2] — 2020-08-14
++
++-   Add embedding level to result of `Text::text_glyph_pos` (#17)
++-   Fix start offset for wrapped RTL text (#17)
++-   Fix `Text::line_index_nearest` for right-most position in line (#17)
++
++## [0.1.1] — 2020-08-13
++
++-   `prepared::Text::positioned_glyphs` now takes an `FnMut` closure and
++    emits glyphs in logical order (#13)
++
++## [0.1.0] — 2020-08-11
++
++Initial release version, comprising:
++
++-   basic font loading and font metrics
++-   `Environment` specifying font and layout properties
++-   `rich::Text` struct (mostly placeholder around a raw `String`)
++-   `prepared::Text` struct with state tracking required preparation steps
++
++Text preparation includes:
++
++-   run-breaking with BIDI support
++-   glyph shaping via internal algorithm or via HarfBuzz
++-   line wrapping and alignment
++-   generating a vec of positioned glyphs
++-   cursor position lookup (index→coord and coord→index)
++-   generating highlighting rects for a range
 diff -uraN original-smithay-clipboard/Cargo.toml ./smithay-clipboard/Cargo.toml
---- original-smithay-clipboard/Cargo.toml	2026-02-07 18:26:21.740455856 -0500
-+++ ./smithay-clipboard/Cargo.toml	2026-02-07 18:26:21.740455856 -0500
+--- original-smithay-clipboard/Cargo.toml	2026-06-07 12:42:33.380637804 -0400
++++ ./smithay-clipboard/Cargo.toml	2026-06-07 12:42:33.384637916 -0400
 @@ -9,11 +9,12 @@
  license = "MIT"
  keywords = ["clipboard", "wayland"]
@@ -848,8 +1384,8 @@ diff -uraN original-smithay-clipboard/Cargo.toml ./smithay-clipboard/Cargo.toml
  [dev-dependencies]
  sctk = { package = "smithay-client-toolkit", version = "0.20.0", default-features = false, features = ["calloop", "xkbcommon"] }
 diff -uraN original-smithay-clipboard/src/lib.rs ./smithay-clipboard/src/lib.rs
---- original-smithay-clipboard/src/lib.rs	2026-02-07 18:26:21.740455856 -0500
-+++ ./smithay-clipboard/src/lib.rs	2026-02-07 18:26:21.740455856 -0500
+--- original-smithay-clipboard/src/lib.rs	2026-06-07 12:42:33.380637804 -0400
++++ ./smithay-clipboard/src/lib.rs	2026-06-07 12:42:33.384637916 -0400
 @@ -10,7 +10,6 @@
  
  use sctk::reexports::calloop::channel::{self, Sender};
@@ -893,8 +1429,8 @@ diff -uraN original-smithay-clipboard/src/lib.rs ./smithay-clipboard/src/lib.rs
          let (request_sender, rx_chan) = channel::channel();
          // Create channel to get data from the clipboard thread.
 diff -uraN original-softbuffer/Cargo.toml ./softbuffer/Cargo.toml
---- original-softbuffer/Cargo.toml	2026-02-07 18:26:21.980461137 -0500
-+++ ./softbuffer/Cargo.toml	2026-02-07 18:26:21.984461225 -0500
+--- original-softbuffer/Cargo.toml	2026-06-07 12:42:33.804649603 -0400
++++ ./softbuffer/Cargo.toml	2026-06-07 12:42:33.804649603 -0400
 @@ -11,23 +11,23 @@
  categories = ["game-development", "graphics", "gui", "multimedia", "rendering"]
  exclude = ["examples"]
@@ -922,7 +1458,15 @@ diff -uraN original-softbuffer/Cargo.toml ./softbuffer/Cargo.toml
  x11 = [
      "as-raw-xcb-connection",
      "bytemuck",
-@@ -61,11 +61,8 @@
+@@ -37,6 +37,7 @@
+     "x11rb",
+ ]
+ x11-dlopen = ["tiny-xlib/dlopen", "x11rb/dl-libxcb"]
++wayland-dlopen=[] # does nothing, but lets dependent packages not worry about it
+ 
+ [dependencies]
+ raw_window_handle = { package = "raw-window-handle", version = "0.6", features = [
+@@ -61,11 +62,8 @@
      "std",
  ], default-features = false, optional = true }
  tiny-xlib = { version = "0.2.1", optional = true }
@@ -935,7 +1479,7 @@ diff -uraN original-softbuffer/Cargo.toml ./softbuffer/Cargo.toml
  x11rb = { version = "0.13.0", features = [
      "allow-unsafe-code",
      "shm",
-@@ -158,9 +155,6 @@
+@@ -158,9 +156,6 @@
  [target.'cfg(not(any(target_os = "android", target_vendor = "apple", target_os = "redox", target_family = "wasm", target_os = "windows")))'.dev-dependencies]
  rustix = { version = "1.0.1", features = ["event"] }
  
@@ -946,8 +1490,8 @@ diff -uraN original-softbuffer/Cargo.toml ./softbuffer/Cargo.toml
  # Run with `cargo apk r --example winit_android`
  name = "winit_android"
 diff -uraN original-softbuffer/src/backends/wayland/mod.rs ./softbuffer/src/backends/wayland/mod.rs
---- original-softbuffer/src/backends/wayland/mod.rs	2026-02-07 18:26:21.980461137 -0500
-+++ ./softbuffer/src/backends/wayland/mod.rs	2026-02-07 18:26:21.980461137 -0500
+--- original-softbuffer/src/backends/wayland/mod.rs	2026-06-07 12:42:33.804649603 -0400
++++ ./softbuffer/src/backends/wayland/mod.rs	2026-06-07 12:42:33.804649603 -0400
 @@ -9,7 +9,6 @@
      sync::{Arc, Mutex},
  };
@@ -1044,9 +1588,192 @@ diff -uraN original-softbuffer/src/backends/wayland/mod.rs ./softbuffer/src/back
              }
  
              // Resize, if buffer isn't large enough
+diff -uraN original-tiny-xlib/Cargo.toml ./tiny-xlib/Cargo.toml
+--- original-tiny-xlib/Cargo.toml	2026-06-07 12:42:34.272662614 -0400
++++ ./tiny-xlib/Cargo.toml	2026-06-07 12:42:34.272662614 -0400
+@@ -31,6 +31,7 @@
+ [features]
+ default = ["tracing"]
+ dlopen = ["libloading"]
++x11-integration-tests = []
+ 
+ [lib]
+ name = "tiny_xlib"
+@@ -39,10 +40,12 @@
+ [[test]]
+ name = "display"
+ path = "tests/display.rs"
++required-features = ["x11-integration-tests"]
+ 
+ [[test]]
+ name = "prev"
+ path = "tests/prev.rs"
++required-features = ["x11-integration-tests"]
+ 
+ [dependencies.as-raw-xcb-connection]
+ version = "1.0.0"
+diff -uraN original-tiny-xlib/src/lib.rs ./tiny-xlib/src/lib.rs
+--- original-tiny-xlib/src/lib.rs	2026-06-07 12:42:34.272662614 -0400
++++ ./tiny-xlib/src/lib.rs	2026-06-07 12:42:34.272662614 -0400
+@@ -130,7 +130,7 @@
+ use std::mem::{self, ManuallyDrop};
+ use std::os::raw::{c_int, c_void};
+ use std::ptr::{self, NonNull};
+-use std::sync::{Mutex, MutexGuard, Once, PoisonError};
++use std::sync::{Mutex, MutexGuard, Once, OnceLock, PoisonError};
+ 
+ macro_rules! lock {
+     ($e:expr) => {{
+@@ -144,61 +144,55 @@
+     }};
+ }
+ 
+-ctor::declarative::ctor! {
+-    #[ctor(unsafe)]
+-    static XLIB: io::Result<ffi::Xlib> = {
+-        #[cfg_attr(coverage, coverage(off))]
+-        unsafe fn load_xlib_with_error_hook() -> io::Result<ffi::Xlib> {
+-            // Here's a puzzle: how do you *safely* add an error hook to Xlib? Like signal handling, there
+-            // is a single global error hook. Therefore, we need to make sure that we economize on the
+-            // single slot that we have by offering a way to set it. However, unlike signal handling, there
+-            // is no way to tell if we're replacing an existing error hook. If we replace another library's
+-            // error hook, we could cause unsound behavior if it assumes that it is the only error hook.
+-            //
+-            // However, we don't want to call the default error hook, because it exits the program. So, in
+-            // order to tell if the error hook is the default one, we need to compare it to the default
+-            // error hook. However, we can't just compare the function pointers, because the default error
+-            // hook is a private function that we can't access.
+-            //
+-            // In order to access it, before anything else runs, this function is called. It loads Xlib,
+-            // sets the error hook to a dummy function, reads the resulting error hook into a static
+-            // variable, and then resets the error hook to the default function. This allows us to read
+-            // the default error hook and compare it to the one that we're setting.
+-            #[cfg_attr(coverage, coverage(off))]
+-            fn error(e: impl std::error::Error) -> io::Error {
+-                io::Error::new(io::ErrorKind::Other, format!("failed to load Xlib: {}", e))
+-            }
+-            let xlib = ffi::Xlib::load().map_err(error)?;
++static XLIB: OnceLock<io::Result<ffi::Xlib>> = OnceLock::new();
+ 
+-            // Dummy function we use to set the error hook.
+-            #[cfg_attr(coverage, coverage(off))]
+-            unsafe extern "C" fn dummy(
+-                _display: *mut ffi::Display,
+-                _error: *mut ffi::XErrorEvent,
+-            ) -> std::os::raw::c_int {
+-                0
+-            }
++#[cfg_attr(coverage, coverage(off))]
++unsafe fn load_xlib_with_error_hook() -> io::Result<ffi::Xlib> {
++    // Here's a puzzle: how do you *safely* add an error hook to Xlib? Like signal handling, there
++    // is a single global error hook. Therefore, we need to make sure that we economize on the
++    // single slot that we have by offering a way to set it. However, unlike signal handling, there
++    // is no way to tell if we're replacing an existing error hook. If we replace another library's
++    // error hook, we could cause unsound behavior if it assumes that it is the only error hook.
++    //
++    // However, we don't want to call the default error hook, because it exits the program. So, in
++    // order to tell if the error hook is the default one, we need to compare it to the default
++    // error hook. However, we can't just compare the function pointers, because the default error
++    // hook is a private function that we can't access.
++    //
++    // Instead of doing this at process start, initialize lazily on first real Xlib use so merely
++    // linking the crate does not force an X11 load attempt.
++    #[cfg_attr(coverage, coverage(off))]
++    fn error(_e: impl std::error::Error) -> io::Error {
++        io::Error::new(io::ErrorKind::Other, "failed to load Xlib")
++    }
++    let xlib = ffi::Xlib::load().map_err(error)?;
+ 
+-            // Set the error hook to the dummy function.
+-            let default_hook = xlib.set_error_handler(Some(dummy));
++    // Dummy function we use to set the error hook.
++    #[cfg_attr(coverage, coverage(off))]
++    unsafe extern "C" fn dummy(
++        _display: *mut ffi::Display,
++        _error: *mut ffi::XErrorEvent,
++    ) -> std::os::raw::c_int {
++        0
++    }
+ 
+-            // Read the error hook into a static variable.
+-            // SAFETY: This should only run once at the start of the program, no need to worry about
+-            // multithreading.
+-            DEFAULT_ERROR_HOOK.set(default_hook);
++    // Set the error hook to the dummy function.
++    let default_hook = xlib.set_error_handler(Some(dummy));
+ 
+-            // Set the error hook back to the default function.
+-            xlib.set_error_handler(default_hook);
++    // Read the error hook into a static variable.
++    // SAFETY: `OnceLock` ensures initialization only happens once.
++    DEFAULT_ERROR_HOOK.set(default_hook);
+ 
+-            Ok(xlib)
+-        }
++    // Set the error hook back to the default function.
++    xlib.set_error_handler(default_hook);
+ 
+-        unsafe { load_xlib_with_error_hook() }
+-    };
++    Ok(xlib)
+ }
+ 
+ #[inline]
+-fn get_xlib(sym: &io::Result<ffi::Xlib>) -> io::Result<&ffi::Xlib> {
++fn get_xlib() -> io::Result<&'static ffi::Xlib> {
++    let sym = XLIB.get_or_init(|| unsafe { load_xlib_with_error_hook() });
++
+     // Eat coverage on the error branch.
+     #[cfg_attr(coverage, coverage(off))]
+     fn error(e: &io::Error) -> io::Error {
+@@ -387,7 +381,7 @@
+ impl Display {
+     /// Open a new display.
+     pub fn new(name: Option<&CStr>) -> io::Result<Self> {
+-        let xlib = get_xlib(&XLIB)?;
++        let xlib = get_xlib()?;
+ 
+         // Make sure the error handler is registered.
+         setup_error_handler(xlib);
+@@ -424,7 +418,7 @@
+ 
+     /// Get the default screen index for this display.
+     pub fn screen_index(&self) -> usize {
+-        let xlib = get_xlib(&XLIB).expect("failed to load Xlib");
++        let xlib = get_xlib().expect("failed to load Xlib");
+ 
+         // SAFETY: Valid display pointer.
+         let index = unsafe { xlib.default_screen(self.ptr.as_ptr()) };
+@@ -442,7 +436,7 @@
+ 
+ unsafe impl as_raw_xcb_connection::AsRawXcbConnection for Display {
+     fn as_raw_xcb_connection(&self) -> *mut as_raw_xcb_connection::xcb_connection_t {
+-        let xlib = get_xlib(&XLIB).expect("failed to load Xlib");
++        let xlib = get_xlib().expect("failed to load Xlib");
+         unsafe { xlib.get_xcb_connection(self.ptr.as_ptr()) }
+     }
+ }
+@@ -450,7 +444,7 @@
+ impl Drop for Display {
+     fn drop(&mut self) {
+         // SAFETY: We own the display pointer, so we can drop it.
+-        if let Ok(xlib) = get_xlib(&XLIB) {
++        if let Ok(xlib) = get_xlib() {
+             unsafe {
+                 xlib.close_display(self.ptr.as_ptr());
+             }
+@@ -461,7 +455,7 @@
+ /// Insert an error handler into the list.
+ pub fn register_error_handler(handler: ErrorHook) -> io::Result<HandlerKey> {
+     // Make sure the error handler is registered.
+-    setup_error_handler(get_xlib(&XLIB)?);
++    setup_error_handler(get_xlib()?);
+ 
+     // Insert the handler into the list.
+     let mut handlers = lock!(ERROR_HANDLERS);
 diff -uraN original-winit/Cargo.toml ./winit/Cargo.toml
---- original-winit/Cargo.toml	2026-02-07 18:26:22.276467648 -0500
-+++ ./winit/Cargo.toml	2026-02-07 18:26:22.284467824 -0500
+--- original-winit/Cargo.toml	2026-06-07 12:42:34.776676614 -0400
++++ ./winit/Cargo.toml	2026-06-07 12:42:34.784676836 -0400
 @@ -10,10 +10,14 @@
  readme = "README.md"
  documentation = "https://docs.rs/winit"
@@ -1066,26 +1793,33 @@ diff -uraN original-winit/Cargo.toml ./winit/Cargo.toml
  include = [
      "/build.rs",
      "/docs",
-@@ -57,8 +61,8 @@
+@@ -57,8 +61,9 @@
  
  # Features are documented in either `lib.rs` or under `winit::platform`.
  [features]
 -default = ["rwh_06", "x11", "wayland", "wayland-dlopen", "wayland-csd-adwaita"]
 -x11 = ["x11-dl", "bytemuck", "percent-encoding", "xkbcommon-dl/x11", "x11rb"]
-+default = ["rwh_06", "x11", "wayland", "wayland-csd-adwaita"]
++# I can't figure out how to make the `wayland-csd-adwaita` feature turn off so I just deleted it.
++default = ["rwh_06", "x11", "wayland"]
 +x11 = ["dep:x11", "bytemuck", "percent-encoding", "x11rb"]
  wayland = [
      "wayland-client",
      "wayland-backend",
-@@ -68,7 +72,6 @@
+@@ -68,10 +73,9 @@
      "ahash",
      "memmap2",
  ]
 -wayland-dlopen = ["wayland-backend/dlopen"]
- wayland-csd-adwaita = ["sctk-adwaita", "sctk-adwaita/ab_glyph"]
- wayland-csd-adwaita-crossfont = ["sctk-adwaita", "sctk-adwaita/crossfont"]
- wayland-csd-adwaita-notitle = ["sctk-adwaita"]
-@@ -86,7 +89,7 @@
+-wayland-csd-adwaita = ["sctk-adwaita", "sctk-adwaita/ab_glyph"]
+-wayland-csd-adwaita-crossfont = ["sctk-adwaita", "sctk-adwaita/crossfont"]
+-wayland-csd-adwaita-notitle = ["sctk-adwaita"]
++#wayland-csd-adwaita = ["sctk-adwaita", "sctk-adwaita/ab_glyph"]
++#wayland-csd-adwaita-crossfont = ["sctk-adwaita", "sctk-adwaita/crossfont"]
++#wayland-csd-adwaita-notitle = ["sctk-adwaita"]
+ android-native-activity = ["android-activity/native-activity"]
+ android-game-activity = ["android-activity/game-activity"]
+ serde = ["dep:serde", "cursor-icon/serde", "smol_str/serde", "dpi/serde"]
+@@ -86,7 +90,7 @@
  [dependencies]
  bitflags = "2"
  cursor-icon = "1.1.0"
@@ -1094,7 +1828,7 @@ diff -uraN original-winit/Cargo.toml ./winit/Cargo.toml
  rwh_04 = { package = "raw-window-handle", version = "0.4", optional = true }
  rwh_05 = { package = "raw-window-handle", version = "0.5.2", features = [
      "std",
-@@ -94,7 +97,7 @@
+@@ -94,7 +98,7 @@
  rwh_06 = { package = "raw-window-handle", version = "0.6", features = [
      "std",
  ], optional = true }
@@ -1103,7 +1837,7 @@ diff -uraN original-winit/Cargo.toml ./winit/Cargo.toml
  smol_str = "0.2.0"
  tracing = { version = "0.1.40", default-features = false }
  
-@@ -107,9 +110,7 @@
+@@ -107,9 +111,7 @@
  [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dev-dependencies]
  softbuffer = { version = "0.4.0", default-features = false, features = [
      "x11",
@@ -1113,7 +1847,7 @@ diff -uraN original-winit/Cargo.toml ./winit/Cargo.toml
  ] }
  
  [target.'cfg(target_os = "android")'.dependencies]
-@@ -268,9 +269,7 @@
+@@ -268,9 +270,7 @@
      "calloop",
  ], optional = true }
  sctk-adwaita = { version = "0.10.1", default-features = false, optional = true }
@@ -1124,7 +1858,7 @@ diff -uraN original-winit/Cargo.toml ./winit/Cargo.toml
  wayland-client = { version = "0.31.10", optional = true }
  wayland-protocols = { version = "0.32.8", features = [
      "staging",
-@@ -278,16 +277,21 @@
+@@ -278,16 +278,21 @@
  wayland-protocols-plasma = { version = "0.3.8", features = [
      "client",
  ], optional = true }
@@ -1149,7 +1883,7 @@ diff -uraN original-winit/Cargo.toml ./winit/Cargo.toml
  
  [target.'cfg(target_os = "redox")'.dependencies]
  orbclient = { version = "0.3.47", default-features = false }
-@@ -362,17 +366,3 @@
+@@ -362,17 +367,3 @@
  [[example]]
  doc-scrape-examples = true
  name = "window"
@@ -1168,8 +1902,8 @@ diff -uraN original-winit/Cargo.toml ./winit/Cargo.toml
 -serde = { version = "1", features = ["serde_derive"] }
 -mint = "0.5.6"
 diff -uraN original-winit/README.md ./winit/README.md
---- original-winit/README.md	2026-02-07 18:26:22.276467648 -0500
-+++ ./winit/README.md	2026-02-07 18:26:22.284467824 -0500
+--- original-winit/README.md	2026-06-07 12:42:34.776676614 -0400
++++ ./winit/README.md	2026-06-07 12:42:34.784676836 -0400
 @@ -1,4 +1,5 @@
  # winit - Cross-platform window creation and management in Rust
 +# Vendored for ctoolbox to allow static linking
@@ -1177,8 +1911,8 @@ diff -uraN original-winit/README.md ./winit/README.md
  [![Crates.io](https://img.shields.io/crates/v/winit.svg)](https://crates.io/crates/winit)
  [![Docs.rs](https://docs.rs/winit/badge.svg)](https://docs.rs/winit)
 diff -uraN original-winit/src/keyboard.rs ./winit/src/keyboard.rs
---- original-winit/src/keyboard.rs	2026-02-07 18:26:22.276467648 -0500
-+++ ./winit/src/keyboard.rs	2026-02-07 18:26:22.284467824 -0500
+--- original-winit/src/keyboard.rs	2026-06-07 12:42:34.776676614 -0400
++++ ./winit/src/keyboard.rs	2026-06-07 12:42:34.784676836 -0400
 @@ -251,7 +251,7 @@
      #[inline]
      fn eq(&self, rhs: &KeyCode) -> bool {
@@ -1225,8 +1959,8 @@ diff -uraN original-winit/src/keyboard.rs ./winit/src/keyboard.rs
          }
      }
 diff -uraN original-winit/src/platform/startup_notify.rs ./winit/src/platform/startup_notify.rs
---- original-winit/src/platform/startup_notify.rs	2026-02-07 18:26:22.276467648 -0500
-+++ ./winit/src/platform/startup_notify.rs	2026-02-07 18:26:22.280467737 -0500
+--- original-winit/src/platform/startup_notify.rs	2026-06-07 12:42:34.772676503 -0400
++++ ./winit/src/platform/startup_notify.rs	2026-06-07 12:42:34.776676614 -0400
 @@ -86,14 +86,18 @@
  /// This is wise to do before running child processes,
  /// which may not to support the activation token.
@@ -1251,8 +1985,8 @@ diff -uraN original-winit/src/platform/startup_notify.rs ./winit/src/platform/st
 +    }
  }
 diff -uraN original-winit/src/platform/wayland.rs ./winit/src/platform/wayland.rs
---- original-winit/src/platform/wayland.rs	2026-02-07 18:26:22.276467648 -0500
-+++ ./winit/src/platform/wayland.rs	2026-02-07 18:26:22.280467737 -0500
+--- original-winit/src/platform/wayland.rs	2026-06-07 12:42:34.772676503 -0400
++++ ./winit/src/platform/wayland.rs	2026-06-07 12:42:34.780676726 -0400
 @@ -2,8 +2,8 @@
  //!
  //! **Note:** Windows don't appear on Wayland until you draw/present to them.
@@ -1265,8 +1999,8 @@ diff -uraN original-winit/src/platform/wayland.rs ./winit/src/platform/wayland.r
  //! ## Client-side decorations
  //!
 diff -uraN original-winit/src/platform_impl/linux/common/xkb/compose.rs ./winit/src/platform_impl/linux/common/xkb/compose.rs
---- original-winit/src/platform_impl/linux/common/xkb/compose.rs	2026-02-07 18:26:22.276467648 -0500
-+++ ./winit/src/platform_impl/linux/common/xkb/compose.rs	2026-02-07 18:26:22.280467737 -0500
+--- original-winit/src/platform_impl/linux/common/xkb/compose.rs	2026-06-07 12:42:34.772676503 -0400
++++ ./winit/src/platform_impl/linux/common/xkb/compose.rs	2026-06-07 12:42:34.780676726 -0400
 @@ -6,9 +6,9 @@
  use std::os::unix::ffi::OsStringExt;
  use std::ptr::NonNull;
@@ -1348,7 +2082,7 @@ diff -uraN original-winit/src/platform_impl/linux/common/xkb/compose.rs ./winit/
  }
 diff -uraN original-winit/src/platform_impl/linux/common/xkb/ffi.rs ./winit/src/platform_impl/linux/common/xkb/ffi.rs
 --- original-winit/src/platform_impl/linux/common/xkb/ffi.rs	1969-12-31 19:00:00.000000000 -0500
-+++ ./winit/src/platform_impl/linux/common/xkb/ffi.rs	2026-02-07 18:26:22.280467737 -0500
++++ ./winit/src/platform_impl/linux/common/xkb/ffi.rs	2026-06-07 12:42:34.780676726 -0400
 @@ -0,0 +1,213 @@
 +#![allow(dead_code, non_camel_case_types)]
 +
@@ -1564,8 +2298,8 @@ diff -uraN original-winit/src/platform_impl/linux/common/xkb/ffi.rs ./winit/src/
 +    ) -> *mut xkb_state;
 +}
 diff -uraN original-winit/src/platform_impl/linux/common/xkb/keymap.rs ./winit/src/platform_impl/linux/common/xkb/keymap.rs
---- original-winit/src/platform_impl/linux/common/xkb/keymap.rs	2026-02-07 18:26:22.276467648 -0500
-+++ ./winit/src/platform_impl/linux/common/xkb/keymap.rs	2026-02-07 18:26:22.280467737 -0500
+--- original-winit/src/platform_impl/linux/common/xkb/keymap.rs	2026-06-07 12:42:34.772676503 -0400
++++ ./winit/src/platform_impl/linux/common/xkb/keymap.rs	2026-06-07 12:42:34.780676726 -0400
 @@ -5,20 +5,20 @@
  use std::ptr::{self, NonNull};
  
@@ -1681,8 +2415,8 @@ diff -uraN original-winit/src/platform_impl/linux/common/xkb/keymap.rs ./winit/s
              None
          } else {
 diff -uraN original-winit/src/platform_impl/linux/common/xkb/mod.rs ./winit/src/platform_impl/linux/common/xkb/mod.rs
---- original-winit/src/platform_impl/linux/common/xkb/mod.rs	2026-02-07 18:26:22.276467648 -0500
-+++ ./winit/src/platform_impl/linux/common/xkb/mod.rs	2026-02-07 18:26:22.280467737 -0500
+--- original-winit/src/platform_impl/linux/common/xkb/mod.rs	2026-06-07 12:42:34.772676503 -0400
++++ ./winit/src/platform_impl/linux/common/xkb/mod.rs	2026-06-07 12:42:34.780676726 -0400
 @@ -3,26 +3,27 @@
  use std::ptr::{self, NonNull};
  use std::sync::atomic::{AtomicBool, Ordering};
@@ -1795,8 +2529,8 @@ diff -uraN original-winit/src/platform_impl/linux/common/xkb/mod.rs ./winit/src/
      }
  }
 diff -uraN original-winit/src/platform_impl/linux/common/xkb/state.rs ./winit/src/platform_impl/linux/common/xkb/state.rs
---- original-winit/src/platform_impl/linux/common/xkb/state.rs	2026-02-07 18:26:22.276467648 -0500
-+++ ./winit/src/platform_impl/linux/common/xkb/state.rs	2026-02-07 18:26:22.280467737 -0500
+--- original-winit/src/platform_impl/linux/common/xkb/state.rs	2026-06-07 12:42:34.772676503 -0400
++++ ./winit/src/platform_impl/linux/common/xkb/state.rs	2026-06-07 12:42:34.780676726 -0400
 @@ -4,16 +4,16 @@
  use std::ptr::NonNull;
  
@@ -1936,8 +2670,8 @@ diff -uraN original-winit/src/platform_impl/linux/common/xkb/state.rs ./winit/sr
      }
  }
 diff -uraN original-winit/src/platform_impl/linux/mod.rs ./winit/src/platform_impl/linux/mod.rs
---- original-winit/src/platform_impl/linux/mod.rs	2026-02-07 18:26:22.276467648 -0500
-+++ ./winit/src/platform_impl/linux/mod.rs	2026-02-07 18:26:22.284467824 -0500
+--- original-winit/src/platform_impl/linux/mod.rs	2026-06-07 12:42:34.772676503 -0400
++++ ./winit/src/platform_impl/linux/mod.rs	2026-06-07 12:42:34.780676726 -0400
 @@ -251,7 +251,7 @@
      }
  
@@ -1997,8 +2731,8 @@ diff -uraN original-winit/src/platform_impl/linux/mod.rs ./winit/src/platform_im
                  .into())
              },
 diff -uraN original-winit/src/platform_impl/linux/wayland/event_loop/mod.rs ./winit/src/platform_impl/linux/wayland/event_loop/mod.rs
---- original-winit/src/platform_impl/linux/wayland/event_loop/mod.rs	2026-02-07 18:26:22.276467648 -0500
-+++ ./winit/src/platform_impl/linux/wayland/event_loop/mod.rs	2026-02-07 18:26:22.280467737 -0500
+--- original-winit/src/platform_impl/linux/wayland/event_loop/mod.rs	2026-06-07 12:42:34.772676503 -0400
++++ ./winit/src/platform_impl/linux/wayland/event_loop/mod.rs	2026-06-07 12:42:34.780676726 -0400
 @@ -106,6 +106,7 @@
          let wayland_source = WaylandSource::new(connection.clone(), event_queue);
          let wayland_dispatcher =
@@ -2044,8 +2778,8 @@ diff -uraN original-winit/src/platform_impl/linux/wayland/event_loop/mod.rs ./wi
  
                      awakener.ping();
 diff -uraN original-winit/src/platform_impl/linux/wayland/mod.rs ./winit/src/platform_impl/linux/wayland/mod.rs
---- original-winit/src/platform_impl/linux/wayland/mod.rs	2026-02-07 18:26:22.276467648 -0500
-+++ ./winit/src/platform_impl/linux/wayland/mod.rs	2026-02-07 18:26:22.284467824 -0500
+--- original-winit/src/platform_impl/linux/wayland/mod.rs	2026-06-07 12:42:34.772676503 -0400
++++ ./winit/src/platform_impl/linux/wayland/mod.rs	2026-06-07 12:42:34.780676726 -0400
 @@ -5,7 +5,8 @@
  
  use sctk::reexports::client::globals::{BindError, GlobalError};
@@ -2071,8 +2805,8 @@ diff -uraN original-winit/src/platform_impl/linux/wayland/mod.rs ./winit/src/pla
  
  /// The default routine does floor, but we need round on Wayland.
 diff -uraN original-winit/src/platform_impl/linux/wayland/seat/keyboard/mod.rs ./winit/src/platform_impl/linux/wayland/seat/keyboard/mod.rs
---- original-winit/src/platform_impl/linux/wayland/seat/keyboard/mod.rs	2026-02-07 18:26:22.276467648 -0500
-+++ ./winit/src/platform_impl/linux/wayland/seat/keyboard/mod.rs	2026-02-07 18:26:22.280467737 -0500
+--- original-winit/src/platform_impl/linux/wayland/seat/keyboard/mod.rs	2026-06-07 12:42:34.772676503 -0400
++++ ./winit/src/platform_impl/linux/wayland/seat/keyboard/mod.rs	2026-06-07 12:42:34.780676726 -0400
 @@ -5,7 +5,6 @@
  
  use calloop::timer::{TimeoutAction, Timer};
@@ -2134,8 +2868,8 @@ diff -uraN original-winit/src/platform_impl/linux/wayland/seat/keyboard/mod.rs .
                              keyboard_state,
                              &mut state.events_sink,
 diff -uraN original-winit/src/platform_impl/linux/wayland/window/mod.rs ./winit/src/platform_impl/linux/wayland/window/mod.rs
---- original-winit/src/platform_impl/linux/wayland/window/mod.rs	2026-02-07 18:26:22.276467648 -0500
-+++ ./winit/src/platform_impl/linux/wayland/window/mod.rs	2026-02-07 18:26:22.284467824 -0500
+--- original-winit/src/platform_impl/linux/wayland/window/mod.rs	2026-06-07 12:42:34.772676503 -0400
++++ ./winit/src/platform_impl/linux/wayland/window/mod.rs	2026-06-07 12:42:34.780676726 -0400
 @@ -5,9 +5,8 @@
  use std::sync::atomic::{AtomicBool, Ordering};
  use std::sync::{Arc, Mutex};
@@ -2241,8 +2975,8 @@ diff -uraN original-winit/src/platform_impl/linux/wayland/window/mod.rs ./winit/
  
      #[inline]
 diff -uraN original-winit/src/platform_impl/linux/x11/event_processor.rs ./winit/src/platform_impl/linux/x11/event_processor.rs
---- original-winit/src/platform_impl/linux/x11/event_processor.rs	2026-02-07 18:26:22.276467648 -0500
-+++ ./winit/src/platform_impl/linux/x11/event_processor.rs	2026-02-07 18:26:22.284467824 -0500
+--- original-winit/src/platform_impl/linux/x11/event_processor.rs	2026-06-07 12:42:34.772676503 -0400
++++ ./winit/src/platform_impl/linux/x11/event_processor.rs	2026-06-07 12:42:34.780676726 -0400
 @@ -4,11 +4,11 @@
  use std::slice;
  use std::sync::{Arc, Mutex};
@@ -2377,8 +3111,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/event_processor.rs ./winit
              {
                  xkb_state.update_modifiers(
 diff -uraN original-winit/src/platform_impl/linux/x11/ffi.rs ./winit/src/platform_impl/linux/x11/ffi.rs
---- original-winit/src/platform_impl/linux/x11/ffi.rs	2026-02-07 18:26:22.276467648 -0500
-+++ ./winit/src/platform_impl/linux/x11/ffi.rs	2026-02-07 18:26:22.284467824 -0500
+--- original-winit/src/platform_impl/linux/x11/ffi.rs	2026-06-07 12:42:34.772676503 -0400
++++ ./winit/src/platform_impl/linux/x11/ffi.rs	2026-06-07 12:42:34.780676726 -0400
 @@ -1,5 +1,4 @@
 -pub use x11_dl::error::OpenError;
 -pub use x11_dl::xcursor::*;
@@ -2390,8 +3124,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/ffi.rs ./winit/src/platfor
 +pub use x11::xlib::*;
 +pub use x11::xlib_xcb::*;
 diff -uraN original-winit/src/platform_impl/linux/x11/ime/callbacks.rs ./winit/src/platform_impl/linux/x11/ime/callbacks.rs
---- original-winit/src/platform_impl/linux/x11/ime/callbacks.rs	2026-02-07 18:26:22.276467648 -0500
-+++ ./winit/src/platform_impl/linux/x11/ime/callbacks.rs	2026-02-07 18:26:22.284467824 -0500
+--- original-winit/src/platform_impl/linux/x11/ime/callbacks.rs	2026-06-07 12:42:34.772676503 -0400
++++ ./winit/src/platform_impl/linux/x11/ime/callbacks.rs	2026-06-07 12:42:34.780676726 -0400
 @@ -17,7 +17,7 @@
  ) -> Result<(), XError> {
      // It's advisable to wrap variadic FFI functions in our own functions, as we want to minimize
@@ -2420,8 +3154,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/ime/callbacks.rs ./winit/s
              ptr::null_mut(),
              ptr::null_mut(),
 diff -uraN original-winit/src/platform_impl/linux/x11/ime/context.rs ./winit/src/platform_impl/linux/x11/ime/context.rs
---- original-winit/src/platform_impl/linux/x11/ime/context.rs	2026-02-07 18:26:22.276467648 -0500
-+++ ./winit/src/platform_impl/linux/x11/ime/context.rs	2026-02-07 18:26:22.284467824 -0500
+--- original-winit/src/platform_impl/linux/x11/ime/context.rs	2026-06-07 12:42:34.772676503 -0400
++++ ./winit/src/platform_impl/linux/x11/ime/context.rs	2026-06-07 12:42:34.780676726 -0400
 @@ -3,7 +3,7 @@
  use std::sync::Arc;
  use std::{mem, ptr};
@@ -2528,8 +3262,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/ime/context.rs ./winit/src
                  ffi::XNPreeditAttributes_0.as_ptr() as *const _,
                  preedit_attr.ptr,
 diff -uraN original-winit/src/platform_impl/linux/x11/ime/inner.rs ./winit/src/platform_impl/linux/x11/ime/inner.rs
---- original-winit/src/platform_impl/linux/x11/ime/inner.rs	2026-02-07 18:26:22.276467648 -0500
-+++ ./winit/src/platform_impl/linux/x11/ime/inner.rs	2026-02-07 18:26:22.284467824 -0500
+--- original-winit/src/platform_impl/linux/x11/ime/inner.rs	2026-06-07 12:42:34.772676503 -0400
++++ ./winit/src/platform_impl/linux/x11/ime/inner.rs	2026-06-07 12:42:34.780676726 -0400
 @@ -9,12 +9,12 @@
  use crate::platform_impl::platform::x11::ime::ImeEventSender;
  
@@ -2546,8 +3280,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/ime/inner.rs ./winit/src/p
  }
  
 diff -uraN original-winit/src/platform_impl/linux/x11/ime/input_method.rs ./winit/src/platform_impl/linux/x11/ime/input_method.rs
---- original-winit/src/platform_impl/linux/x11/ime/input_method.rs	2026-02-07 18:26:22.276467648 -0500
-+++ ./winit/src/platform_impl/linux/x11/ime/input_method.rs	2026-02-07 18:26:22.284467824 -0500
+--- original-winit/src/platform_impl/linux/x11/ime/input_method.rs	2026-06-07 12:42:34.772676503 -0400
++++ ./winit/src/platform_impl/linux/x11/ime/input_method.rs	2026-06-07 12:42:34.780676726 -0400
 @@ -17,11 +17,9 @@
      // * The new locale modifiers if we succeeded in setting them.
      // * NULL if the locale modifiers string is malformed or if the current locale is not supported
@@ -2614,8 +3348,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/ime/input_method.rs ./wini
      }
      xconn.check_errors().map_err(GetXimServersError::XError)?;
 diff -uraN original-winit/src/platform_impl/linux/x11/mod.rs ./winit/src/platform_impl/linux/x11/mod.rs
---- original-winit/src/platform_impl/linux/x11/mod.rs	2026-02-07 18:26:22.276467648 -0500
-+++ ./winit/src/platform_impl/linux/x11/mod.rs	2026-02-07 18:26:22.284467824 -0500
+--- original-winit/src/platform_impl/linux/x11/mod.rs	2026-06-07 12:42:34.772676503 -0400
++++ ./winit/src/platform_impl/linux/x11/mod.rs	2026-06-07 12:42:34.780676726 -0400
 @@ -190,12 +190,12 @@
              // Remember default locale to restore it if target locale is unsupported
              // by Xlib
@@ -2658,8 +3392,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/mod.rs ./winit/src/platfor
  }
  
 diff -uraN original-winit/src/platform_impl/linux/x11/util/cookie.rs ./winit/src/platform_impl/linux/x11/util/cookie.rs
---- original-winit/src/platform_impl/linux/x11/util/cookie.rs	2026-02-07 18:26:22.276467648 -0500
-+++ ./winit/src/platform_impl/linux/x11/util/cookie.rs	2026-02-07 18:26:22.284467824 -0500
+--- original-winit/src/platform_impl/linux/x11/util/cookie.rs	2026-06-07 12:42:34.772676503 -0400
++++ ./winit/src/platform_impl/linux/x11/util/cookie.rs	2026-06-07 12:42:34.780676726 -0400
 @@ -1,7 +1,7 @@
  use std::ffi::c_int;
  use std::sync::Arc;
@@ -2688,8 +3422,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/util/cookie.rs ./winit/src
      }
  }
 diff -uraN original-winit/src/platform_impl/linux/x11/util/cursor.rs ./winit/src/platform_impl/linux/x11/util/cursor.rs
---- original-winit/src/platform_impl/linux/x11/util/cursor.rs	2026-02-07 18:26:22.276467648 -0500
-+++ ./winit/src/platform_impl/linux/x11/util/cursor.rs	2026-02-07 18:26:22.284467824 -0500
+--- original-winit/src/platform_impl/linux/x11/util/cursor.rs	2026-06-07 12:42:34.772676503 -0400
++++ ./winit/src/platform_impl/linux/x11/util/cursor.rs	2026-06-07 12:42:34.780676726 -0400
 @@ -30,9 +30,9 @@
      fn create_empty_cursor(&self) -> ffi::Cursor {
          let data = 0;
@@ -2767,8 +3501,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/util/cursor.rs ./winit/src
      }
  }
 diff -uraN original-winit/src/platform_impl/linux/x11/util/input.rs ./winit/src/platform_impl/linux/x11/util/input.rs
---- original-winit/src/platform_impl/linux/x11/util/input.rs	2026-02-07 18:26:22.276467648 -0500
-+++ ./winit/src/platform_impl/linux/x11/util/input.rs	2026-02-07 18:26:22.284467824 -0500
+--- original-winit/src/platform_impl/linux/x11/util/input.rs	2026-06-07 12:42:34.772676503 -0400
++++ ./winit/src/platform_impl/linux/x11/util/input.rs	2026-06-07 12:42:34.780676726 -0400
 @@ -33,8 +33,7 @@
          mask: xkb::EventType,
      ) -> Result<bool, X11Error> {
@@ -2789,8 +3523,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/util/input.rs ./winit/src/
                  key_event,
                  buffer as *mut c_char,
 diff -uraN original-winit/src/platform_impl/linux/x11/util/keys.rs ./winit/src/platform_impl/linux/x11/util/keys.rs
---- original-winit/src/platform_impl/linux/x11/util/keys.rs	2026-02-07 18:26:22.276467648 -0500
-+++ ./winit/src/platform_impl/linux/x11/util/keys.rs	2026-02-07 18:26:22.284467824 -0500
+--- original-winit/src/platform_impl/linux/x11/util/keys.rs	2026-06-07 12:42:34.772676503 -0400
++++ ./winit/src/platform_impl/linux/x11/util/keys.rs	2026-06-07 12:42:34.780676726 -0400
 @@ -63,7 +63,7 @@
          let mut keys = [0; 32];
  
@@ -2801,8 +3535,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/util/keys.rs ./winit/src/p
  
          Keymap { keys }
 diff -uraN original-winit/src/platform_impl/linux/x11/util/memory.rs ./winit/src/platform_impl/linux/x11/util/memory.rs
---- original-winit/src/platform_impl/linux/x11/util/memory.rs	2026-02-07 18:26:22.276467648 -0500
-+++ ./winit/src/platform_impl/linux/x11/util/memory.rs	2026-02-07 18:26:22.284467824 -0500
+--- original-winit/src/platform_impl/linux/x11/util/memory.rs	2026-06-07 12:42:34.772676503 -0400
++++ ./winit/src/platform_impl/linux/x11/util/memory.rs	2026-06-07 12:42:34.780676726 -0400
 @@ -3,6 +3,7 @@
  use super::*;
  
@@ -2821,8 +3555,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/util/memory.rs ./winit/src
      }
  }
 diff -uraN original-winit/src/platform_impl/linux/x11/util/modifiers.rs ./winit/src/platform_impl/linux/x11/util/modifiers.rs
---- original-winit/src/platform_impl/linux/x11/util/modifiers.rs	2026-02-07 18:26:22.276467648 -0500
-+++ ./winit/src/platform_impl/linux/x11/util/modifiers.rs	2026-02-07 18:26:22.284467824 -0500
+--- original-winit/src/platform_impl/linux/x11/util/modifiers.rs	2026-06-07 12:42:34.772676503 -0400
++++ ./winit/src/platform_impl/linux/x11/util/modifiers.rs	2026-06-07 12:42:34.780676726 -0400
 @@ -57,7 +57,7 @@
  
              self.reset_from_x_keymap(&*keymap);
@@ -2833,8 +3567,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/util/modifiers.rs ./winit/
      }
  
 diff -uraN original-winit/src/platform_impl/linux/x11/util/mod.rs ./winit/src/platform_impl/linux/x11/util/mod.rs
---- original-winit/src/platform_impl/linux/x11/util/mod.rs	2026-02-07 18:26:22.276467648 -0500
-+++ ./winit/src/platform_impl/linux/x11/util/mod.rs	2026-02-07 18:26:22.284467824 -0500
+--- original-winit/src/platform_impl/linux/x11/util/mod.rs	2026-06-07 12:42:34.772676503 -0400
++++ ./winit/src/platform_impl/linux/x11/util/mod.rs	2026-06-07 12:42:34.780676726 -0400
 @@ -62,7 +62,7 @@
      //    and waits.
      // All util functions that abstract an async function will return a `Flusher`.
@@ -2854,8 +3588,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/util/mod.rs ./winit/src/pl
          self.check_errors()
      }
 diff -uraN original-winit/src/platform_impl/linux/x11/util/xmodmap.rs ./winit/src/platform_impl/linux/x11/util/xmodmap.rs
---- original-winit/src/platform_impl/linux/x11/util/xmodmap.rs	2026-02-07 18:26:22.276467648 -0500
-+++ ./winit/src/platform_impl/linux/x11/util/xmodmap.rs	2026-02-07 18:26:22.284467824 -0500
+--- original-winit/src/platform_impl/linux/x11/util/xmodmap.rs	2026-06-07 12:42:34.772676503 -0400
++++ ./winit/src/platform_impl/linux/x11/util/xmodmap.rs	2026-06-07 12:42:34.780676726 -0400
 @@ -1,7 +1,7 @@
  use std::collections::HashSet;
  use std::slice;
@@ -2884,8 +3618,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/util/xmodmap.rs ./winit/sr
      }
  
 diff -uraN original-winit/src/platform_impl/linux/x11/window.rs ./winit/src/platform_impl/linux/x11/window.rs
---- original-winit/src/platform_impl/linux/x11/window.rs	2026-02-07 18:26:22.276467648 -0500
-+++ ./winit/src/platform_impl/linux/x11/window.rs	2026-02-07 18:26:22.284467824 -0500
+--- original-winit/src/platform_impl/linux/x11/window.rs	2026-06-07 12:42:34.772676503 -0400
++++ ./winit/src/platform_impl/linux/x11/window.rs	2026-06-07 12:42:34.780676726 -0400
 @@ -517,7 +517,7 @@
              // Attempt to make keyboard input repeat detectable
              unsafe {
@@ -2896,8 +3630,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/window.rs ./winit/src/plat
                      ffi::True,
                      &mut supported_ptr,
 diff -uraN original-winit/src/platform_impl/linux/x11/xdisplay.rs ./winit/src/platform_impl/linux/x11/xdisplay.rs
---- original-winit/src/platform_impl/linux/x11/xdisplay.rs	2026-02-07 18:26:22.276467648 -0500
-+++ ./winit/src/platform_impl/linux/x11/xdisplay.rs	2026-02-07 18:26:22.284467824 -0500
+--- original-winit/src/platform_impl/linux/x11/xdisplay.rs	2026-06-07 12:42:34.772676503 -0400
++++ ./winit/src/platform_impl/linux/x11/xdisplay.rs	2026-06-07 12:42:34.780676726 -0400
 @@ -17,13 +17,6 @@
  
  /// A connection to an X server.
@@ -3009,8 +3743,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/xdisplay.rs ./winit/src/pl
              _ => None,
          }
 diff -uraN original-x11/Cargo.toml ./x11/Cargo.toml
---- original-x11/Cargo.toml	2026-02-07 18:26:22.928481990 -0500
-+++ ./x11/Cargo.toml	2026-02-07 18:26:22.988483310 -0500
+--- original-x11/Cargo.toml	2026-06-07 12:42:35.728703025 -0400
++++ ./x11/Cargo.toml	2026-06-07 12:42:35.788704688 -0400
 @@ -1,16 +1,4 @@
 -# THIS FILE IS AUTOMATICALLY GENERATED BY CARGO
 -#
@@ -3061,8 +3795,8 @@ diff -uraN original-x11/Cargo.toml ./x11/Cargo.toml
  all = [
      "dpms",
 diff -uraN original-x11/examples/hello-world.rs ./x11/examples/hello-world.rs
---- original-x11/examples/hello-world.rs	2026-02-07 18:26:22.924481902 -0500
-+++ ./x11/examples/hello-world.rs	2026-02-07 18:26:22.988483310 -0500
+--- original-x11/examples/hello-world.rs	2026-06-07 12:42:35.728703025 -0400
++++ ./x11/examples/hello-world.rs	2026-06-07 12:42:35.788704688 -0400
 @@ -33,7 +33,8 @@
          let screen = xlib::XDefaultScreen(display);
          let root = xlib::XRootWindow(display, screen);
@@ -3094,6 +3828,6 @@ diff -uraN original-x11/examples/hello-world.rs ./x11/examples/hello-world.rs
                          let protocol = xclient.data.get_long(0) as xlib::Atom;
 diff -uraN original-x11/.gitignore ./x11/.gitignore
 --- original-x11/.gitignore	1969-12-31 19:00:00.000000000 -0500
-+++ ./x11/.gitignore	2026-02-07 18:26:22.988483310 -0500
++++ ./x11/.gitignore	2026-06-07 12:42:35.788704688 -0400
 @@ -0,0 +1 @@
 +/target
