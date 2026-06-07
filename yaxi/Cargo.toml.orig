@@ -1,0 +1,44 @@
+[package]
+name = "yaxi"
+version = "0.1.57"
+edition = "2021"
+
+description = "A rust implementation of the x11 protocol"
+readme = "README.md"
+authors = ["Prox"]
+repository = "https://github.com/proxin187/yaxi"
+keywords = ["x11", "xcb", "xlib", "xproto", "protocol"]
+categories = ["api-bindings", "os", "graphics"]
+license = "MIT OR Apache-2.0"
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[lib]
+name = "yaxi"
+path = "src/lib.rs"
+
+[features]
+xinerama = []
+clipboard = []
+extras = []
+ewmh = []
+
+# feature for logging, this is disabled in release builds and enabled in tests
+debug = ["log"]
+
+[dependencies]
+
+# log is disabled by default and is only meant for debugging, you can enable log with the "debug" feature
+log = { version = "0.4", optional = true }
+
+# https://github.com/rust-lang/cargo/issues/2911#issuecomment-749580481
+
+[dev-dependencies]
+yaxi = { path = ".", features = ["clipboard", "xinerama", "extras", "ewmh", "debug"] }
+serial_test = "3.2"
+env_logger = "0.11"
+
+[workspace]
+members = ["examples/*"]
