@@ -33,7 +33,8 @@ impl XConnection {
         mask: xkb::EventType,
     ) -> Result<bool, X11Error> {
         let mask = u16::from(mask) as _;
-        let status = unsafe { ffi::XkbSelectEvents(self.display, device_id as _, mask, mask) };
+        let status =
+            unsafe { (self.xlib.XkbSelectEvents)(self.display, device_id as _, mask, mask) };
 
         if status == ffi::True {
             self.flush_requests()?;
@@ -65,7 +66,7 @@ impl XConnection {
         let mut keysym: ffi::KeySym = 0;
         let mut status: ffi::Status = 0;
         let count = unsafe {
-            ffi::Xutf8LookupString(
+            (self.xlib.Xutf8LookupString)(
                 ic,
                 key_event,
                 buffer as *mut c_char,

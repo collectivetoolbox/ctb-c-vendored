@@ -86,18 +86,14 @@ impl WindowAttributesExtStartupNotify for WindowAttributes {
 /// This is wise to do before running child processes,
 /// which may not to support the activation token.
 pub fn reset_activation_token_env() {
-    unsafe {
-        env::remove_var(X11_VAR);
-        env::remove_var(WAYLAND_VAR);
-    }
+    env::remove_var(X11_VAR);
+    env::remove_var(WAYLAND_VAR);
 }
 
 /// Set environment variables responsible for activation token.
 ///
 /// This could be used before running daemon processes.
 pub fn set_activation_token_env(token: ActivationToken) {
-    unsafe {
-        env::set_var(X11_VAR, &token.token);
-        env::set_var(WAYLAND_VAR, token.token);
-    }
+    env::set_var(X11_VAR, &token.token);
+    env::set_var(WAYLAND_VAR, token.token);
 }

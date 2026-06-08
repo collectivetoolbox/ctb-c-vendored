@@ -17,9 +17,11 @@ unsafe fn open_im(xconn: &Arc<XConnection>, locale_modifiers: &CStr) -> Option<f
     // * The new locale modifiers if we succeeded in setting them.
     // * NULL if the locale modifiers string is malformed or if the current locale is not supported
     //   by Xlib.
-    unsafe { ffi::XSetLocaleModifiers(locale_modifiers.as_ptr()) };
+    unsafe { (xconn.xlib.XSetLocaleModifiers)(locale_modifiers.as_ptr()) };
 
-    let im = unsafe { ffi::XOpenIM(xconn.display, ptr::null_mut(), ptr::null_mut(), ptr::null_mut()) };
+    let im = unsafe {
+        (xconn.xlib.XOpenIM)(xconn.display, ptr::null_mut(), ptr::null_mut(), ptr::null_mut())
+    };
 
     if im.is_null() {
         None
@@ -37,12 +39,12 @@ pub struct InputMethod {
 }
 
 impl InputMethod {
-    fn new(_xconn: &Arc<XConnection>, im: ffi::XIM, name: String) -> Option<Self> {
+    fn new(xconn: &Arc<XConnection>, im: ffi::XIM, name: String) -> Option<Self> {
         let mut styles: *mut XIMStyles = std::ptr::null_mut();
 
         // Query the styles supported by the XIM.
         unsafe {
-            if !ffi::XGetIMValues(
+            if !(xconn.xlib.XGetIMValues)(
                 im,
                 ffi::XNQueryInputStyle_0.as_ptr() as *const _,
                 (&mut styles) as *mut _,
@@ -71,7 +73,7 @@ impl InputMethod {
                     _ => (),
                 });
 
-            ffi::XFree(styles.cast());
+            (xconn.xlib.XFree)(styles.cast());
         };
 
         if preedit_style.is_none() && none_style.is_none() {
@@ -164,7 +166,7 @@ unsafe fn get_xim_servers(xconn: &Arc<XConnection>) -> Result<Vec<String>, GetXi
     let atoms = xconn.atoms();
     let servers_atom = atoms[XIM_SERVERS];
 
-    let root = unsafe { ffi::XDefaultRootWindow(xconn.display) };
+    let root = unsafe { (xconn.xlib.XDefaultRootWindow)(xconn.display) };
 
     let mut atoms: Vec<ffi::Atom> = xconn
         .get_property::<xproto::Atom>(
@@ -179,7 +181,7 @@ unsafe fn get_xim_servers(xconn: &Arc<XConnection>) -> Result<Vec<String>, GetXi
 
     let mut names: Vec<*const c_char> = Vec::with_capacity(atoms.len());
     unsafe {
-        ffi::XGetAtomNames(
+        (xconn.xlib.XGetAtomNames)(
             xconn.display,
             atoms.as_mut_ptr(),
             atoms.len() as _,
@@ -194,7 +196,7 @@ unsafe fn get_xim_servers(xconn: &Arc<XConnection>) -> Result<Vec<String>, GetXi
             .to_owned()
             .into_string()
             .map_err(GetXimServersError::InvalidUtf8)?;
-        unsafe { ffi::XFree(name as _) };
+        unsafe { (xconn.xlib.XFree)(name as _) };
         formatted_names.push(string.replace("@server=", "@im="));
     }
     xconn.check_errors().map_err(GetXimServersError::XError)?;

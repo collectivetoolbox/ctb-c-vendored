@@ -5,20 +5,20 @@ use std::ops::Deref;
 use std::ptr::{self, NonNull};
 
 #[cfg(x11_platform)]
-use crate::platform_impl::linux::x11::ffi::xcb_connection_t;
+use x11_dl::xlib_xcb::xcb_connection_t;
 #[cfg(wayland_platform)]
 use {memmap2::MmapOptions, std::os::unix::io::OwnedFd};
 
-use super::ffi as xkb;
-use super::ffi::{
-    xkb_keycode_t, xkb_keymap, xkb_keymap_compile_flags, xkb_keysym_t, xkb_layout_index_t,
-    xkb_mod_index_t,
+use xkb::XKB_MOD_INVALID;
+use xkbcommon_dl::{
+    self as xkb, xkb_keycode_t, xkb_keymap, xkb_keymap_compile_flags, xkb_keysym_t,
+    xkb_layout_index_t, xkb_mod_index_t,
 };
 
-use xkb::XKB_MOD_INVALID;
-
 use crate::keyboard::{Key, KeyCode, KeyLocation, NamedKey, NativeKey, NativeKeyCode, PhysicalKey};
-use crate::platform_impl::common::xkb::XkbContext;
+#[cfg(x11_platform)]
+use crate::platform_impl::common::xkb::XKBXH;
+use crate::platform_impl::common::xkb::{XkbContext, XKBH};
 
 /// Map the raw X11-style keycode to the `KeyCode` enum.
 ///
@@ -441,7 +441,7 @@ pub fn physicalkey_to_scancode(key: PhysicalKey) -> Option<u32> {
 }
 
 pub fn keysym_to_key(keysym: u32) -> Key {
-    use xkeysym::key as keysyms;
+    use xkbcommon_dl::keysyms;
     Key::Named(match keysym {
         // TTY function keys
         keysyms::BackSpace => NamedKey::Backspace,
@@ -855,7 +855,7 @@ pub fn keysym_to_key(keysym: u32) -> Key {
 }
 
 pub fn keysym_location(keysym: u32) -> KeyLocation {
-    use xkeysym::key as keysyms;
+    use xkbcommon_dl::keysyms;
     match keysym {
         keysyms::Shift_L
         | keysyms::Control_L
@@ -920,20 +920,10 @@ impl XkbKeymap {
     pub fn from_fd(context: &XkbContext, fd: OwnedFd, size: usize) -> Option<Self> {
         let map = unsafe { MmapOptions::new().len(size).map_copy_read_only(&fd).ok()? };
 
-        // `xkb_keymap_new_from_string` expects a NUL-terminated C string. While
-        // the Wayland protocol specifies that the keymap is NUL-terminated,
-        // it's safer to enforce this here to avoid reading past the mapped
-        // region on buggy compositors or size mismatches.
-        let mut map_buf = Vec::with_capacity(map.len().saturating_add(1));
-        map_buf.extend_from_slice(&map);
-        if !map_buf.ends_with(&[0]) {
-            map_buf.push(0);
-        }
-
         let keymap = unsafe {
-            let keymap = xkb::xkb_keymap_new_from_string(
+            let keymap = (XKBH.xkb_keymap_new_from_string)(
                 (*context).as_ptr(),
-                map_buf.as_ptr() as *const _,
+                map.as_ptr() as *const _,
                 xkb::xkb_keymap_format::XKB_KEYMAP_FORMAT_TEXT_V1,
                 xkb_keymap_compile_flags::XKB_KEYMAP_COMPILE_NO_FLAGS,
             );
@@ -950,7 +940,7 @@ impl XkbKeymap {
         core_keyboard_id: i32,
     ) -> Option<Self> {
         let keymap = unsafe {
-            xkb::xkb_x11_keymap_new_from_device(
+            (XKBXH.xkb_x11_keymap_new_from_device)(
                 context.as_ptr(),
                 xcb,
                 core_keyboard_id,
@@ -988,7 +978,7 @@ impl XkbKeymap {
     ) -> xkb_keysym_t {
         unsafe {
             let mut keysyms = ptr::null();
-            let count = xkb::xkb_keymap_key_get_syms_by_level(
+            let count = (XKBH.xkb_keymap_key_get_syms_by_level)(
                 self.keymap.as_ptr(),
                 keycode,
                 layout,
@@ -1007,14 +997,14 @@ impl XkbKeymap {
 
     /// Check whether the given key repeats.
     pub fn key_repeats(&mut self, keycode: xkb_keycode_t) -> bool {
-        unsafe { xkb::xkb_keymap_key_repeats(self.keymap.as_ptr(), keycode) == 1 }
+        unsafe { (XKBH.xkb_keymap_key_repeats)(self.keymap.as_ptr(), keycode) == 1 }
     }
 }
 
 impl Drop for XkbKeymap {
     fn drop(&mut self) {
         unsafe {
-            xkb::xkb_keymap_unref(self.keymap.as_ptr());
+            (XKBH.xkb_keymap_unref)(self.keymap.as_ptr());
         };
     }
 }
@@ -1044,7 +1034,7 @@ pub struct ModsIndices {
 fn mod_index_for_name(keymap: NonNull<xkb_keymap>, name: &[u8]) -> Option<xkb_mod_index_t> {
     unsafe {
         let mod_index =
-            xkb::xkb_keymap_mod_get_index(keymap.as_ptr(), name.as_ptr() as *const c_char);
+            (XKBH.xkb_keymap_mod_get_index)(keymap.as_ptr(), name.as_ptr() as *const c_char);
         if mod_index == XKB_MOD_INVALID {
             None
         } else {

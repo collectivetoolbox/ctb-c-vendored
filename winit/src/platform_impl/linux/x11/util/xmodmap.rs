@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use std::slice;
 
-use super::super::ffi::{self, KeyCode as XKeyCode, XModifierKeymap};
+use x11_dl::xlib::{KeyCode as XKeyCode, XModifierKeymap};
 
 // Offsets within XModifierKeymap to each set of keycodes.
 // We are only interested in Shift, Control, Alt, and Logo.
@@ -30,7 +30,7 @@ impl ModifierKeymap {
 
     pub fn reload_from_x_connection(&mut self, xconn: &super::XConnection) {
         unsafe {
-            let keymap = ffi::XGetModifierMapping(xconn.display);
+            let keymap = (xconn.xlib.XGetModifierMapping)(xconn.display);
 
             if keymap.is_null() {
                 return;
@@ -38,7 +38,7 @@ impl ModifierKeymap {
 
             self.reset_from_x_keymap(&*keymap);
 
-            ffi::XFreeModifiermap(keymap);
+            (xconn.xlib.XFreeModifiermap)(keymap);
         }
     }
 

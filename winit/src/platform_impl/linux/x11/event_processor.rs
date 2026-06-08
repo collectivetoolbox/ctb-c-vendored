@@ -4,11 +4,11 @@ use std::os::raw::{c_char, c_int, c_long, c_ulong};
 use std::slice;
 use std::sync::{Arc, Mutex};
 
-use x11::xinput2::{
+use x11_dl::xinput2::{
     self, XIDeviceEvent, XIEnterEvent, XIFocusInEvent, XIFocusOutEvent, XIHierarchyEvent,
     XILeaveEvent, XIModifierState, XIRawEvent,
 };
-use x11::xlib::{
+use x11_dl::xlib::{
     self, Display as XDisplay, Window as XWindow, XAnyEvent, XClientMessageEvent, XConfigureEvent,
     XDestroyWindowEvent, XEvent, XExposeEvent, XKeyEvent, XMapEvent, XPropertyEvent,
     XReparentEvent, XSelectionEvent, XVisibilityEvent, XkbAnyEvent, XkbStateRec,
@@ -17,7 +17,7 @@ use x11rb::protocol::xinput;
 use x11rb::protocol::xkb::ID as XkbId;
 use x11rb::protocol::xproto::{self, ConnectionExt as _, ModMask};
 use x11rb::x11_utils::{ExtensionInformation, Serialize};
-use crate::platform_impl::common::xkb::xkb_mod_mask_t;
+use xkbcommon_dl::xkb_mod_mask_t;
 
 use crate::dpi::{PhysicalPosition, PhysicalSize};
 use crate::event::{
@@ -134,8 +134,9 @@ impl EventProcessor {
     /// arrow keys from being detected twice.
     #[must_use]
     fn filter_event(&mut self, xev: &mut XEvent) -> bool {
+        let wt = Self::window_target(&self.target);
         unsafe {
-            xlib::XFilterEvent(xev, {
+            (wt.xconn.xlib.XFilterEvent)(xev, {
                 let xev: &XAnyEvent = xev.as_ref();
                 xev.window
             }) == xlib::True
@@ -319,7 +320,7 @@ impl EventProcessor {
 
     pub fn poll(&self) -> bool {
         let window_target = Self::window_target(&self.target);
-        let result = unsafe { xlib::XPending(window_target.xconn.display) };
+        let result = unsafe { (window_target.xconn.xlib.XPending)(window_target.xconn.display) };
 
         result != 0
     }
@@ -342,7 +343,7 @@ impl EventProcessor {
         }
 
         let result = unsafe {
-            xlib::XCheckIfEvent(
+            (window_target.xconn.xlib.XCheckIfEvent)(
                 window_target.xconn.display,
                 event_ptr,
                 Some(predicate),
@@ -1626,57 +1627,22 @@ impl EventProcessor {
     ) where
         F: FnMut(&RootAEL, Event<T>),
     {
-        // XInput2 reports modifier/group state as signed integers.
-        //
-        // On some systems (notably 32-bit / i586 builds) we've observed invalid negative values
-        // reaching here. Casting those values to `u32` produces huge numbers, which can trigger
-        // crashes inside libxkbcommon when we call `xkb_state_update_mask`.
-        //
-        // Be defensive: if any values are invalid, fall back to querying XKB state from X11.
-        let window_id = match self.active_window.map(super::mkwid) {
-            Some(window_id) => window_id,
-            None => return,
-        };
-
-        let Some(mods_depressed) = u32::try_from(mods.base).ok() else {
-            self.update_mods_from_query(window_id, callback);
-            return;
-        };
-
-        let Some(mods_latched) = u32::try_from(mods.latched).ok() else {
-            self.update_mods_from_query(window_id, callback);
-            return;
-        };
-
-        let Some(mods_locked) = u32::try_from(mods.locked).ok() else {
-            self.update_mods_from_query(window_id, callback);
-            return;
-        };
-
-        let Some(depressed_group) = u32::try_from(group.base).ok().filter(|g| *g <= 64) else {
-            self.update_mods_from_query(window_id, callback);
-            return;
-        };
-
-        let Some(latched_group) = u32::try_from(group.latched).ok().filter(|g| *g <= 64) else {
-            self.update_mods_from_query(window_id, callback);
-            return;
-        };
-
-        let Some(locked_group) = u32::try_from(group.locked).ok().filter(|g| *g <= 64) else {
-            self.update_mods_from_query(window_id, callback);
-            return;
-        };
-
         if let Some(state) = self.xkb_context.state_mut() {
             state.update_modifiers(
-                mods_depressed,
-                mods_latched,
-                mods_locked,
-                depressed_group,
-                latched_group,
-                locked_group,
+                mods.base as u32,
+                mods.latched as u32,
+                mods.locked as u32,
+                group.base as u32,
+                group.latched as u32,
+                group.locked as u32,
             );
+
+            // NOTE: we use active window since generally sub windows don't have keyboard input,
+            // and winit assumes that unfocused window doesn't have modifiers.
+            let window_id = match self.active_window.map(super::mkwid) {
+                Some(window_id) => window_id,
+                None => return,
+            };
 
             let mods = state.modifiers();
             self.send_modifiers(window_id, mods.into(), force, &mut callback);
@@ -1699,7 +1665,7 @@ impl EventProcessor {
 
         unsafe {
             let mut state: XkbStateRec = std::mem::zeroed();
-            if xlib::XkbGetState(wt.xconn.display, XkbId::USE_CORE_KBD.into(), &mut state)
+            if (wt.xconn.xlib.XkbGetState)(wt.xconn.display, XkbId::USE_CORE_KBD.into(), &mut state)
                 == xlib::True
             {
                 xkb_state.update_modifiers(

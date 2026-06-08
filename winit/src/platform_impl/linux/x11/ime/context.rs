@@ -3,7 +3,7 @@ use std::os::raw::c_short;
 use std::sync::Arc;
 use std::{mem, ptr};
 
-use super::ffi::{XIMCallback, XIMPreeditCaretCallbackStruct, XIMPreeditDrawCallbackStruct};
+use x11_dl::xlib::{XIMCallback, XIMPreeditCaretCallbackStruct, XIMPreeditDrawCallbackStruct};
 
 use super::{ffi, util, XConnection, XError};
 use crate::platform_impl::platform::x11::ime::input_method::{InputMethod, Style, XIMStyle};
@@ -220,7 +220,9 @@ impl ImeContext {
             Style::Nothing(style) => unsafe {
                 ImeContext::create_nothing_ic(xconn, im.im, style, window)
             },
-            Style::None(style) => unsafe { ImeContext::create_none_ic(xconn, im.im, style, window) },
+            Style::None(style) => unsafe {
+                ImeContext::create_none_ic(xconn, im.im, style, window)
+            },
         }
         .ok_or(ImeContextCreationError::Null)?;
 
@@ -242,13 +244,13 @@ impl ImeContext {
     }
 
     unsafe fn create_none_ic(
-        _xconn: &Arc<XConnection>,
+        xconn: &Arc<XConnection>,
         im: ffi::XIM,
         style: XIMStyle,
         window: ffi::Window,
     ) -> Option<ffi::XIC> {
         let ic = unsafe {
-            ffi::XCreateIC(
+            (xconn.xlib.XCreateIC)(
                 im,
                 ffi::XNInputStyle_0.as_ptr() as *const _,
                 style,
@@ -270,7 +272,7 @@ impl ImeContext {
     ) -> Option<ffi::XIC> {
         let preedit_callbacks = PreeditCallbacks::new(client_data);
         let preedit_attr = util::memory::XSmartPointer::new(xconn, unsafe {
-            ffi::XVaCreateNestedList(
+            (xconn.xlib.XVaCreateNestedList)(
                 0,
                 ffi::XNPreeditStartCallback_0.as_ptr() as *const _,
                 &(preedit_callbacks.start_callback) as *const _,
@@ -286,7 +288,7 @@ impl ImeContext {
         .expect("XVaCreateNestedList returned NULL");
 
         let ic = unsafe {
-            ffi::XCreateIC(
+            (xconn.xlib.XCreateIC)(
                 im,
                 ffi::XNInputStyle_0.as_ptr() as *const _,
                 style,
@@ -302,13 +304,13 @@ impl ImeContext {
     }
 
     unsafe fn create_nothing_ic(
-        _xconn: &Arc<XConnection>,
+        xconn: &Arc<XConnection>,
         im: ffi::XIM,
         style: XIMStyle,
         window: ffi::Window,
     ) -> Option<ffi::XIC> {
         let ic = unsafe {
-            ffi::XCreateIC(
+            (xconn.xlib.XCreateIC)(
                 im,
                 ffi::XNInputStyle_0.as_ptr() as *const _,
                 style,
@@ -323,14 +325,14 @@ impl ImeContext {
 
     pub(crate) fn focus(&self, xconn: &Arc<XConnection>) -> Result<(), XError> {
         unsafe {
-            ffi::XSetICFocus(self.ic);
+            (xconn.xlib.XSetICFocus)(self.ic);
         }
         xconn.check_errors()
     }
 
     pub(crate) fn unfocus(&self, xconn: &Arc<XConnection>) -> Result<(), XError> {
         unsafe {
-            ffi::XUnsetICFocus(self.ic);
+            (xconn.xlib.XUnsetICFocus)(self.ic);
         }
         xconn.check_errors()
     }
@@ -354,7 +356,7 @@ impl ImeContext {
         unsafe {
             let preedit_attr = util::memory::XSmartPointer::new(
                 xconn,
-                ffi::XVaCreateNestedList(
+                (xconn.xlib.XVaCreateNestedList)(
                     0,
                     ffi::XNSpotLocation_0.as_ptr(),
                     &self.ic_spot,
@@ -363,7 +365,7 @@ impl ImeContext {
             )
             .expect("XVaCreateNestedList returned NULL");
 
-            ffi::XSetICValues(
+            (xconn.xlib.XSetICValues)(
                 self.ic,
                 ffi::XNPreeditAttributes_0.as_ptr() as *const _,
                 preedit_attr.ptr,

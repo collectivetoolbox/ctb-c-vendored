@@ -516,7 +516,7 @@ impl UnownedWindow {
             // Attempt to make keyboard input repeat detectable
             unsafe {
                 let mut supported_ptr = ffi::False;
-                ffi::XkbSetDetectableAutoRepeat(
+                (xconn.xlib.XkbSetDetectableAutoRepeat)(
                     xconn.display,
                     ffi::True,
                     &mut supported_ptr,

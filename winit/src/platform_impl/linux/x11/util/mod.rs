@@ -62,7 +62,7 @@ impl XConnection {
     //    and waits.
     // All util functions that abstract an async function will return a `Flusher`.
     pub fn flush_requests(&self) -> Result<(), XError> {
-        unsafe { ffi::XFlush(self.display) };
+        unsafe { (self.xlib.XFlush)(self.display) };
         // println!("XFlush");
         // This isn't necessarily a useful time to check for errors (since our request hasn't
         // necessarily been processed yet)
@@ -70,7 +70,7 @@ impl XConnection {
     }
 
     pub fn sync_with_server(&self) -> Result<(), XError> {
-        unsafe { ffi::XSync(self.display, ffi::False) };
+        unsafe { (self.xlib.XSync)(self.display, ffi::False) };
         // println!("XSync");
         self.check_errors()
     }

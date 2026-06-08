@@ -251,7 +251,7 @@ impl MonitorHandle {
     }
 
     #[inline]
-    pub fn video_modes(&self) -> Box<dyn Iterator<Item = VideoModeHandle> + '_> {
+    pub fn video_modes(&self) -> Box<dyn Iterator<Item = VideoModeHandle>> {
         x11_or_wayland!(match self; MonitorHandle(m) => Box::new(m.video_modes()))
     }
 }
@@ -560,11 +560,11 @@ impl Window {
     pub fn available_monitors(&self) -> VecDeque<MonitorHandle> {
         match self {
             #[cfg(x11_platform)]
-            Window::X(window) => {
+            Window::X(ref window) => {
                 window.available_monitors().into_iter().map(MonitorHandle::X).collect()
             },
             #[cfg(wayland_platform)]
-            Window::Wayland(window) => {
+            Window::Wayland(ref window) => {
                 window.available_monitors().into_iter().map(MonitorHandle::Wayland).collect()
             },
         }
@@ -666,9 +666,7 @@ unsafe extern "C" fn x_error_callback(
         // which do not require initialization.
         let mut buf: [MaybeUninit<c_char>; 1024] = unsafe { MaybeUninit::uninit().assume_init() };
         unsafe {
-            use crate::platform_impl::x11::ffi;
-
-            ffi::XGetErrorText(
+            (xconn.xlib.XGetErrorText)(
                 display,
                 (*event).error_code as c_int,
                 buf.as_mut_ptr() as *mut c_char,
@@ -984,8 +982,10 @@ impl OwnedDisplayHandle {
 
             #[cfg(wayland_platform)]
             Self::Wayland(conn) => {
+                use sctk::reexports::client::Proxy;
+
                 let mut wayland_handle = rwh_05::WaylandDisplayHandle::empty();
-                wayland_handle.display = std::ptr::NonNull::from(conn).cast().as_ptr();
+                wayland_handle.display = conn.display().id().as_ptr() as *mut _;
                 wayland_handle.into()
             },
         }
@@ -1008,8 +1008,10 @@ impl OwnedDisplayHandle {
 
             #[cfg(wayland_platform)]
             Self::Wayland(conn) => {
+                use sctk::reexports::client::Proxy;
+
                 Ok(rwh_06::WaylandDisplayHandle::new(
-                    NonNull::from(conn).cast(),
+                    NonNull::new(conn.display().id().as_ptr().cast()).unwrap(),
                 )
                 .into())
             },

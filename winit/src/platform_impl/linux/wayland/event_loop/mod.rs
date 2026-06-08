@@ -106,7 +106,6 @@ impl<T: 'static> EventLoop<T> {
         let wayland_source = WaylandSource::new(connection.clone(), event_queue);
         let wayland_dispatcher =
             calloop::Dispatcher::new(wayland_source, |_, queue, winit_state: &mut WinitState| {
-                // tracing::warn!("Dispatching pending events");
                 let result = queue.dispatch_pending(winit_state);
                 if result.is_ok()
                     && (!winit_state.events_sink.is_empty()
@@ -697,8 +696,10 @@ impl ActiveEventLoop {
     #[cfg(feature = "rwh_05")]
     #[inline]
     pub fn raw_display_handle_rwh_05(&self) -> rwh_05::RawDisplayHandle {
+        use sctk::reexports::client::Proxy;
+
         let mut display_handle = rwh_05::WaylandDisplayHandle::empty();
-        display_handle.display = std::ptr::NonNull::from(&self.connection).cast().as_ptr();
+        display_handle.display = self.connection.display().id().as_ptr() as *mut _;
         rwh_05::RawDisplayHandle::Wayland(display_handle)
     }
 
@@ -707,7 +708,13 @@ impl ActiveEventLoop {
     pub fn raw_display_handle_rwh_06(
         &self,
     ) -> Result<rwh_06::RawDisplayHandle, rwh_06::HandleError> {
-        Ok(rwh_06::WaylandDisplayHandle::new(std::ptr::NonNull::from(&self.connection).cast()).into())
+        use sctk::reexports::client::Proxy;
+
+        Ok(rwh_06::WaylandDisplayHandle::new({
+            let ptr = self.connection.display().id().as_ptr();
+            std::ptr::NonNull::new(ptr as *mut _).expect("wl_display should never be null")
+        })
+        .into())
     }
 }
 
@@ -777,7 +784,7 @@ impl PumpEventNotifier {
                         }
                         let _ = rustix::event::poll(&mut [poll_fd, pipe_poll_fd], -1);
                         // Non-blocking read the connection.
-                        let _ = read_guard.read();
+                        let _ = read_guard.read_without_dispatch();
                     }
 
                     awakener.ping();

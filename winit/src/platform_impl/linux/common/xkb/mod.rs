@@ -3,26 +3,25 @@ use std::os::raw::c_char;
 use std::ptr::{self, NonNull};
 use std::sync::atomic::{AtomicBool, Ordering};
 
+use crate::utils::Lazy;
 use smol_str::SmolStr;
 #[cfg(wayland_platform)]
 use std::os::unix::io::OwnedFd;
 use tracing::warn;
-
-use self::ffi::{xkb_compose_status, xkb_context, xkb_context_flags};
-
+use xkbcommon_dl::{
+    self as xkb, xkb_compose_status, xkb_context, xkb_context_flags, xkbcommon_compose_handle,
+    xkbcommon_handle, XkbCommon, XkbCommonCompose,
+};
 #[cfg(x11_platform)]
-use crate::platform_impl::linux::x11::ffi::xcb_connection_t;
+use {x11_dl::xlib_xcb::xcb_connection_t, xkbcommon_dl::x11::xkbcommon_x11_handle};
 
 use crate::event::{ElementState, KeyEvent};
 use crate::keyboard::{Key, KeyLocation};
 use crate::platform_impl::KeyEventExtra;
 
 mod compose;
-mod ffi;
 mod keymap;
 mod state;
-
-pub(crate) use self::ffi::xkb_mod_mask_t;
 
 use compose::{ComposeStatus, XkbComposeState, XkbComposeTable};
 use keymap::XkbKeymap;
@@ -34,6 +33,11 @@ pub use state::XkbState;
 
 // TODO: Wire this up without using a static `AtomicBool`.
 static RESET_DEAD_KEYS: AtomicBool = AtomicBool::new(false);
+
+static XKBH: Lazy<&'static XkbCommon> = Lazy::new(xkbcommon_handle);
+static XKBCH: Lazy<&'static XkbCommonCompose> = Lazy::new(xkbcommon_compose_handle);
+#[cfg(feature = "x11")]
+static XKBXH: Lazy<&'static xkb::x11::XkbCommonX11> = Lazy::new(xkbcommon_x11_handle);
 
 #[inline(always)]
 pub fn reset_dead_keys() {
@@ -62,6 +66,10 @@ pub struct Context {
 
 impl Context {
     pub fn new() -> Result<Self, Error> {
+        if xkb::xkbcommon_option().is_none() {
+            return Err(Error::XKBNotFound);
+        }
+
         let context = XkbContext::new()?;
         let mut compose_table = XkbComposeTable::new(&context);
         let mut compose_state1 = compose_table.as_ref().and_then(|table| table.new_state());
@@ -87,14 +95,14 @@ impl Context {
         })
     }
 
-    #[cfg(x11_platform)]
+    #[cfg(feature = "x11")]
     pub fn from_x11_xkb(xcb: *mut xcb_connection_t) -> Result<Self, Error> {
         let result = unsafe {
-            ffi::xkb_x11_setup_xkb_extension(
+            (XKBXH.xkb_x11_setup_xkb_extension)(
                 xcb,
                 1,
                 2,
-                ffi::xkb_x11_setup_xkb_extension_flags::XKB_X11_SETUP_XKB_EXTENSION_NO_FLAGS,
+                xkbcommon_dl::x11::xkb_x11_setup_xkb_extension_flags::XKB_X11_SETUP_XKB_EXTENSION_NO_FLAGS,
                 ptr::null_mut(),
                 ptr::null_mut(),
                 ptr::null_mut(),
@@ -107,7 +115,7 @@ impl Context {
         }
 
         let mut this = Self::new()?;
-        this.core_keyboard_id = unsafe { ffi::xkb_x11_get_core_keyboard_device_id(xcb) };
+        this.core_keyboard_id = unsafe { (XKBXH.xkb_x11_get_core_keyboard_device_id)(xcb) };
         this.set_keymap_from_x11(xcb);
         Ok(this)
     }
@@ -201,7 +209,7 @@ impl KeyContext<'_> {
         self.scratch_buffer.reserve(8);
         loop {
             let bytes_written = unsafe {
-                ffi::xkb_keysym_to_utf8(
+                (XKBH.xkb_keysym_to_utf8)(
                     keysym,
                     self.scratch_buffer.as_mut_ptr().cast(),
                     self.scratch_buffer.capacity(),
@@ -343,7 +351,7 @@ pub struct XkbContext {
 
 impl XkbContext {
     pub fn new() -> Result<Self, Error> {
-        let context = unsafe { ffi::xkb_context_new(xkb_context_flags::XKB_CONTEXT_NO_FLAGS) };
+        let context = unsafe { (XKBH.xkb_context_new)(xkb_context_flags::XKB_CONTEXT_NO_FLAGS) };
 
         let context = match NonNull::new(context) {
             Some(context) => context,
@@ -357,7 +365,7 @@ impl XkbContext {
 impl Drop for XkbContext {
     fn drop(&mut self) {
         unsafe {
-            ffi::xkb_context_unref(self.context.as_ptr());
+            (XKBH.xkb_context_unref)(self.context.as_ptr());
         }
     }
 }

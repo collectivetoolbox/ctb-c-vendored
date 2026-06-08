@@ -2,8 +2,8 @@
 //!
 //! **Note:** Windows don't appear on Wayland until you draw/present to them.
 //!
-//! This vendored build of Winit does not use `dlopen` to load Wayland
-//! libraries.
+//! By default, Winit loads system libraries using `dlopen`. This can be
+//! disabled by disabling the `"wayland-dlopen"` cargo feature.
 //!
 //! ## Client-side decorations
 //!

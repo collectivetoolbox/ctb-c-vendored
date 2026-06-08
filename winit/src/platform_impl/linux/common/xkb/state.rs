@@ -4,16 +4,16 @@ use std::os::raw::c_char;
 use std::ptr::NonNull;
 
 use smol_str::SmolStr;
-
 #[cfg(x11_platform)]
-use super::ffi as xkb;
-use super::ffi::{xkb_keycode_t, xkb_keysym_t, xkb_layout_index_t, xkb_state};
-
-#[cfg(x11_platform)]
-use crate::platform_impl::linux::x11::ffi::xcb_connection_t;
+use x11_dl::xlib_xcb::xcb_connection_t;
+use xkbcommon_dl::{
+    self as xkb, xkb_keycode_t, xkb_keysym_t, xkb_layout_index_t, xkb_state, xkb_state_component,
+};
 
 use crate::platform_impl::common::xkb::keymap::XkbKeymap;
-use crate::platform_impl::common::xkb::make_string_with;
+#[cfg(x11_platform)]
+use crate::platform_impl::common::xkb::XKBXH;
+use crate::platform_impl::common::xkb::{make_string_with, XKBH};
 
 #[derive(Debug)]
 pub struct XkbState {
@@ -24,14 +24,14 @@ pub struct XkbState {
 impl XkbState {
     #[cfg(wayland_platform)]
     pub fn new_wayland(keymap: &XkbKeymap) -> Option<Self> {
-        let state = NonNull::new(unsafe { xkb::xkb_state_new(keymap.as_ptr()) })?;
+        let state = NonNull::new(unsafe { (XKBH.xkb_state_new)(keymap.as_ptr()) })?;
         Some(Self::new_inner(state))
     }
 
     #[cfg(x11_platform)]
     pub fn new_x11(xcb: *mut xcb_connection_t, keymap: &XkbKeymap) -> Option<Self> {
         let state = unsafe {
-            xkb::xkb_x11_state_new_from_device(keymap.as_ptr(), xcb, keymap._core_keyboard_id)
+            (XKBXH.xkb_x11_state_new_from_device)(keymap.as_ptr(), xcb, keymap._core_keyboard_id)
         };
         let state = NonNull::new(state)?;
         Some(Self::new_inner(state))
@@ -45,19 +45,19 @@ impl XkbState {
     }
 
     pub fn get_one_sym_raw(&mut self, keycode: xkb_keycode_t) -> xkb_keysym_t {
-        unsafe { xkb::xkb_state_key_get_one_sym(self.state.as_ptr(), keycode) }
+        unsafe { (XKBH.xkb_state_key_get_one_sym)(self.state.as_ptr(), keycode) }
     }
 
     pub fn layout(&mut self, key: xkb_keycode_t) -> xkb_layout_index_t {
-        unsafe { xkb::xkb_state_key_get_layout(self.state.as_ptr(), key) }
+        unsafe { (XKBH.xkb_state_key_get_layout)(self.state.as_ptr(), key) }
     }
 
     #[cfg(x11_platform)]
     pub fn depressed_modifiers(&mut self) -> xkb::xkb_mod_mask_t {
         unsafe {
-            xkb::xkb_state_serialize_mods(
+            (XKBH.xkb_state_serialize_mods)(
                 self.state.as_ptr(),
-                xkb::XKB_STATE_MODS_DEPRESSED,
+                xkb_state_component::XKB_STATE_MODS_DEPRESSED,
             )
         }
     }
@@ -65,9 +65,9 @@ impl XkbState {
     #[cfg(x11_platform)]
     pub fn latched_modifiers(&mut self) -> xkb::xkb_mod_mask_t {
         unsafe {
-            xkb::xkb_state_serialize_mods(
+            (XKBH.xkb_state_serialize_mods)(
                 self.state.as_ptr(),
-                xkb::XKB_STATE_MODS_LATCHED,
+                xkb_state_component::XKB_STATE_MODS_LATCHED,
             )
         }
     }
@@ -75,9 +75,9 @@ impl XkbState {
     #[cfg(x11_platform)]
     pub fn locked_modifiers(&mut self) -> xkb::xkb_mod_mask_t {
         unsafe {
-            xkb::xkb_state_serialize_mods(
+            (XKBH.xkb_state_serialize_mods)(
                 self.state.as_ptr(),
-                xkb::XKB_STATE_MODS_LOCKED,
+                xkb_state_component::XKB_STATE_MODS_LOCKED,
             )
         }
     }
@@ -88,7 +88,7 @@ impl XkbState {
         scratch_buffer: &mut Vec<u8>,
     ) -> Option<SmolStr> {
         make_string_with(scratch_buffer, |ptr, len| unsafe {
-            xkb::xkb_state_key_get_utf8(self.state.as_ptr(), keycode, ptr, len)
+            (XKBH.xkb_state_key_get_utf8)(self.state.as_ptr(), keycode, ptr, len)
         })
     }
 
@@ -106,7 +106,7 @@ impl XkbState {
         locked_group: u32,
     ) {
         let mask = unsafe {
-            xkb::xkb_state_update_mask(
+            (XKBH.xkb_state_update_mask)(
                 self.state.as_ptr(),
                 mods_depressed,
                 mods_latched,
@@ -117,7 +117,7 @@ impl XkbState {
             )
         };
 
-        if (mask & xkb::XKB_STATE_MODS_EFFECTIVE) != 0 {
+        if mask.contains(xkb_state_component::XKB_STATE_MODS_EFFECTIVE) {
             // Effective value of mods have changed, we need to update our state.
             self.reload_modifiers();
         }
@@ -136,10 +136,10 @@ impl XkbState {
     /// Check if the modifier is active within xkb.
     fn mod_name_is_active(&mut self, name: &[u8]) -> bool {
         unsafe {
-            xkb::xkb_state_mod_name_is_active(
+            (XKBH.xkb_state_mod_name_is_active)(
                 self.state.as_ptr(),
                 name.as_ptr() as *const c_char,
-                xkb::XKB_STATE_MODS_EFFECTIVE,
+                xkb_state_component::XKB_STATE_MODS_EFFECTIVE,
             ) > 0
         }
     }
@@ -148,7 +148,7 @@ impl XkbState {
 impl Drop for XkbState {
     fn drop(&mut self) {
         unsafe {
-            xkb::xkb_state_unref(self.state.as_ptr());
+            (XKBH.xkb_state_unref)(self.state.as_ptr());
         }
     }
 }

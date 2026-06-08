@@ -5,6 +5,7 @@ use std::time::Duration;
 
 use calloop::timer::{TimeoutAction, Timer};
 use calloop::{LoopHandle, RegistrationToken};
+use tracing::warn;
 
 use sctk::reexports::client::protocol::wl_keyboard::{
     Event as WlKeyboardEvent, KeyState as WlKeyState, KeymapFormat as WlKeymapFormat, WlKeyboard,
@@ -32,22 +33,23 @@ impl Dispatch<WlKeyboard, KeyboardData, WinitState> for WinitState {
         let seat_state = match state.seats.get_mut(&data.seat.id()) {
             Some(seat_state) => seat_state,
             None => {
-                tracing::warn!("Received keyboard event {event:?} without seat");
+                warn!("Received keyboard event {event:?} without seat");
                 return;
             },
         };
         let keyboard_state = match seat_state.keyboard_state.as_mut() {
             Some(keyboard_state) => keyboard_state,
             None => {
-                tracing::warn!("Received keyboard event {event:?} without keyboard");
+                warn!("Received keyboard event {event:?} without keyboard");
                 return;
             },
         };
+
         match event {
             WlKeyboardEvent::Keymap { format, fd, size } => match format {
                 WEnum::Value(format) => match format {
                     WlKeymapFormat::NoKeymap => {
-                        tracing::warn!("non-xkb compatible keymap")
+                        warn!("non-xkb compatible keymap")
                     },
                     WlKeymapFormat::XkbV1 => {
                         let context = &mut keyboard_state.xkb_context;
@@ -56,7 +58,7 @@ impl Dispatch<WlKeyboard, KeyboardData, WinitState> for WinitState {
                     _ => unreachable!(),
                 },
                 WEnum::Unknown(value) => {
-                    tracing::warn!("unknown keymap format 0x{:x}", value)
+                    warn!("unknown keymap format 0x{:x}", value)
                 },
             },
             WlKeyboardEvent::Enter { surface, .. } => {
@@ -131,6 +133,7 @@ impl Dispatch<WlKeyboard, KeyboardData, WinitState> for WinitState {
             },
             WlKeyboardEvent::Key { key, state: WEnum::Value(WlKeyState::Pressed), .. } => {
                 let key = key + 8;
+
                 key_input(
                     keyboard_state,
                     &mut state.events_sink,
@@ -182,6 +185,7 @@ impl Dispatch<WlKeyboard, KeyboardData, WinitState> for WinitState {
                             Some(repeat_keycode) => repeat_keycode,
                             None => return TimeoutAction::Drop,
                         };
+
                         key_input(
                             keyboard_state,
                             &mut state.events_sink,

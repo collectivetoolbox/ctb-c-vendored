@@ -190,12 +190,12 @@ impl<T: 'static> EventLoop<T> {
             // Remember default locale to restore it if target locale is unsupported
             // by Xlib
             let default_locale = setlocale(LC_CTYPE, ptr::null());
-            setlocale(LC_CTYPE, c"".as_ptr() as *const _);
+            setlocale(LC_CTYPE, b"\0".as_ptr() as *const _);
 
             // Check if set locale is supported by Xlib.
             // If not, calls to some Xlib functions like `XSetLocaleModifiers`
             // will fail.
-            let locale_supported = ffi::XSupportsLocale() == 1;
+            let locale_supported = (xconn.xlib.XSupportsLocale)() == 1;
             if !locale_supported {
                 let unsupported_locale = setlocale(LC_CTYPE, ptr::null());
                 warn!(
@@ -731,7 +731,6 @@ impl<T: 'static> EventLoopProxy<T> {
 }
 
 struct DeviceInfo<'a> {
-    #[allow(dead_code)]
     xconn: &'a XConnection,
     info: *const ffi::XIDeviceInfo,
     count: usize,
@@ -741,7 +740,7 @@ impl<'a> DeviceInfo<'a> {
     fn get(xconn: &'a XConnection, device: c_int) -> Option<Self> {
         unsafe {
             let mut count = 0;
-            let info = ffi::XIQueryDevice(xconn.display, device, &mut count);
+            let info = (xconn.xinput2.XIQueryDevice)(xconn.display, device, &mut count);
             xconn.check_errors().ok()?;
 
             if info.is_null() || count == 0 {
@@ -756,7 +755,7 @@ impl<'a> DeviceInfo<'a> {
 impl Drop for DeviceInfo<'_> {
     fn drop(&mut self) {
         assert!(!self.info.is_null());
-        unsafe { ffi::XIFreeDeviceInfo(self.info as *mut _) };
+        unsafe { (self.xconn.xinput2.XIFreeDeviceInfo)(self.info as *mut _) };
     }
 }
 

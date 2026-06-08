@@ -30,9 +30,9 @@ impl XConnection {
     fn create_empty_cursor(&self) -> ffi::Cursor {
         let data = 0;
         let pixmap = unsafe {
-            let screen = ffi::XDefaultScreen(self.display);
-            let window = ffi::XRootWindow(self.display, screen);
-            ffi::XCreateBitmapFromData(self.display, window, &data, 1, 1)
+            let screen = (self.xlib.XDefaultScreen)(self.display);
+            let window = (self.xlib.XRootWindow)(self.display, screen);
+            (self.xlib.XCreateBitmapFromData)(self.display, window, &data, 1, 1)
         };
 
         if pixmap == 0 {
@@ -43,7 +43,7 @@ impl XConnection {
             // We don't care about this color, since it only fills bytes
             // in the pixmap which are not 0 in the mask.
             let mut dummy_color = MaybeUninit::uninit();
-            let cursor = ffi::XCreatePixmapCursor(
+            let cursor = (self.xlib.XCreatePixmapCursor)(
                 self.display,
                 pixmap,
                 pixmap,
@@ -52,7 +52,7 @@ impl XConnection {
                 0,
                 0,
             );
-            ffi::XFreePixmap(self.display, pixmap);
+            (self.xlib.XFreePixmap)(self.display, pixmap);
 
             cursor
         }
@@ -67,8 +67,12 @@ impl XConnection {
         let mut xcursor = 0;
         for &name in iter::once(&cursor.name()).chain(cursor.alt_names().iter()) {
             let name = CString::new(name).unwrap();
-            xcursor =
-                unsafe { ffi::XcursorLibraryLoadCursor(self.display, name.as_ptr() as *const c_char) };
+            xcursor = unsafe {
+                (self.xcursor.XcursorLibraryLoadCursor)(
+                    self.display,
+                    name.as_ptr() as *const c_char,
+                )
+            };
 
             if xcursor != 0 {
                 break;
@@ -122,7 +126,7 @@ impl CustomCursor {
         cursor: PlatformCustomCursorSource,
     ) -> CustomCursor {
         unsafe {
-            let ximage = ffi::XcursorImageCreate(
+            let ximage = (event_loop.xconn.xcursor.XcursorImageCreate)(
                 cursor.0.width as i32,
                 cursor.0.height as i32,
             );
@@ -141,8 +145,9 @@ impl CustomCursor {
                     | (chunk[3] as u32) << 24;
             }
 
-            let cursor = ffi::XcursorImageLoadCursor(event_loop.xconn.display, ximage);
-            ffi::XcursorImageDestroy(ximage);
+            let cursor =
+                (event_loop.xconn.xcursor.XcursorImageLoadCursor)(event_loop.xconn.display, ximage);
+            (event_loop.xconn.xcursor.XcursorImageDestroy)(ximage);
             Self { inner: Arc::new(CustomCursorInner { xconn: event_loop.xconn.clone(), cursor }) }
         }
     }
@@ -157,7 +162,7 @@ struct CustomCursorInner {
 impl Drop for CustomCursorInner {
     fn drop(&mut self) {
         unsafe {
-            ffi::XFreeCursor(self.xconn.display, self.cursor);
+            (self.xconn.xlib.XFreeCursor)(self.xconn.display, self.cursor);
         }
     }
 }

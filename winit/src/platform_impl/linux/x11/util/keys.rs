@@ -63,7 +63,7 @@ impl XConnection {
         let mut keys = [0; 32];
 
         unsafe {
-            ffi::XQueryKeymap(self.display, keys.as_mut_ptr() as *mut c_char);
+            (self.xlib.XQueryKeymap)(self.display, keys.as_mut_ptr() as *mut c_char);
         }
 
         Keymap { keys }

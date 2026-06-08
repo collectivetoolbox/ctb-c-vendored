@@ -1,7 +1,7 @@
 use std::ffi::c_int;
 use std::sync::Arc;
 
-use super::super::ffi::{self, XEvent, XGenericEventCookie};
+use x11_dl::xlib::{self, XEvent, XGenericEventCookie};
 
 use crate::platform_impl::x11::XConnection;
 
@@ -17,7 +17,7 @@ impl GenericEventCookie {
     pub fn from_event(xconn: Arc<XConnection>, event: XEvent) -> Option<GenericEventCookie> {
         unsafe {
             let mut cookie: XGenericEventCookie = From::from(event);
-            if ffi::XGetEventData(xconn.display, &mut cookie) == ffi::True {
+            if (xconn.xlib.XGetEventData)(xconn.display, &mut cookie) == xlib::True {
                 Some(GenericEventCookie { cookie, xconn })
             } else {
                 None
@@ -49,7 +49,7 @@ impl GenericEventCookie {
 impl Drop for GenericEventCookie {
     fn drop(&mut self) {
         unsafe {
-            ffi::XFreeEventData(self.xconn.display, &mut self.cookie);
+            (self.xconn.xlib.XFreeEventData)(self.xconn.display, &mut self.cookie);
         }
     }
 }

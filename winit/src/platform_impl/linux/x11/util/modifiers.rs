@@ -57,7 +57,7 @@ impl ModifierKeymap {
 
             self.reset_from_x_keymap(&*keymap);
 
-            ffi::XFreeModifiermap(keymap);
+            (xconn.xlib.XFreeModifiermap)(keymap);
         }
     }
 

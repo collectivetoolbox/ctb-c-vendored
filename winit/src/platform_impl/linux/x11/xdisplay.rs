@@ -17,6 +17,13 @@ use x11rb::xcb_ffi::XCBConnection;
 
 /// A connection to an X server.
 pub struct XConnection {
+    pub xlib: ffi::Xlib,
+    pub xcursor: ffi::Xcursor,
+
+    // TODO(notgull): I'd like to remove this, but apparently Xlib and Xinput2 are tied together
+    // for some reason.
+    pub xinput2: ffi::XInput2,
+
     pub display: *mut ffi::Display,
 
     /// The manager for the XCB connection.
@@ -60,12 +67,18 @@ pub type XErrorHandler =
 
 impl XConnection {
     pub fn new(error_handler: XErrorHandler) -> Result<XConnection, XNotSupported> {
-        unsafe { ffi::XInitThreads() };
-        unsafe { ffi::XSetErrorHandler(error_handler) };
+        // opening the libraries
+        let xlib = ffi::Xlib::open()?;
+        let xcursor = ffi::Xcursor::open()?;
+        let xlib_xcb = ffi::Xlib_xcb::open()?;
+        let xinput2 = ffi::XInput2::open()?;
+
+        unsafe { (xlib.XInitThreads)() };
+        unsafe { (xlib.XSetErrorHandler)(error_handler) };
 
         // calling XOpenDisplay
         let display = unsafe {
-            let display = ffi::XOpenDisplay(ptr::null());
+            let display = (xlib.XOpenDisplay)(ptr::null());
             if display.is_null() {
                 return Err(XNotSupported::XOpenDisplayFailed);
             }
@@ -75,7 +88,8 @@ impl XConnection {
         // Open the x11rb XCB connection.
         let xcb = {
             // Get a pointer to the underlying XCB connection
-            let xcb_connection = unsafe { ffi::XGetXCBConnection(display as *mut ffi::Display) };
+            let xcb_connection =
+                unsafe { (xlib_xcb.XGetXCBConnection)(display as *mut ffi::Display) };
             assert!(!xcb_connection.is_null());
 
             // Wrap the XCB connection in an x11rb XCB connection
@@ -86,7 +100,7 @@ impl XConnection {
         };
 
         // Get the default screen.
-        let default_screen = unsafe { ffi::XDefaultScreen(display) } as usize;
+        let default_screen = unsafe { (xlib.XDefaultScreen)(display) } as usize;
 
         // Load the database.
         let database = resource_manager::new_from_default(&xcb)
@@ -111,6 +125,9 @@ impl XConnection {
             .map_err(|e| XNotSupported::XcbConversionError(Arc::new(e)))?;
 
         Ok(XConnection {
+            xlib,
+            xcursor,
+            xinput2,
             display,
             xcb: Some(xcb),
             atoms: Box::new(atoms),
@@ -250,7 +267,7 @@ impl Drop for XConnection {
     #[inline]
     fn drop(&mut self) {
         self.xcb = None;
-        unsafe { ffi::XCloseDisplay(self.display) };
+        unsafe { (self.xlib.XCloseDisplay)(self.display) };
     }
 }
 
@@ -278,6 +295,9 @@ impl fmt::Display for XError {
 /// Error returned if this system doesn't have XLib or can't create an X connection.
 #[derive(Clone, Debug)]
 pub enum XNotSupported {
+    /// Failed to load one or several shared libraries.
+    LibraryOpenError(ffi::OpenError),
+
     /// Connecting to the X server with `XOpenDisplay` failed.
     XOpenDisplayFailed, // TODO: add better message.
 
@@ -285,9 +305,17 @@ pub enum XNotSupported {
     XcbConversionError(Arc<dyn Error + Send + Sync + 'static>),
 }
 
+impl From<ffi::OpenError> for XNotSupported {
+    #[inline]
+    fn from(err: ffi::OpenError) -> XNotSupported {
+        XNotSupported::LibraryOpenError(err)
+    }
+}
+
 impl XNotSupported {
     fn description(&self) -> &'static str {
         match self {
+            XNotSupported::LibraryOpenError(_) => "Failed to load one of xlib's shared libraries",
             XNotSupported::XOpenDisplayFailed => "Failed to open connection to X server",
             XNotSupported::XcbConversionError(_) => "Failed to convert Xlib connection to XCB",
         }
@@ -298,6 +326,7 @@ impl Error for XNotSupported {
     #[inline]
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match *self {
+            XNotSupported::LibraryOpenError(ref err) => Some(err),
             XNotSupported::XcbConversionError(ref err) => Some(&**err),
             _ => None,
         }

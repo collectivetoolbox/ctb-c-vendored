@@ -3,7 +3,6 @@ use std::ops::{Deref, DerefMut};
 use super::*;
 
 pub(crate) struct XSmartPointer<'a, T> {
-    #[allow(dead_code)]
     xconn: &'a XConnection,
     pub ptr: *mut T,
 }
@@ -37,7 +36,7 @@ impl<T> DerefMut for XSmartPointer<'_, T> {
 impl<T> Drop for XSmartPointer<'_, T> {
     fn drop(&mut self) {
         unsafe {
-            ffi::XFree(self.ptr as *mut _);
+            (self.xconn.xlib.XFree)(self.ptr as *mut _);
         }
     }
 }

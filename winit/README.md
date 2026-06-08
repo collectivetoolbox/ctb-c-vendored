@@ -1,5 +1,4 @@
 # winit - Cross-platform window creation and management in Rust
-# Vendored for ctoolbox to allow static linking
 
 [![Crates.io](https://img.shields.io/crates/v/winit.svg)](https://crates.io/crates/winit)
 [![Docs.rs](https://docs.rs/winit/badge.svg)](https://docs.rs/winit)

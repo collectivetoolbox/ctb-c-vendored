@@ -1,4 +1,5 @@
-pub use x11::xcursor::*;
-pub use x11::xinput2::*;
-pub use x11::xlib::*;
-pub use x11::xlib_xcb::*;
+pub use x11_dl::error::OpenError;
+pub use x11_dl::xcursor::*;
+pub use x11_dl::xinput2::*;
+pub use x11_dl::xlib::*;
+pub use x11_dl::xlib_xcb::*;

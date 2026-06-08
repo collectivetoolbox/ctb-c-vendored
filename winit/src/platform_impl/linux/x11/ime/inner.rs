@@ -9,12 +9,12 @@ use super::input_method::{InputMethod, PotentialInputMethods};
 use crate::platform_impl::platform::x11::ime::ImeEventSender;
 
 pub(crate) unsafe fn close_im(xconn: &Arc<XConnection>, im: ffi::XIM) -> Result<(), XError> {
-    unsafe { ffi::XCloseIM(im) };
+    unsafe { (xconn.xlib.XCloseIM)(im) };
     xconn.check_errors()
 }
 
 pub(crate) unsafe fn destroy_ic(xconn: &Arc<XConnection>, ic: ffi::XIC) -> Result<(), XError> {
-    unsafe { ffi::XDestroyIC(ic) };
+    unsafe { (xconn.xlib.XDestroyIC)(ic) };
     xconn.check_errors()
 }
 
