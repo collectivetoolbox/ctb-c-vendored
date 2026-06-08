@@ -11,8 +11,8 @@ use tracing::warn;
 #[cfg(wayland_platform)]
 use xkbcommon_rs as rxkb;
 use xkbcommon_dl::{
-    self as xkb, xkb_compose_status, xkb_context, xkb_context_flags, xkbcommon_compose_handle,
-    xkbcommon_handle, XkbCommon, XkbCommonCompose,
+    self as xkb, xkb_context, xkb_context_flags, xkbcommon_compose_handle, xkbcommon_handle,
+    XkbCommon, XkbCommonCompose,
 };
 #[cfg(x11_platform)]
 use {x11_dl::xlib_xcb::xcb_connection_t, xkbcommon_dl::x11::xkbcommon_x11_handle};
@@ -25,7 +25,7 @@ mod compose;
 mod keymap;
 mod state;
 
-use compose::{ComposeStatus, XkbComposeState, XkbComposeTable};
+use compose::{ComposeStatus, ComposeStatusValue, XkbComposeState, XkbComposeTable};
 use keymap::XkbKeymap;
 
 #[cfg(x11_platform)]
@@ -276,7 +276,7 @@ impl<'a, 'b> KeyEventResults<'a, 'b> {
             Err(undefined) => undefined,
         };
 
-        if let ComposeStatus::Accepted(xkb_compose_status::XKB_COMPOSE_COMPOSING) = self.compose {
+        if let ComposeStatus::Accepted(ComposeStatusValue::Composing) = self.compose {
             let compose_state = self.context.compose_state2.as_mut().unwrap();
             // When pressing a dead key twice, the non-combining variant of that character will
             // be produced. Since this function only concerns itself with a single keypress, we
@@ -284,7 +284,10 @@ impl<'a, 'b> KeyEventResults<'a, 'b> {
             // twice.
 
             compose_state.feed(self.keysym);
-            if matches!(compose_state.feed(self.keysym), ComposeStatus::Accepted(_)) {
+            if matches!(
+                compose_state.feed(self.keysym),
+                ComposeStatus::Accepted(ComposeStatusValue::Composed | ComposeStatusValue::Composing)
+            ) {
                 // Extracting only a single `char` here *should* be fine, assuming that no
                 // dead key's non-combining variant ever occupies more than one `char`.
                 let text = compose_state.get_string(self.context.scratch_buffer);
@@ -346,13 +349,12 @@ impl<'a, 'b> KeyEventResults<'a, 'b> {
     fn composed_text(&mut self) -> Result<Option<SmolStr>, ()> {
         match self.compose {
             ComposeStatus::Accepted(status) => match status {
-                xkb_compose_status::XKB_COMPOSE_COMPOSED => {
+                ComposeStatusValue::Composed => {
                     let state = self.context.compose_state1.as_mut().unwrap();
                     Ok(state.get_string(self.context.scratch_buffer))
                 },
-                xkb_compose_status::XKB_COMPOSE_COMPOSING
-                | xkb_compose_status::XKB_COMPOSE_CANCELLED => Ok(None),
-                xkb_compose_status::XKB_COMPOSE_NOTHING => Err(()),
+                ComposeStatusValue::Composing | ComposeStatusValue::Cancelled => Ok(None),
+                ComposeStatusValue::Nothing => Err(()),
             },
             _ => Err(()),
         }

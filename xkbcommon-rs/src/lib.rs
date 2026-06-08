@@ -161,6 +161,7 @@ mod keysyms_generated_phf;
 mod keysyms;
 
 mod atom;
+mod compose;
 mod context;
 mod errors;
 mod keymap;
@@ -371,6 +372,11 @@ pub mod xkb_state {
     pub use super::keymap::XKB_MAX_GROUPS;
 }
 pub use xkb_state::State;
+
+/// Compose and dead-key support for the Rust backend.
+pub mod xkb_compose {
+    pub use super::compose::{ComposeFeedResult, ComposeState, ComposeStatus, ComposeTable};
+}
 
 /// A [Keycode](crate::keycode::Keycode) is a number used to represent a physical key on a keyboard.
 ///
