@@ -7,7 +7,7 @@ use softbuffer::SoftBufferError;
 use std::boxed::Box;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use std::mem;
+use std::{format, mem};
 use std::num::NonZeroU32;
 use std::ops::Deref;
 use std::rc::Rc;
@@ -55,7 +55,7 @@ impl Display for SoftwareBackendAppError {
                 f.write_str("error calling ")?;
                 f.write_str(function)
             }
-            SoftwareBackendAppError::EventLoop(e) => f.write_str("winit event loop has errored"),
+            SoftwareBackendAppError::EventLoop(e) => f.write_str(&format!("winit event loop has errored: {}", e)),
             SoftwareBackendAppError::SuppressedEventLoop { .. } => {
                 f.write_str("software renderer and winit event loop have both errored")
             }

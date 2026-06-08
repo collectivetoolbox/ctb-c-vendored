@@ -1,6 +1,6 @@
 diff -uraN original-egui/Cargo.toml ./egui/Cargo.toml
---- original-egui/Cargo.toml	2026-06-07 12:42:31.980598795 -0400
-+++ ./egui/Cargo.toml	2026-06-07 12:42:31.984598907 -0400
+--- original-egui/Cargo.toml	2026-06-07 22:58:51.714003750 -0400
++++ ./egui/Cargo.toml	2026-06-07 22:58:51.718003814 -0400
 @@ -1,17 +1,18 @@
  [package]
  name = "egui"
@@ -66,9 +66,23 @@ diff -uraN original-egui/Cargo.toml ./egui/Cargo.toml
 +ron =  { optional = true, version = "0.11.0" }
 +serde = { optional = true, version = "1.0.228", features = ["derive", "rc"] }
 \ No newline at end of file
+diff -uraN original-egui/src/lib.rs ./egui/src/lib.rs
+--- original-egui/src/lib.rs	2026-06-07 22:58:51.714003750 -0400
++++ ./egui/src/lib.rs	2026-06-07 22:58:51.718003814 -0400
+@@ -488,8 +488,8 @@
+         Key, UserData,
+         input::*,
+         output::{
+-            self, CursorIcon, FullOutput, OpenUrl, OutputCommand, PlatformOutput,
+-            UserAttentionType, WidgetInfo,
++            self, CursorIcon, FullOutput, OpenUrl, OutputCommand, OutputEvent,
++            PlatformOutput, UserAttentionType, WidgetInfo,
+         },
+     },
+     drag_and_drop::DragAndDrop,
 diff -uraN original-egui/src/memory/mod.rs ./egui/src/memory/mod.rs
---- original-egui/src/memory/mod.rs	2026-06-07 12:42:31.976598683 -0400
-+++ ./egui/src/memory/mod.rs	2026-06-07 12:42:31.980598795 -0400
+--- original-egui/src/memory/mod.rs	2026-06-07 22:58:51.714003750 -0400
++++ ./egui/src/memory/mod.rs	2026-06-07 22:58:51.718003814 -0400
 @@ -481,7 +481,16 @@
      last_interested: Option<Id>,
  
@@ -287,8 +301,8 @@ diff -uraN original-egui/src/memory/mod.rs ./egui/src/memory/mod.rs
  
      /// Returns true if
 diff -uraN original-egui/src/response.rs ./egui/src/response.rs
---- original-egui/src/response.rs	2026-06-07 12:42:31.980598795 -0400
-+++ ./egui/src/response.rs	2026-06-07 12:42:31.984598907 -0400
+--- original-egui/src/response.rs	2026-06-07 22:58:51.714003750 -0400
++++ ./egui/src/response.rs	2026-06-07 22:58:51.718003814 -0400
 @@ -6,6 +6,7 @@
      emath::{Align, Pos2, Rect, Vec2},
      pass_state,
@@ -314,8 +328,8 @@ diff -uraN original-egui/src/response.rs ./egui/src/response.rs
      ///
      /// This is only true if the widget sense drags.
 diff -uraN original-egui_software_backend/Cargo.toml ./egui_software_backend/Cargo.toml
---- original-egui_software_backend/Cargo.toml	2026-06-07 12:42:32.176604260 -0400
-+++ ./egui_software_backend/Cargo.toml	2026-06-07 12:42:32.176604260 -0400
+--- original-egui_software_backend/Cargo.toml	2026-06-07 22:58:51.938007348 -0400
++++ ./egui_software_backend/Cargo.toml	2026-06-07 22:58:51.942007412 -0400
 @@ -8,6 +8,12 @@
  readme = "README.md"
  license = "MIT OR Apache-2.0"
@@ -335,8 +349,8 @@ diff -uraN original-egui_software_backend/Cargo.toml ./egui_software_backend/Car
  log = { version = "0.4.28", optional = true }
 -winit = {version = "0.30", optional = true }
 -softbuffer = { version = "0.4", optional = true }
-+winit = {version = "0.30", optional = true, features = ["rwh_06", "x11", "wayland"],  default-features = false }
-+softbuffer = { version = "0.4", optional = true, features = ["wayland", "x11", "x11-dlopen", "kms"], default-features = false }
++winit = {version = "0.30", optional = true, features = ["rwh_06", "wayland"],  default-features = false }
++softbuffer = { version = "0.4", optional = true, features = ["wayland", "kms"], default-features = false }
  egui-winit = { version = "0.33", default-features = false, optional = true}
  bytemuck = { version = "1.23", optional = true }
  
@@ -356,10 +370,10 @@ diff -uraN original-egui_software_backend/Cargo.toml ./egui_software_backend/Car
 -epaint_default_fonts = "0.33"
  
 -softbuffer = { version = "0.4" }
-+softbuffer = { version = "0.4", features = ["wayland", "x11", "x11-dlopen", "kms"], default-features = false }
++softbuffer = { version = "0.4", features = ["wayland", "kms"], default-features = false }
  image = { version = "0.25", features = ["jpeg", "png"] }
 -winit = { version = "0.30" }
-+winit = { version = "0.30", features = ["rwh_06", "x11", "wayland"], default-features = false }
++winit = { version = "0.30", features = ["rwh_06", "wayland"], default-features = false }
  bytemuck = { version = "1.23" }
  dify = "0.7"
  argh = "0.1"
@@ -417,8 +431,8 @@ diff -uraN original-egui_software_backend/Cargo.toml ./egui_software_backend/Car
  
  allow_attributes = "warn"
 diff -uraN original-egui_software_backend/src/lib.rs ./egui_software_backend/src/lib.rs
---- original-egui_software_backend/src/lib.rs	2026-06-07 12:42:32.176604260 -0400
-+++ ./egui_software_backend/src/lib.rs	2026-06-07 12:42:32.176604260 -0400
+--- original-egui_software_backend/src/lib.rs	2026-06-07 22:58:51.938007348 -0400
++++ ./egui_software_backend/src/lib.rs	2026-06-07 22:58:51.938007348 -0400
 @@ -231,6 +231,17 @@
          }
      }
@@ -438,8 +452,8 @@ diff -uraN original-egui_software_backend/src/lib.rs ./egui_software_backend/src
      ///
      /// # Arguments
 diff -uraN original-egui_software_backend/src/render.rs ./egui_software_backend/src/render.rs
---- original-egui_software_backend/src/render.rs	2026-06-07 12:42:32.176604260 -0400
-+++ ./egui_software_backend/src/render.rs	2026-06-07 12:42:32.176604260 -0400
+--- original-egui_software_backend/src/render.rs	2026-06-07 22:58:51.938007348 -0400
++++ ./egui_software_backend/src/render.rs	2026-06-07 22:58:51.938007348 -0400
 @@ -49,7 +49,10 @@
          )
      }
@@ -453,8 +467,17 @@ diff -uraN original-egui_software_backend/src/render.rs ./egui_software_backend/
          textures,
          buffer,
 diff -uraN original-egui_software_backend/src/winit.rs ./egui_software_backend/src/winit.rs
---- original-egui_software_backend/src/winit.rs	2026-06-07 12:42:32.176604260 -0400
-+++ ./egui_software_backend/src/winit.rs	2026-06-07 12:42:32.176604260 -0400
+--- original-egui_software_backend/src/winit.rs	2026-06-07 22:58:51.938007348 -0400
++++ ./egui_software_backend/src/winit.rs	2026-06-07 22:58:51.938007348 -0400
+@@ -7,7 +7,7 @@
+ use std::boxed::Box;
+ use std::error::Error;
+ use std::fmt::{Display, Formatter};
+-use std::mem;
++use std::{format, mem};
+ use std::num::NonZeroU32;
+ use std::ops::Deref;
+ use std::rc::Rc;
 @@ -17,9 +17,14 @@
  use std::vec::Vec;
  use winit::application::ApplicationHandler;
@@ -476,7 +499,7 @@ diff -uraN original-egui_software_backend/src/winit.rs ./egui_software_backend/s
                  f.write_str(function)
              }
 -            SoftwareBackendAppError::EventLoop(_) => f.write_str("winit event loop has errored"),
-+            SoftwareBackendAppError::EventLoop(e) => f.write_str("winit event loop has errored"),
++            SoftwareBackendAppError::EventLoop(e) => f.write_str(&format!("winit event loop has errored: {}", e)),
              SoftwareBackendAppError::SuppressedEventLoop { .. } => {
                  f.write_str("software renderer and winit event loop have both errored")
              }
@@ -703,7 +726,21 @@ diff -uraN original-egui_software_backend/src/winit.rs ./egui_software_backend/s
                  buffer.fill(0); // CLEAR
  
                  let buffer_ref = &mut BufferMutRef::new(
-@@ -1128,10 +1217,11 @@
+@@ -783,6 +872,13 @@
+ }
+ 
+ impl SoftwareBackend {
++    pub const fn new() -> Self {
++        Self {
++            capture_frame_time: false,
++            last_frame_time: None,
++        }
++    }
++
+     /// Returns true if the frame time for the next frame is captured.
+     pub fn is_capture_frame_time(&self) -> bool {
+         self.capture_frame_time
+@@ -1128,10 +1224,11 @@
      let egui_ctx = Context::default();
  
      let event_loop_proxy = event_loop.create_proxy();
@@ -716,7 +753,7 @@ diff -uraN original-egui_software_backend/src/winit.rs ./egui_software_backend/s
              .send_event(UserEvent::RequestRepaint {
                  viewport_id: info.viewport_id,
                  when,
-@@ -1146,6 +1236,7 @@
+@@ -1146,6 +1243,7 @@
          softbuffer_context,
          egui_app_factory,
          egui_ctx,
@@ -725,8 +762,8 @@ diff -uraN original-egui_software_backend/src/winit.rs ./egui_software_backend/s
  
      if let Err(event_loop_error) = event_loop.run_app(&mut app) {
 diff -uraN original-egui-winit/Cargo.toml ./egui-winit/Cargo.toml
---- original-egui-winit/Cargo.toml	2026-06-07 12:42:32.380609947 -0400
-+++ ./egui-winit/Cargo.toml	2026-06-07 12:42:32.380609947 -0400
+--- original-egui-winit/Cargo.toml	2026-06-07 22:58:52.170011074 -0400
++++ ./egui-winit/Cargo.toml	2026-06-07 22:58:52.170011074 -0400
 @@ -1,17 +1,18 @@
  [package]
  name = "egui-winit"
@@ -814,8 +851,8 @@ diff -uraN original-egui-winit/Cargo.toml ./egui-winit/Cargo.toml
 +arboard = { version = "3.6.1", optional = true, features = ["image-data"] }
 \ No newline at end of file
 diff -uraN original-egui-winit/src/clipboard.rs ./egui-winit/src/clipboard.rs
---- original-egui-winit/src/clipboard.rs	2026-06-07 12:42:32.380609947 -0400
-+++ ./egui-winit/src/clipboard.rs	2026-06-07 12:42:32.380609947 -0400
+--- original-egui-winit/src/clipboard.rs	2026-06-07 22:58:52.170011074 -0400
++++ ./egui-winit/src/clipboard.rs	2026-06-07 22:58:52.170011074 -0400
 @@ -179,10 +179,15 @@
  
      profiling::function_scope!();
@@ -836,8 +873,8 @@ diff -uraN original-egui-winit/src/clipboard.rs ./egui-winit/src/clipboard.rs
          #[cfg(feature = "wayland")]
          log::debug!("Cannot init smithay clipboard without a Wayland display handle");
 diff -uraN original-kas-text/Cargo.toml ./kas-text/Cargo.toml
---- original-kas-text/Cargo.toml	2026-06-07 12:42:32.980626672 -0400
-+++ ./kas-text/Cargo.toml	2026-06-07 12:42:32.980626672 -0400
+--- original-kas-text/Cargo.toml	2026-06-07 22:58:52.818021484 -0400
++++ ./kas-text/Cargo.toml	2026-06-07 22:58:52.822021548 -0400
 @@ -1,123 +1,70 @@
 -# THIS FILE IS AUTOMATICALLY GENERATED BY CARGO
 -#
@@ -1004,8 +1041,8 @@ diff -uraN original-kas-text/Cargo.toml ./kas-text/Cargo.toml
 +manual_range_contains = "allow"
 +manual_is_multiple_of = "allow"
 diff -uraN original-kas-text/CHANGELOG.md ./kas-text/CHANGELOG.md
---- original-kas-text/CHANGELOG.md	2026-06-07 12:42:32.980626672 -0400
-+++ ./kas-text/CHANGELOG.md	2026-06-07 12:42:32.980626672 -0400
+--- original-kas-text/CHANGELOG.md	2026-06-07 22:58:52.818021484 -0400
++++ ./kas-text/CHANGELOG.md	2026-06-07 22:58:52.822021548 -0400
 @@ -1,70 +1,289 @@
 -[package]
 -name = "kas-text"
@@ -1367,8 +1404,8 @@ diff -uraN original-kas-text/CHANGELOG.md ./kas-text/CHANGELOG.md
 +-   cursor position lookup (index→coord and coord→index)
 +-   generating highlighting rects for a range
 diff -uraN original-smithay-clipboard/Cargo.toml ./smithay-clipboard/Cargo.toml
---- original-smithay-clipboard/Cargo.toml	2026-06-07 12:42:33.380637804 -0400
-+++ ./smithay-clipboard/Cargo.toml	2026-06-07 12:42:33.384637916 -0400
+--- original-smithay-clipboard/Cargo.toml	2026-06-07 22:58:53.414031058 -0400
++++ ./smithay-clipboard/Cargo.toml	2026-06-07 22:58:53.414031058 -0400
 @@ -9,11 +9,12 @@
  license = "MIT"
  keywords = ["clipboard", "wayland"]
@@ -1384,8 +1421,8 @@ diff -uraN original-smithay-clipboard/Cargo.toml ./smithay-clipboard/Cargo.toml
  [dev-dependencies]
  sctk = { package = "smithay-client-toolkit", version = "0.20.0", default-features = false, features = ["calloop", "xkbcommon"] }
 diff -uraN original-smithay-clipboard/src/lib.rs ./smithay-clipboard/src/lib.rs
---- original-smithay-clipboard/src/lib.rs	2026-06-07 12:42:33.380637804 -0400
-+++ ./smithay-clipboard/src/lib.rs	2026-06-07 12:42:33.384637916 -0400
+--- original-smithay-clipboard/src/lib.rs	2026-06-07 22:58:53.414031058 -0400
++++ ./smithay-clipboard/src/lib.rs	2026-06-07 22:58:53.414031058 -0400
 @@ -10,7 +10,6 @@
  
  use sctk::reexports::calloop::channel::{self, Sender};
@@ -1429,8 +1466,8 @@ diff -uraN original-smithay-clipboard/src/lib.rs ./smithay-clipboard/src/lib.rs
          let (request_sender, rx_chan) = channel::channel();
          // Create channel to get data from the clipboard thread.
 diff -uraN original-softbuffer/Cargo.toml ./softbuffer/Cargo.toml
---- original-softbuffer/Cargo.toml	2026-06-07 12:42:33.804649603 -0400
-+++ ./softbuffer/Cargo.toml	2026-06-07 12:42:33.804649603 -0400
+--- original-softbuffer/Cargo.toml	2026-06-07 22:58:53.870038383 -0400
++++ ./softbuffer/Cargo.toml	2026-06-07 22:58:53.874038448 -0400
 @@ -11,23 +11,23 @@
  categories = ["game-development", "graphics", "gui", "multimedia", "rendering"]
  exclude = ["examples"]
@@ -1443,7 +1480,7 @@ diff -uraN original-softbuffer/Cargo.toml ./softbuffer/Cargo.toml
  
  [features]
 -default = ["kms", "x11", "x11-dlopen", "wayland", "wayland-dlopen"]
-+default = ["kms", "x11", "x11-dlopen", "wayland"]
++default = ["kms", "x11", "wayland"]
  kms = ["bytemuck", "drm", "rustix"]
  wayland = [
      "wayland-backend",
@@ -1490,8 +1527,8 @@ diff -uraN original-softbuffer/Cargo.toml ./softbuffer/Cargo.toml
  # Run with `cargo apk r --example winit_android`
  name = "winit_android"
 diff -uraN original-softbuffer/src/backends/wayland/mod.rs ./softbuffer/src/backends/wayland/mod.rs
---- original-softbuffer/src/backends/wayland/mod.rs	2026-06-07 12:42:33.804649603 -0400
-+++ ./softbuffer/src/backends/wayland/mod.rs	2026-06-07 12:42:33.804649603 -0400
+--- original-softbuffer/src/backends/wayland/mod.rs	2026-06-07 22:58:53.870038383 -0400
++++ ./softbuffer/src/backends/wayland/mod.rs	2026-06-07 22:58:53.874038448 -0400
 @@ -9,7 +9,6 @@
      sync::{Arc, Mutex},
  };
@@ -1589,8 +1626,8 @@ diff -uraN original-softbuffer/src/backends/wayland/mod.rs ./softbuffer/src/back
  
              // Resize, if buffer isn't large enough
 diff -uraN original-tiny-xlib/Cargo.toml ./tiny-xlib/Cargo.toml
---- original-tiny-xlib/Cargo.toml	2026-06-07 12:42:34.272662614 -0400
-+++ ./tiny-xlib/Cargo.toml	2026-06-07 12:42:34.272662614 -0400
+--- original-tiny-xlib/Cargo.toml	2026-06-07 22:58:54.422047252 -0400
++++ ./tiny-xlib/Cargo.toml	2026-06-07 22:58:54.422047252 -0400
 @@ -31,6 +31,7 @@
  [features]
  default = ["tracing"]
@@ -1613,8 +1650,8 @@ diff -uraN original-tiny-xlib/Cargo.toml ./tiny-xlib/Cargo.toml
  [dependencies.as-raw-xcb-connection]
  version = "1.0.0"
 diff -uraN original-tiny-xlib/src/lib.rs ./tiny-xlib/src/lib.rs
---- original-tiny-xlib/src/lib.rs	2026-06-07 12:42:34.272662614 -0400
-+++ ./tiny-xlib/src/lib.rs	2026-06-07 12:42:34.272662614 -0400
+--- original-tiny-xlib/src/lib.rs	2026-06-07 22:58:54.422047252 -0400
++++ ./tiny-xlib/src/lib.rs	2026-06-07 22:58:54.422047252 -0400
 @@ -130,7 +130,7 @@
  use std::mem::{self, ManuallyDrop};
  use std::os::raw::{c_int, c_void};
@@ -1772,8 +1809,8 @@ diff -uraN original-tiny-xlib/src/lib.rs ./tiny-xlib/src/lib.rs
      // Insert the handler into the list.
      let mut handlers = lock!(ERROR_HANDLERS);
 diff -uraN original-winit/Cargo.toml ./winit/Cargo.toml
---- original-winit/Cargo.toml	2026-06-07 12:42:34.776676614 -0400
-+++ ./winit/Cargo.toml	2026-06-07 12:42:34.784676836 -0400
+--- original-winit/Cargo.toml	2026-06-07 22:58:54.974056119 -0400
++++ ./winit/Cargo.toml	2026-06-07 22:58:54.978056184 -0400
 @@ -10,10 +10,14 @@
  readme = "README.md"
  documentation = "https://docs.rs/winit"
@@ -1902,8 +1939,8 @@ diff -uraN original-winit/Cargo.toml ./winit/Cargo.toml
 -serde = { version = "1", features = ["serde_derive"] }
 -mint = "0.5.6"
 diff -uraN original-winit/README.md ./winit/README.md
---- original-winit/README.md	2026-06-07 12:42:34.776676614 -0400
-+++ ./winit/README.md	2026-06-07 12:42:34.784676836 -0400
+--- original-winit/README.md	2026-06-07 22:58:54.974056119 -0400
++++ ./winit/README.md	2026-06-07 22:58:54.978056184 -0400
 @@ -1,4 +1,5 @@
  # winit - Cross-platform window creation and management in Rust
 +# Vendored for ctoolbox to allow static linking
@@ -1911,8 +1948,8 @@ diff -uraN original-winit/README.md ./winit/README.md
  [![Crates.io](https://img.shields.io/crates/v/winit.svg)](https://crates.io/crates/winit)
  [![Docs.rs](https://docs.rs/winit/badge.svg)](https://docs.rs/winit)
 diff -uraN original-winit/src/keyboard.rs ./winit/src/keyboard.rs
---- original-winit/src/keyboard.rs	2026-06-07 12:42:34.776676614 -0400
-+++ ./winit/src/keyboard.rs	2026-06-07 12:42:34.784676836 -0400
+--- original-winit/src/keyboard.rs	2026-06-07 22:58:54.974056119 -0400
++++ ./winit/src/keyboard.rs	2026-06-07 22:58:54.978056184 -0400
 @@ -251,7 +251,7 @@
      #[inline]
      fn eq(&self, rhs: &KeyCode) -> bool {
@@ -1959,8 +1996,8 @@ diff -uraN original-winit/src/keyboard.rs ./winit/src/keyboard.rs
          }
      }
 diff -uraN original-winit/src/platform/startup_notify.rs ./winit/src/platform/startup_notify.rs
---- original-winit/src/platform/startup_notify.rs	2026-06-07 12:42:34.772676503 -0400
-+++ ./winit/src/platform/startup_notify.rs	2026-06-07 12:42:34.776676614 -0400
+--- original-winit/src/platform/startup_notify.rs	2026-06-07 22:58:54.970056055 -0400
++++ ./winit/src/platform/startup_notify.rs	2026-06-07 22:58:54.974056119 -0400
 @@ -86,14 +86,18 @@
  /// This is wise to do before running child processes,
  /// which may not to support the activation token.
@@ -1985,8 +2022,8 @@ diff -uraN original-winit/src/platform/startup_notify.rs ./winit/src/platform/st
 +    }
  }
 diff -uraN original-winit/src/platform/wayland.rs ./winit/src/platform/wayland.rs
---- original-winit/src/platform/wayland.rs	2026-06-07 12:42:34.772676503 -0400
-+++ ./winit/src/platform/wayland.rs	2026-06-07 12:42:34.780676726 -0400
+--- original-winit/src/platform/wayland.rs	2026-06-07 22:58:54.970056055 -0400
++++ ./winit/src/platform/wayland.rs	2026-06-07 22:58:54.974056119 -0400
 @@ -2,8 +2,8 @@
  //!
  //! **Note:** Windows don't appear on Wayland until you draw/present to them.
@@ -1999,8 +2036,8 @@ diff -uraN original-winit/src/platform/wayland.rs ./winit/src/platform/wayland.r
  //! ## Client-side decorations
  //!
 diff -uraN original-winit/src/platform_impl/linux/common/xkb/compose.rs ./winit/src/platform_impl/linux/common/xkb/compose.rs
---- original-winit/src/platform_impl/linux/common/xkb/compose.rs	2026-06-07 12:42:34.772676503 -0400
-+++ ./winit/src/platform_impl/linux/common/xkb/compose.rs	2026-06-07 12:42:34.780676726 -0400
+--- original-winit/src/platform_impl/linux/common/xkb/compose.rs	2026-06-07 22:58:54.970056055 -0400
++++ ./winit/src/platform_impl/linux/common/xkb/compose.rs	2026-06-07 22:58:54.974056119 -0400
 @@ -6,9 +6,9 @@
  use std::os::unix::ffi::OsStringExt;
  use std::ptr::NonNull;
@@ -2082,7 +2119,7 @@ diff -uraN original-winit/src/platform_impl/linux/common/xkb/compose.rs ./winit/
  }
 diff -uraN original-winit/src/platform_impl/linux/common/xkb/ffi.rs ./winit/src/platform_impl/linux/common/xkb/ffi.rs
 --- original-winit/src/platform_impl/linux/common/xkb/ffi.rs	1969-12-31 19:00:00.000000000 -0500
-+++ ./winit/src/platform_impl/linux/common/xkb/ffi.rs	2026-06-07 12:42:34.780676726 -0400
++++ ./winit/src/platform_impl/linux/common/xkb/ffi.rs	2026-06-07 22:58:54.974056119 -0400
 @@ -0,0 +1,213 @@
 +#![allow(dead_code, non_camel_case_types)]
 +
@@ -2298,8 +2335,8 @@ diff -uraN original-winit/src/platform_impl/linux/common/xkb/ffi.rs ./winit/src/
 +    ) -> *mut xkb_state;
 +}
 diff -uraN original-winit/src/platform_impl/linux/common/xkb/keymap.rs ./winit/src/platform_impl/linux/common/xkb/keymap.rs
---- original-winit/src/platform_impl/linux/common/xkb/keymap.rs	2026-06-07 12:42:34.772676503 -0400
-+++ ./winit/src/platform_impl/linux/common/xkb/keymap.rs	2026-06-07 12:42:34.780676726 -0400
+--- original-winit/src/platform_impl/linux/common/xkb/keymap.rs	2026-06-07 22:58:54.970056055 -0400
++++ ./winit/src/platform_impl/linux/common/xkb/keymap.rs	2026-06-07 22:58:54.974056119 -0400
 @@ -5,20 +5,20 @@
  use std::ptr::{self, NonNull};
  
@@ -2415,8 +2452,8 @@ diff -uraN original-winit/src/platform_impl/linux/common/xkb/keymap.rs ./winit/s
              None
          } else {
 diff -uraN original-winit/src/platform_impl/linux/common/xkb/mod.rs ./winit/src/platform_impl/linux/common/xkb/mod.rs
---- original-winit/src/platform_impl/linux/common/xkb/mod.rs	2026-06-07 12:42:34.772676503 -0400
-+++ ./winit/src/platform_impl/linux/common/xkb/mod.rs	2026-06-07 12:42:34.780676726 -0400
+--- original-winit/src/platform_impl/linux/common/xkb/mod.rs	2026-06-07 22:58:54.970056055 -0400
++++ ./winit/src/platform_impl/linux/common/xkb/mod.rs	2026-06-07 22:58:54.974056119 -0400
 @@ -3,26 +3,27 @@
  use std::ptr::{self, NonNull};
  use std::sync::atomic::{AtomicBool, Ordering};
@@ -2529,8 +2566,8 @@ diff -uraN original-winit/src/platform_impl/linux/common/xkb/mod.rs ./winit/src/
      }
  }
 diff -uraN original-winit/src/platform_impl/linux/common/xkb/state.rs ./winit/src/platform_impl/linux/common/xkb/state.rs
---- original-winit/src/platform_impl/linux/common/xkb/state.rs	2026-06-07 12:42:34.772676503 -0400
-+++ ./winit/src/platform_impl/linux/common/xkb/state.rs	2026-06-07 12:42:34.780676726 -0400
+--- original-winit/src/platform_impl/linux/common/xkb/state.rs	2026-06-07 22:58:54.970056055 -0400
++++ ./winit/src/platform_impl/linux/common/xkb/state.rs	2026-06-07 22:58:54.974056119 -0400
 @@ -4,16 +4,16 @@
  use std::ptr::NonNull;
  
@@ -2670,8 +2707,8 @@ diff -uraN original-winit/src/platform_impl/linux/common/xkb/state.rs ./winit/sr
      }
  }
 diff -uraN original-winit/src/platform_impl/linux/mod.rs ./winit/src/platform_impl/linux/mod.rs
---- original-winit/src/platform_impl/linux/mod.rs	2026-06-07 12:42:34.772676503 -0400
-+++ ./winit/src/platform_impl/linux/mod.rs	2026-06-07 12:42:34.780676726 -0400
+--- original-winit/src/platform_impl/linux/mod.rs	2026-06-07 22:58:54.970056055 -0400
++++ ./winit/src/platform_impl/linux/mod.rs	2026-06-07 22:58:54.978056184 -0400
 @@ -251,7 +251,7 @@
      }
  
@@ -2731,8 +2768,8 @@ diff -uraN original-winit/src/platform_impl/linux/mod.rs ./winit/src/platform_im
                  .into())
              },
 diff -uraN original-winit/src/platform_impl/linux/wayland/event_loop/mod.rs ./winit/src/platform_impl/linux/wayland/event_loop/mod.rs
---- original-winit/src/platform_impl/linux/wayland/event_loop/mod.rs	2026-06-07 12:42:34.772676503 -0400
-+++ ./winit/src/platform_impl/linux/wayland/event_loop/mod.rs	2026-06-07 12:42:34.780676726 -0400
+--- original-winit/src/platform_impl/linux/wayland/event_loop/mod.rs	2026-06-07 22:58:54.970056055 -0400
++++ ./winit/src/platform_impl/linux/wayland/event_loop/mod.rs	2026-06-07 22:58:54.974056119 -0400
 @@ -106,6 +106,7 @@
          let wayland_source = WaylandSource::new(connection.clone(), event_queue);
          let wayland_dispatcher =
@@ -2778,8 +2815,8 @@ diff -uraN original-winit/src/platform_impl/linux/wayland/event_loop/mod.rs ./wi
  
                      awakener.ping();
 diff -uraN original-winit/src/platform_impl/linux/wayland/mod.rs ./winit/src/platform_impl/linux/wayland/mod.rs
---- original-winit/src/platform_impl/linux/wayland/mod.rs	2026-06-07 12:42:34.772676503 -0400
-+++ ./winit/src/platform_impl/linux/wayland/mod.rs	2026-06-07 12:42:34.780676726 -0400
+--- original-winit/src/platform_impl/linux/wayland/mod.rs	2026-06-07 22:58:54.970056055 -0400
++++ ./winit/src/platform_impl/linux/wayland/mod.rs	2026-06-07 22:58:54.974056119 -0400
 @@ -5,7 +5,8 @@
  
  use sctk::reexports::client::globals::{BindError, GlobalError};
@@ -2805,8 +2842,8 @@ diff -uraN original-winit/src/platform_impl/linux/wayland/mod.rs ./winit/src/pla
  
  /// The default routine does floor, but we need round on Wayland.
 diff -uraN original-winit/src/platform_impl/linux/wayland/seat/keyboard/mod.rs ./winit/src/platform_impl/linux/wayland/seat/keyboard/mod.rs
---- original-winit/src/platform_impl/linux/wayland/seat/keyboard/mod.rs	2026-06-07 12:42:34.772676503 -0400
-+++ ./winit/src/platform_impl/linux/wayland/seat/keyboard/mod.rs	2026-06-07 12:42:34.780676726 -0400
+--- original-winit/src/platform_impl/linux/wayland/seat/keyboard/mod.rs	2026-06-07 22:58:54.970056055 -0400
++++ ./winit/src/platform_impl/linux/wayland/seat/keyboard/mod.rs	2026-06-07 22:58:54.974056119 -0400
 @@ -5,7 +5,6 @@
  
  use calloop::timer::{TimeoutAction, Timer};
@@ -2868,8 +2905,8 @@ diff -uraN original-winit/src/platform_impl/linux/wayland/seat/keyboard/mod.rs .
                              keyboard_state,
                              &mut state.events_sink,
 diff -uraN original-winit/src/platform_impl/linux/wayland/window/mod.rs ./winit/src/platform_impl/linux/wayland/window/mod.rs
---- original-winit/src/platform_impl/linux/wayland/window/mod.rs	2026-06-07 12:42:34.772676503 -0400
-+++ ./winit/src/platform_impl/linux/wayland/window/mod.rs	2026-06-07 12:42:34.780676726 -0400
+--- original-winit/src/platform_impl/linux/wayland/window/mod.rs	2026-06-07 22:58:54.970056055 -0400
++++ ./winit/src/platform_impl/linux/wayland/window/mod.rs	2026-06-07 22:58:54.974056119 -0400
 @@ -5,9 +5,8 @@
  use std::sync::atomic::{AtomicBool, Ordering};
  use std::sync::{Arc, Mutex};
@@ -2902,7 +2939,7 @@ diff -uraN original-winit/src/platform_impl/linux/wayland/window/mod.rs ./winit/
  
          let size: Size = attributes.inner_size.unwrap_or(LogicalSize::new(800., 600.).into());
  
-@@ -212,7 +211,7 @@
+@@ -218,7 +217,7 @@
  
          Ok(Self {
              window,
@@ -2911,7 +2948,7 @@ diff -uraN original-winit/src/platform_impl/linux/wayland/window/mod.rs ./winit/
              monitors,
              window_id,
              compositor,
-@@ -227,7 +226,7 @@
+@@ -233,7 +232,7 @@
      }
  
      pub(crate) fn xdg_toplevel(&self) -> Option<NonNull<c_void>> {
@@ -2920,7 +2957,7 @@ diff -uraN original-winit/src/platform_impl/linux/wayland/window/mod.rs ./winit/
      }
  }
  
-@@ -641,8 +640,8 @@
+@@ -654,8 +653,8 @@
      #[inline]
      pub fn raw_window_handle_rwh_04(&self) -> rwh_04::RawWindowHandle {
          let mut window_handle = rwh_04::WaylandHandle::empty();
@@ -2931,7 +2968,7 @@ diff -uraN original-winit/src/platform_impl/linux/wayland/window/mod.rs ./winit/
          rwh_04::RawWindowHandle::Wayland(window_handle)
      }
  
-@@ -650,7 +649,7 @@
+@@ -663,7 +662,7 @@
      #[inline]
      pub fn raw_window_handle_rwh_05(&self) -> rwh_05::RawWindowHandle {
          let mut window_handle = rwh_05::WaylandWindowHandle::empty();
@@ -2940,7 +2977,7 @@ diff -uraN original-winit/src/platform_impl/linux/wayland/window/mod.rs ./winit/
          rwh_05::RawWindowHandle::Wayland(window_handle)
      }
  
-@@ -658,18 +657,14 @@
+@@ -671,18 +670,14 @@
      #[inline]
      pub fn raw_display_handle_rwh_05(&self) -> rwh_05::RawDisplayHandle {
          let mut display_handle = rwh_05::WaylandDisplayHandle::empty();
@@ -2961,7 +2998,7 @@ diff -uraN original-winit/src/platform_impl/linux/wayland/window/mod.rs ./winit/
      }
  
      #[cfg(feature = "rwh_06")]
-@@ -677,11 +672,7 @@
+@@ -690,11 +685,7 @@
      pub fn raw_display_handle_rwh_06(
          &self,
      ) -> Result<rwh_06::RawDisplayHandle, rwh_06::HandleError> {
@@ -2975,8 +3012,8 @@ diff -uraN original-winit/src/platform_impl/linux/wayland/window/mod.rs ./winit/
  
      #[inline]
 diff -uraN original-winit/src/platform_impl/linux/x11/event_processor.rs ./winit/src/platform_impl/linux/x11/event_processor.rs
---- original-winit/src/platform_impl/linux/x11/event_processor.rs	2026-06-07 12:42:34.772676503 -0400
-+++ ./winit/src/platform_impl/linux/x11/event_processor.rs	2026-06-07 12:42:34.780676726 -0400
+--- original-winit/src/platform_impl/linux/x11/event_processor.rs	2026-06-07 22:58:54.970056055 -0400
++++ ./winit/src/platform_impl/linux/x11/event_processor.rs	2026-06-07 22:58:54.978056184 -0400
 @@ -4,11 +4,11 @@
  use std::slice;
  use std::sync::{Arc, Mutex};
@@ -3111,8 +3148,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/event_processor.rs ./winit
              {
                  xkb_state.update_modifiers(
 diff -uraN original-winit/src/platform_impl/linux/x11/ffi.rs ./winit/src/platform_impl/linux/x11/ffi.rs
---- original-winit/src/platform_impl/linux/x11/ffi.rs	2026-06-07 12:42:34.772676503 -0400
-+++ ./winit/src/platform_impl/linux/x11/ffi.rs	2026-06-07 12:42:34.780676726 -0400
+--- original-winit/src/platform_impl/linux/x11/ffi.rs	2026-06-07 22:58:54.970056055 -0400
++++ ./winit/src/platform_impl/linux/x11/ffi.rs	2026-06-07 22:58:54.978056184 -0400
 @@ -1,5 +1,4 @@
 -pub use x11_dl::error::OpenError;
 -pub use x11_dl::xcursor::*;
@@ -3124,8 +3161,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/ffi.rs ./winit/src/platfor
 +pub use x11::xlib::*;
 +pub use x11::xlib_xcb::*;
 diff -uraN original-winit/src/platform_impl/linux/x11/ime/callbacks.rs ./winit/src/platform_impl/linux/x11/ime/callbacks.rs
---- original-winit/src/platform_impl/linux/x11/ime/callbacks.rs	2026-06-07 12:42:34.772676503 -0400
-+++ ./winit/src/platform_impl/linux/x11/ime/callbacks.rs	2026-06-07 12:42:34.780676726 -0400
+--- original-winit/src/platform_impl/linux/x11/ime/callbacks.rs	2026-06-07 22:58:54.970056055 -0400
++++ ./winit/src/platform_impl/linux/x11/ime/callbacks.rs	2026-06-07 22:58:54.974056119 -0400
 @@ -17,7 +17,7 @@
  ) -> Result<(), XError> {
      // It's advisable to wrap variadic FFI functions in our own functions, as we want to minimize
@@ -3154,8 +3191,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/ime/callbacks.rs ./winit/s
              ptr::null_mut(),
              ptr::null_mut(),
 diff -uraN original-winit/src/platform_impl/linux/x11/ime/context.rs ./winit/src/platform_impl/linux/x11/ime/context.rs
---- original-winit/src/platform_impl/linux/x11/ime/context.rs	2026-06-07 12:42:34.772676503 -0400
-+++ ./winit/src/platform_impl/linux/x11/ime/context.rs	2026-06-07 12:42:34.780676726 -0400
+--- original-winit/src/platform_impl/linux/x11/ime/context.rs	2026-06-07 22:58:54.970056055 -0400
++++ ./winit/src/platform_impl/linux/x11/ime/context.rs	2026-06-07 22:58:54.974056119 -0400
 @@ -3,7 +3,7 @@
  use std::sync::Arc;
  use std::{mem, ptr};
@@ -3262,8 +3299,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/ime/context.rs ./winit/src
                  ffi::XNPreeditAttributes_0.as_ptr() as *const _,
                  preedit_attr.ptr,
 diff -uraN original-winit/src/platform_impl/linux/x11/ime/inner.rs ./winit/src/platform_impl/linux/x11/ime/inner.rs
---- original-winit/src/platform_impl/linux/x11/ime/inner.rs	2026-06-07 12:42:34.772676503 -0400
-+++ ./winit/src/platform_impl/linux/x11/ime/inner.rs	2026-06-07 12:42:34.780676726 -0400
+--- original-winit/src/platform_impl/linux/x11/ime/inner.rs	2026-06-07 22:58:54.970056055 -0400
++++ ./winit/src/platform_impl/linux/x11/ime/inner.rs	2026-06-07 22:58:54.974056119 -0400
 @@ -9,12 +9,12 @@
  use crate::platform_impl::platform::x11::ime::ImeEventSender;
  
@@ -3280,8 +3317,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/ime/inner.rs ./winit/src/p
  }
  
 diff -uraN original-winit/src/platform_impl/linux/x11/ime/input_method.rs ./winit/src/platform_impl/linux/x11/ime/input_method.rs
---- original-winit/src/platform_impl/linux/x11/ime/input_method.rs	2026-06-07 12:42:34.772676503 -0400
-+++ ./winit/src/platform_impl/linux/x11/ime/input_method.rs	2026-06-07 12:42:34.780676726 -0400
+--- original-winit/src/platform_impl/linux/x11/ime/input_method.rs	2026-06-07 22:58:54.970056055 -0400
++++ ./winit/src/platform_impl/linux/x11/ime/input_method.rs	2026-06-07 22:58:54.974056119 -0400
 @@ -17,11 +17,9 @@
      // * The new locale modifiers if we succeeded in setting them.
      // * NULL if the locale modifiers string is malformed or if the current locale is not supported
@@ -3348,8 +3385,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/ime/input_method.rs ./wini
      }
      xconn.check_errors().map_err(GetXimServersError::XError)?;
 diff -uraN original-winit/src/platform_impl/linux/x11/mod.rs ./winit/src/platform_impl/linux/x11/mod.rs
---- original-winit/src/platform_impl/linux/x11/mod.rs	2026-06-07 12:42:34.772676503 -0400
-+++ ./winit/src/platform_impl/linux/x11/mod.rs	2026-06-07 12:42:34.780676726 -0400
+--- original-winit/src/platform_impl/linux/x11/mod.rs	2026-06-07 22:58:54.970056055 -0400
++++ ./winit/src/platform_impl/linux/x11/mod.rs	2026-06-07 22:58:54.978056184 -0400
 @@ -190,12 +190,12 @@
              // Remember default locale to restore it if target locale is unsupported
              // by Xlib
@@ -3392,8 +3429,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/mod.rs ./winit/src/platfor
  }
  
 diff -uraN original-winit/src/platform_impl/linux/x11/util/cookie.rs ./winit/src/platform_impl/linux/x11/util/cookie.rs
---- original-winit/src/platform_impl/linux/x11/util/cookie.rs	2026-06-07 12:42:34.772676503 -0400
-+++ ./winit/src/platform_impl/linux/x11/util/cookie.rs	2026-06-07 12:42:34.780676726 -0400
+--- original-winit/src/platform_impl/linux/x11/util/cookie.rs	2026-06-07 22:58:54.970056055 -0400
++++ ./winit/src/platform_impl/linux/x11/util/cookie.rs	2026-06-07 22:58:54.978056184 -0400
 @@ -1,7 +1,7 @@
  use std::ffi::c_int;
  use std::sync::Arc;
@@ -3422,8 +3459,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/util/cookie.rs ./winit/src
      }
  }
 diff -uraN original-winit/src/platform_impl/linux/x11/util/cursor.rs ./winit/src/platform_impl/linux/x11/util/cursor.rs
---- original-winit/src/platform_impl/linux/x11/util/cursor.rs	2026-06-07 12:42:34.772676503 -0400
-+++ ./winit/src/platform_impl/linux/x11/util/cursor.rs	2026-06-07 12:42:34.780676726 -0400
+--- original-winit/src/platform_impl/linux/x11/util/cursor.rs	2026-06-07 22:58:54.970056055 -0400
++++ ./winit/src/platform_impl/linux/x11/util/cursor.rs	2026-06-07 22:58:54.978056184 -0400
 @@ -30,9 +30,9 @@
      fn create_empty_cursor(&self) -> ffi::Cursor {
          let data = 0;
@@ -3501,8 +3538,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/util/cursor.rs ./winit/src
      }
  }
 diff -uraN original-winit/src/platform_impl/linux/x11/util/input.rs ./winit/src/platform_impl/linux/x11/util/input.rs
---- original-winit/src/platform_impl/linux/x11/util/input.rs	2026-06-07 12:42:34.772676503 -0400
-+++ ./winit/src/platform_impl/linux/x11/util/input.rs	2026-06-07 12:42:34.780676726 -0400
+--- original-winit/src/platform_impl/linux/x11/util/input.rs	2026-06-07 22:58:54.970056055 -0400
++++ ./winit/src/platform_impl/linux/x11/util/input.rs	2026-06-07 22:58:54.978056184 -0400
 @@ -33,8 +33,7 @@
          mask: xkb::EventType,
      ) -> Result<bool, X11Error> {
@@ -3523,8 +3560,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/util/input.rs ./winit/src/
                  key_event,
                  buffer as *mut c_char,
 diff -uraN original-winit/src/platform_impl/linux/x11/util/keys.rs ./winit/src/platform_impl/linux/x11/util/keys.rs
---- original-winit/src/platform_impl/linux/x11/util/keys.rs	2026-06-07 12:42:34.772676503 -0400
-+++ ./winit/src/platform_impl/linux/x11/util/keys.rs	2026-06-07 12:42:34.780676726 -0400
+--- original-winit/src/platform_impl/linux/x11/util/keys.rs	2026-06-07 22:58:54.970056055 -0400
++++ ./winit/src/platform_impl/linux/x11/util/keys.rs	2026-06-07 22:58:54.978056184 -0400
 @@ -63,7 +63,7 @@
          let mut keys = [0; 32];
  
@@ -3535,8 +3572,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/util/keys.rs ./winit/src/p
  
          Keymap { keys }
 diff -uraN original-winit/src/platform_impl/linux/x11/util/memory.rs ./winit/src/platform_impl/linux/x11/util/memory.rs
---- original-winit/src/platform_impl/linux/x11/util/memory.rs	2026-06-07 12:42:34.772676503 -0400
-+++ ./winit/src/platform_impl/linux/x11/util/memory.rs	2026-06-07 12:42:34.780676726 -0400
+--- original-winit/src/platform_impl/linux/x11/util/memory.rs	2026-06-07 22:58:54.970056055 -0400
++++ ./winit/src/platform_impl/linux/x11/util/memory.rs	2026-06-07 22:58:54.978056184 -0400
 @@ -3,6 +3,7 @@
  use super::*;
  
@@ -3555,8 +3592,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/util/memory.rs ./winit/src
      }
  }
 diff -uraN original-winit/src/platform_impl/linux/x11/util/modifiers.rs ./winit/src/platform_impl/linux/x11/util/modifiers.rs
---- original-winit/src/platform_impl/linux/x11/util/modifiers.rs	2026-06-07 12:42:34.772676503 -0400
-+++ ./winit/src/platform_impl/linux/x11/util/modifiers.rs	2026-06-07 12:42:34.780676726 -0400
+--- original-winit/src/platform_impl/linux/x11/util/modifiers.rs	2026-06-07 22:58:54.970056055 -0400
++++ ./winit/src/platform_impl/linux/x11/util/modifiers.rs	2026-06-07 22:58:54.978056184 -0400
 @@ -57,7 +57,7 @@
  
              self.reset_from_x_keymap(&*keymap);
@@ -3567,8 +3604,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/util/modifiers.rs ./winit/
      }
  
 diff -uraN original-winit/src/platform_impl/linux/x11/util/mod.rs ./winit/src/platform_impl/linux/x11/util/mod.rs
---- original-winit/src/platform_impl/linux/x11/util/mod.rs	2026-06-07 12:42:34.772676503 -0400
-+++ ./winit/src/platform_impl/linux/x11/util/mod.rs	2026-06-07 12:42:34.780676726 -0400
+--- original-winit/src/platform_impl/linux/x11/util/mod.rs	2026-06-07 22:58:54.970056055 -0400
++++ ./winit/src/platform_impl/linux/x11/util/mod.rs	2026-06-07 22:58:54.978056184 -0400
 @@ -62,7 +62,7 @@
      //    and waits.
      // All util functions that abstract an async function will return a `Flusher`.
@@ -3588,8 +3625,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/util/mod.rs ./winit/src/pl
          self.check_errors()
      }
 diff -uraN original-winit/src/platform_impl/linux/x11/util/xmodmap.rs ./winit/src/platform_impl/linux/x11/util/xmodmap.rs
---- original-winit/src/platform_impl/linux/x11/util/xmodmap.rs	2026-06-07 12:42:34.772676503 -0400
-+++ ./winit/src/platform_impl/linux/x11/util/xmodmap.rs	2026-06-07 12:42:34.780676726 -0400
+--- original-winit/src/platform_impl/linux/x11/util/xmodmap.rs	2026-06-07 22:58:54.970056055 -0400
++++ ./winit/src/platform_impl/linux/x11/util/xmodmap.rs	2026-06-07 22:58:54.978056184 -0400
 @@ -1,7 +1,7 @@
  use std::collections::HashSet;
  use std::slice;
@@ -3618,9 +3655,9 @@ diff -uraN original-winit/src/platform_impl/linux/x11/util/xmodmap.rs ./winit/sr
      }
  
 diff -uraN original-winit/src/platform_impl/linux/x11/window.rs ./winit/src/platform_impl/linux/x11/window.rs
---- original-winit/src/platform_impl/linux/x11/window.rs	2026-06-07 12:42:34.772676503 -0400
-+++ ./winit/src/platform_impl/linux/x11/window.rs	2026-06-07 12:42:34.780676726 -0400
-@@ -517,7 +517,7 @@
+--- original-winit/src/platform_impl/linux/x11/window.rs	2026-06-07 22:58:54.970056055 -0400
++++ ./winit/src/platform_impl/linux/x11/window.rs	2026-06-07 22:58:54.978056184 -0400
+@@ -516,7 +516,7 @@
              // Attempt to make keyboard input repeat detectable
              unsafe {
                  let mut supported_ptr = ffi::False;
@@ -3630,8 +3667,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/window.rs ./winit/src/plat
                      ffi::True,
                      &mut supported_ptr,
 diff -uraN original-winit/src/platform_impl/linux/x11/xdisplay.rs ./winit/src/platform_impl/linux/x11/xdisplay.rs
---- original-winit/src/platform_impl/linux/x11/xdisplay.rs	2026-06-07 12:42:34.772676503 -0400
-+++ ./winit/src/platform_impl/linux/x11/xdisplay.rs	2026-06-07 12:42:34.780676726 -0400
+--- original-winit/src/platform_impl/linux/x11/xdisplay.rs	2026-06-07 22:58:54.970056055 -0400
++++ ./winit/src/platform_impl/linux/x11/xdisplay.rs	2026-06-07 22:58:54.978056184 -0400
 @@ -17,13 +17,6 @@
  
  /// A connection to an X server.
@@ -3697,7 +3734,7 @@ diff -uraN original-winit/src/platform_impl/linux/x11/xdisplay.rs ./winit/src/pl
              display,
              xcb: Some(xcb),
              atoms: Box::new(atoms),
-@@ -269,7 +252,7 @@
+@@ -267,7 +250,7 @@
      #[inline]
      fn drop(&mut self) {
          self.xcb = None;
@@ -3706,7 +3743,7 @@ diff -uraN original-winit/src/platform_impl/linux/x11/xdisplay.rs ./winit/src/pl
      }
  }
  
-@@ -297,9 +280,6 @@
+@@ -295,9 +278,6 @@
  /// Error returned if this system doesn't have XLib or can't create an X connection.
  #[derive(Clone, Debug)]
  pub enum XNotSupported {
@@ -3716,7 +3753,7 @@ diff -uraN original-winit/src/platform_impl/linux/x11/xdisplay.rs ./winit/src/pl
      /// Connecting to the X server with `XOpenDisplay` failed.
      XOpenDisplayFailed, // TODO: add better message.
  
-@@ -307,17 +287,9 @@
+@@ -305,17 +285,9 @@
      XcbConversionError(Arc<dyn Error + Send + Sync + 'static>),
  }
  
@@ -3734,7 +3771,7 @@ diff -uraN original-winit/src/platform_impl/linux/x11/xdisplay.rs ./winit/src/pl
              XNotSupported::XOpenDisplayFailed => "Failed to open connection to X server",
              XNotSupported::XcbConversionError(_) => "Failed to convert Xlib connection to XCB",
          }
-@@ -328,7 +300,6 @@
+@@ -326,7 +298,6 @@
      #[inline]
      fn source(&self) -> Option<&(dyn Error + 'static)> {
          match *self {
@@ -3743,8 +3780,8 @@ diff -uraN original-winit/src/platform_impl/linux/x11/xdisplay.rs ./winit/src/pl
              _ => None,
          }
 diff -uraN original-x11/Cargo.toml ./x11/Cargo.toml
---- original-x11/Cargo.toml	2026-06-07 12:42:35.728703025 -0400
-+++ ./x11/Cargo.toml	2026-06-07 12:42:35.788704688 -0400
+--- original-x11/Cargo.toml	2026-06-07 22:58:55.942071672 -0400
++++ ./x11/Cargo.toml	2026-06-07 22:58:56.070073729 -0400
 @@ -1,16 +1,4 @@
 -# THIS FILE IS AUTOMATICALLY GENERATED BY CARGO
 -#
@@ -3795,8 +3832,8 @@ diff -uraN original-x11/Cargo.toml ./x11/Cargo.toml
  all = [
      "dpms",
 diff -uraN original-x11/examples/hello-world.rs ./x11/examples/hello-world.rs
---- original-x11/examples/hello-world.rs	2026-06-07 12:42:35.728703025 -0400
-+++ ./x11/examples/hello-world.rs	2026-06-07 12:42:35.788704688 -0400
+--- original-x11/examples/hello-world.rs	2026-06-07 22:58:55.942071672 -0400
++++ ./x11/examples/hello-world.rs	2026-06-07 22:58:56.066073665 -0400
 @@ -33,7 +33,8 @@
          let screen = xlib::XDefaultScreen(display);
          let root = xlib::XRootWindow(display, screen);
@@ -3828,6 +3865,387 @@ diff -uraN original-x11/examples/hello-world.rs ./x11/examples/hello-world.rs
                          let protocol = xclient.data.get_long(0) as xlib::Atom;
 diff -uraN original-x11/.gitignore ./x11/.gitignore
 --- original-x11/.gitignore	1969-12-31 19:00:00.000000000 -0500
-+++ ./x11/.gitignore	2026-06-07 12:42:35.788704688 -0400
++++ ./x11/.gitignore	2026-06-07 22:58:56.070073729 -0400
 @@ -0,0 +1 @@
 +/target
+diff -uraN original-yaxi/src/clipboard/mod.rs ./yaxi/src/clipboard/mod.rs
+--- original-yaxi/src/clipboard/mod.rs	2026-06-07 22:59:01.946168158 -0400
++++ ./yaxi/src/clipboard/mod.rs	2026-06-07 22:59:01.946168158 -0400
+@@ -262,6 +262,20 @@
+         Ok(())
+     }
+ 
++    pub fn set_primary_text(&self, text: &str) -> Result<(), Error> {
++        let bytes = text.as_bytes();
++
++        let data = vec![
++            ClipboardData::from_bytes(bytes.to_vec(), self.atoms.formats.utf8_string),
++            ClipboardData::from_bytes(bytes.to_vec(), self.atoms.formats.utf8_mime),
++            ClipboardData::from_bytes(bytes.to_vec(), self.atoms.formats.utf8_mime_alt),
++        ];
++
++        self.write(data, self.atoms.selections.primary)?;
++
++        Ok(())
++    }
++
+     /// try to get the clipboard content as text with the following targets: UTF8_STRING, text/plain;charset=utf-8
+     ///
+     /// # Example
+@@ -290,6 +304,25 @@
+                 if data.is_empty() {
+                     continue;
+                 }
++                return Ok(Some(String::from_utf8(data.bytes().to_owned())?));
++            }
++        }
++
++        Ok(None)
++    }
++
++    pub fn get_primary_text(&self) -> Result<Option<String>, Error> {
++        let formats = [
++            self.atoms.formats.utf8_string,
++            self.atoms.formats.utf8_mime,
++            self.atoms.formats.utf8_mime_alt,
++        ];
++
++        for format in formats {
++            if let Ok(Some(data)) = self.read(format, self.atoms.selections.primary) {
++                if data.is_empty() {
++                    continue;
++                }
+                 return Ok(Some(String::from_utf8(data.bytes().to_owned())?));
+             }
+         }
+diff -uraN original-yaxi/src/display/mod.rs ./yaxi/src/display/mod.rs
+--- original-yaxi/src/display/mod.rs	2026-06-07 22:59:01.946168158 -0400
++++ ./yaxi/src/display/mod.rs	2026-06-07 22:59:01.946168158 -0400
+@@ -381,6 +381,18 @@
+         Ok(display)
+     }
+ 
++    pub fn refresh_xid_allocator_at(&self, next: u32) -> Result<(), Error> {
++        xid::setup_with_next(
++            self.setup.resource_id_base,
++            self.setup.resource_id_mask,
++            next,
++        )
++    }
++
++    pub fn xid_mask(&self) -> u32 {
++        self.setup.resource_id_mask
++    }
++
+     /// wait for the next event
+     pub fn next_event(&self) -> Result<Event, Error> {
+         self.events.wait()
+@@ -1068,6 +1080,11 @@
+                     window: event.event,
+                 })
+             }
++            Response::KEYMAP_NOTIFY => {
++                let _event: [u8; 28] = self.stream.recv_decode()?;
++
++                Ok(())
++            }
+             Response::CREATE_NOTIFY => {
+                 let event: CreateNotify = self.stream.recv_decode()?;
+ 
+@@ -1076,7 +1093,7 @@
+                     window: event.window,
+                     x: event.x,
+                     y: event.y,
+-                    width: event.height,
++                    width: event.width,
+                     height: event.height,
+                 })
+             }
+@@ -1135,7 +1152,7 @@
+                     above_sibling: event.above_sibling,
+                     x: event.x,
+                     y: event.y,
+-                    width: event.height,
++                    width: event.width,
+                     height: event.height,
+                     border_width: event.border_width,
+                     override_redirect: event.override_redirect == 0,
+@@ -1240,11 +1257,18 @@
+                 let event: ClientMessage = self.stream.recv_decode()?;
+                 let data: [u8; 20] = self.stream.recv_decode()?;
+ 
++                let data = match generic.detail {
++                    8 => ClientMessageData::Byte(data),
++                    16 => ClientMessageData::Short(request::decode::<[u16; 10]>(&data)),
++                    32 => ClientMessageData::Long(request::decode::<[u32; 5]>(&data)),
++                    _ => ClientMessageData::Byte(data),
++                };
++
+                 self.events.push(Event::ClientMessage {
+                     format: generic.detail,
+                     window: event.window,
+                     type_: Atom::new(event.type_),
+-                    data: ClientMessageData::Byte(data),
++                    data,
+                 })
+             }
+             Response::MAPPING_NOTIFY => {
+diff -uraN original-yaxi/src/display/request.rs ./yaxi/src/display/request.rs
+--- original-yaxi/src/display/request.rs	2026-06-07 22:59:01.946168158 -0400
++++ ./yaxi/src/display/request.rs	2026-06-07 22:59:01.946168158 -0400
+@@ -619,6 +619,43 @@
+ 
+ #[repr(packed, C)]
+ #[derive(Debug)]
++pub struct CreateGC {
++    pub opcode: u8,
++    pub pad0: u8,
++    pub length: u16,
++    pub cid: u32,
++    pub drawable: u32,
++    pub value_mask: u32,
++}
++
++#[repr(packed, C)]
++#[derive(Debug)]
++pub struct FreeGC {
++    pub opcode: u8,
++    pub pad0: u8,
++    pub length: u16,
++    pub gc: u32,
++}
++
++#[repr(packed, C)]
++#[derive(Debug)]
++pub struct PutImage {
++    pub opcode: u8,
++    pub format: u8,
++    pub length: u16,
++    pub drawable: u32,
++    pub gc: u32,
++    pub width: u16,
++    pub height: u16,
++    pub dst_x: i16,
++    pub dst_y: i16,
++    pub left_pad: u8,
++    pub depth: u8,
++    pub pad0: [u8; 2],
++}
++
++#[repr(packed, C)]
++#[derive(Debug)]
+ pub struct KillClient {
+     pub opcode: u8,
+     pub pad0: u8,
+diff -uraN original-yaxi/src/display/xid.rs ./yaxi/src/display/xid.rs
+--- original-yaxi/src/display/xid.rs	2026-06-07 22:59:01.946168158 -0400
++++ ./yaxi/src/display/xid.rs	2026-06-07 22:59:01.946168158 -0400
+@@ -14,37 +14,72 @@
+     base: u32,
+     mask: u32,
+     next: u32,
++    increment: u32,
+ }
+ 
+ impl Xid {
+     const fn new() -> Xid {
+         Xid {
+             base: 0,
+-            mask: 69,
+-            next: 420,
++            mask: 0,
++            next: 0,
++            increment: 0,
+         }
+     }
+ 
+     fn next(&mut self) -> Result<u32, Error> {
+-        self.next += 1;
++        if self.mask == 0 || self.increment == 0 {
++            return Err(Error::RanOutOfXid);
++        }
+ 
+-        if self.next >= self.mask {
+-            Err(Error::RanOutOfXid)
++        let id = self.base | self.next;
++        let Some(candidate) = self.next.checked_add(self.increment) else {
++            self.mask = 0;
++            self.increment = 0;
++            return Ok(id);
++        };
++
++        if candidate & !self.mask != 0 {
++            self.mask = 0;
++            self.increment = 0;
+         } else {
+-            Ok(self.next | self.base)
++            self.next = candidate;
+         }
++
++        Ok(id)
+     }
+ }
+ 
+-pub fn setup(base: u32, mask: u32) -> Result<(), Error> {
+-    let mut lock = lock!(XID)?;
++fn set_allocator_state(lock: &mut Xid, base: u32, mask: u32, next: u32) -> Result<(), Error> {
++    let increment = mask & mask.wrapping_neg();
++    if mask == 0 || increment == 0 {
++        return Err(Error::RanOutOfXid);
++    }
++
++    if next & !mask != 0 {
++        return Err(Error::InvalidId);
++    }
+ 
+     lock.base = base;
+     lock.mask = mask;
++    lock.next = next;
++    lock.increment = increment;
+ 
+     Ok(())
+ }
+ 
++pub fn setup(base: u32, mask: u32) -> Result<(), Error> {
++    let mut lock = lock!(XID)?;
++
++    set_allocator_state(&mut lock, base, mask, 0)
++}
++
++pub fn setup_with_next(base: u32, mask: u32, next: u32) -> Result<(), Error> {
++    let mut lock = lock!(XID)?;
++
++    set_allocator_state(&mut lock, base, mask, next)
++}
++
+ pub fn next() -> Result<u32, Error> {
+     lock!(XID)?.next()
+ }
+diff -uraN original-yaxi/src/keyboard/mod.rs ./yaxi/src/keyboard/mod.rs
+--- original-yaxi/src/keyboard/mod.rs	2026-06-07 22:59:01.946168158 -0400
++++ ./yaxi/src/keyboard/mod.rs	2026-06-07 22:59:01.946168158 -0400
+@@ -42,6 +42,10 @@
+         Keysym { value }
+     }
+ 
++    pub fn raw(&self) -> u32 {
++        self.value
++    }
++
+     /// get the character representation of a keysym
+     pub fn character(&self) -> Result<char, Error> {
+         match ((self.value & 0xff00) >> 8) as u8 {
+diff -uraN original-yaxi/src/proto/mod.rs ./yaxi/src/proto/mod.rs
+--- original-yaxi/src/proto/mod.rs	2026-06-07 22:59:01.946168158 -0400
++++ ./yaxi/src/proto/mod.rs	2026-06-07 22:59:01.946168158 -0400
+@@ -29,6 +29,7 @@
+     pub const ENTER_NOTIFY: u8 = 7;
+     pub const FOCUS_IN: u8 = 9;
+     pub const FOCUS_OUT: u8 = 10;
++    pub const KEYMAP_NOTIFY: u8 = 11;
+     pub const CREATE_NOTIFY: u8 = 16;
+     pub const DESTROY_NOTIFY: u8 = 17;
+     pub const UNMAP_NOTIFY: u8 = 18;
+diff -uraN original-yaxi/src/window/mod.rs ./yaxi/src/window/mod.rs
+--- original-yaxi/src/window/mod.rs	2026-06-07 22:59:01.946168158 -0400
++++ ./yaxi/src/window/mod.rs	2026-06-07 22:59:01.946168158 -0400
+@@ -221,6 +221,13 @@
+     Append = 2,
+ }
+ 
++#[derive(Clone, Copy)]
++pub enum ImageFormat {
++    Bitmap = 0,
++    XyPixmap = 1,
++    ZPixmap = 2,
++}
++
+ #[derive(Clone)]
+ pub struct Window {
+     stream: Stream,
+@@ -548,7 +555,7 @@
+         };
+ 
+         self.stream
+-            .send(&[window_values_request, request::encode(&request).to_vec()].concat())?;
++            .send(&[request::encode(&request).to_vec(), window_values_request].concat())?;
+ 
+         self.replies.poll_error()?;
+ 
+@@ -759,6 +766,76 @@
+ 
+         self.replies.poll_error()
+     }
++
++    /// Upload raw image bytes into the window using a temporary graphics context.
++    pub fn put_image(
++        &self,
++        format: ImageFormat,
++        width: u16,
++        height: u16,
++        dst_x: i16,
++        dst_y: i16,
++        data: &[u8],
++    ) -> Result<(), Error> {
++        self.sequence.skip();
++
++        let gc = xid::next()?;
++
++        self.stream.send_encode(CreateGC {
++            opcode: Opcode::CREATE_GC,
++            pad0: 0,
++            length: 4,
++            cid: gc,
++            drawable: self.id(),
++            value_mask: 0,
++        })?;
++
++        self.replies.poll_error()?;
++
++        let request = PutImage {
++            opcode: Opcode::PUT_IMAGE,
++            format: format as u8,
++            length: {
++                let padded_len = data.len() + request::pad(data.len());
++                let request_words = 6 + padded_len / 4;
++                u16::try_from(request_words).map_err(|_| Error::InvalidProtocol {
++                    protocol: format!(
++                        "PutImage request too large: {} bytes of payload",
++                        data.len()
++                    ),
++                })?
++            },
++            drawable: self.id(),
++            gc,
++            width,
++            height,
++            dst_x,
++            dst_y,
++            left_pad: 0,
++            depth: self.depth(),
++            pad0: [0; 2],
++        };
++
++        self.stream.send(
++            &[
++                request::encode(&request).to_vec(),
++                data.to_vec(),
++                vec![0u8; request::pad(data.len())],
++            ]
++            .concat(),
++        )?;
++
++        self.replies.poll_error()?;
++
++        self.stream.send_encode(FreeGC {
++            opcode: Opcode::FREE_GC,
++            pad0: 0,
++            length: 2,
++            gc,
++        })?;
++
++        self.replies.poll_error()
++    }
+ 
+     /// delete a property from a window
+     pub fn delete_property(&self, property: Atom) -> Result<(), Error> {
