@@ -16,7 +16,7 @@ use sctk::reexports::client::{Connection, Dispatch, Proxy, QueueHandle, WEnum};
 use crate::event::{ElementState, WindowEvent};
 use crate::keyboard::ModifiersState;
 
-use crate::platform_impl::common::xkb::Context;
+use crate::platform_impl::common::xkb::{Context, Error as XkbError};
 use crate::platform_impl::wayland::event_loop::sink::EventSink;
 use crate::platform_impl::wayland::state::WinitState;
 use crate::platform_impl::wayland::{self, DeviceId, WindowId};
@@ -293,15 +293,18 @@ pub struct KeyboardState {
 }
 
 impl KeyboardState {
-    pub fn new(keyboard: WlKeyboard, loop_handle: LoopHandle<'static, WinitState>) -> Self {
-        Self {
+    pub fn new(
+        keyboard: WlKeyboard,
+        loop_handle: LoopHandle<'static, WinitState>,
+    ) -> Result<Self, XkbError> {
+        Ok(Self {
             keyboard,
             loop_handle,
-            xkb_context: Context::new().unwrap(),
+            xkb_context: Context::new()?,
             repeat_info: RepeatInfo::default(),
             repeat_token: None,
             current_repeat: None,
-        }
+        })
     }
 }
 

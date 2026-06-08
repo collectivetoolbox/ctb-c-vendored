@@ -91,8 +91,16 @@ impl SeatHandler for WinitState {
             },
             SeatCapability::Keyboard if seat_state.keyboard_state.is_none() => {
                 let keyboard = seat.get_keyboard(queue_handle, KeyboardData::new(seat.clone()));
-                seat_state.keyboard_state =
-                    Some(KeyboardState::new(keyboard, self.loop_handle.clone()));
+                match KeyboardState::new(keyboard, self.loop_handle.clone()) {
+                    Ok(keyboard_state) => {
+                        seat_state.keyboard_state = Some(keyboard_state);
+                    },
+                    Err(error) => {
+                        warn!(
+                            "Wayland keyboard support unavailable on this seat: {error:?}"
+                        );
+                    },
+                }
             },
             SeatCapability::Pointer if seat_state.pointer.is_none() => {
                 let surface = self.compositor_state.create_surface(queue_handle);
