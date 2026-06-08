@@ -10,10 +10,11 @@ keywords = ["windowing"]
 readme = "README.md"
 documentation = "https://docs.rs/winit"
 categories = ["gui"]
-rust-version.workspace = true
-repository.workspace = true
-license.workspace = true
-edition.workspace = true
+# rust-version.workspace = true
+# repository.workspace = true
+# license.workspace = true
+edition = "2021"
+resolver = "2"
 include = [
     "/build.rs",
     "/docs",
@@ -86,7 +87,8 @@ cfg_aliases = "0.2.1"
 [dependencies]
 bitflags = "2"
 cursor-icon = "1.1.0"
-dpi = { version = "0.1.1", path = "dpi" }
+dpi = { version = "0.1.1" }
+#dpi = { version = "0.1.1", path = "dpi" }
 rwh_04 = { package = "raw-window-handle", version = "0.4", optional = true }
 rwh_05 = { package = "raw-window-handle", version = "0.5.2", features = [
     "std",
@@ -94,9 +96,11 @@ rwh_05 = { package = "raw-window-handle", version = "0.5.2", features = [
 rwh_06 = { package = "raw-window-handle", version = "0.6", features = [
     "std",
 ], optional = true }
-serde = { workspace = true, optional = true }
+# serde = { workspace = true, optional = true }
 smol_str = "0.2.0"
 tracing = { version = "0.1.40", default-features = false }
+serde = { version = "1", features = ["serde_derive"], optional = true }
+mint = "0.5.6"
 
 [dev-dependencies]
 image = { version = "0.25.0", default-features = false, features = ["png"] }
@@ -363,16 +367,16 @@ tracing-web = "0.1"
 doc-scrape-examples = true
 name = "window"
 
-[workspace]
-resolver = "2"
-members = ["dpi"]
+# [workspace]
+# resolver = "2"
+# members = ["dpi"]
 
-[workspace.package]
-rust-version = "1.70.0"
-repository = "https://github.com/rust-windowing/winit"
-license = "Apache-2.0"
-edition = "2021"
+# [workspace.package]
+# rust-version = "1.70.0"
+# repository = "https://github.com/rust-windowing/winit"
+# license = "Apache-2.0"
+# edition = "2021"
 
-[workspace.dependencies]
-serde = { version = "1", features = ["serde_derive"] }
-mint = "0.5.6"
+# [workspace.dependencies]
+# serde = { version = "1", features = ["serde_derive"] }
+# mint = "0.5.6"
