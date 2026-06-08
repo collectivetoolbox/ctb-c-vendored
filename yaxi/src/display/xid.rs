@@ -14,25 +14,39 @@ pub struct Xid {
     base: u32,
     mask: u32,
     next: u32,
+    increment: u32,
 }
 
 impl Xid {
     const fn new() -> Xid {
         Xid {
             base: 0,
-            mask: 69,
-            next: 420,
+            mask: 0,
+            next: 0,
+            increment: 0,
         }
     }
 
     fn next(&mut self) -> Result<u32, Error> {
-        self.next += 1;
-
-        if self.next >= self.mask {
-            Err(Error::RanOutOfXid)
-        } else {
-            Ok(self.next | self.base)
+        if self.mask == 0 || self.increment == 0 {
+            return Err(Error::RanOutOfXid);
         }
+
+        let id = self.base | self.next;
+        let Some(candidate) = self.next.checked_add(self.increment) else {
+            self.mask = 0;
+            self.increment = 0;
+            return Ok(id);
+        };
+
+        if candidate & !self.mask != 0 {
+            self.mask = 0;
+            self.increment = 0;
+        } else {
+            self.next = candidate;
+        }
+
+        Ok(id)
     }
 }
 
@@ -41,6 +55,8 @@ pub fn setup(base: u32, mask: u32) -> Result<(), Error> {
 
     lock.base = base;
     lock.mask = mask;
+    lock.next = 0;
+    lock.increment = mask & mask.wrapping_neg();
 
     Ok(())
 }
