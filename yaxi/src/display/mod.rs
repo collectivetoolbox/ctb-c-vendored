@@ -1068,6 +1068,11 @@ impl EventListener {
                     window: event.event,
                 })
             }
+            Response::KEYMAP_NOTIFY => {
+                let _event: [u8; 28] = self.stream.recv_decode()?;
+
+                Ok(())
+            }
             Response::CREATE_NOTIFY => {
                 let event: CreateNotify = self.stream.recv_decode()?;
 
@@ -1076,7 +1081,7 @@ impl EventListener {
                     window: event.window,
                     x: event.x,
                     y: event.y,
-                    width: event.height,
+                    width: event.width,
                     height: event.height,
                 })
             }
@@ -1135,7 +1140,7 @@ impl EventListener {
                     above_sibling: event.above_sibling,
                     x: event.x,
                     y: event.y,
-                    width: event.height,
+                    width: event.width,
                     height: event.height,
                     border_width: event.border_width,
                     override_redirect: event.override_redirect == 0,
@@ -1240,11 +1245,18 @@ impl EventListener {
                 let event: ClientMessage = self.stream.recv_decode()?;
                 let data: [u8; 20] = self.stream.recv_decode()?;
 
+                let data = match generic.detail {
+                    8 => ClientMessageData::Byte(data),
+                    16 => ClientMessageData::Short(request::decode::<[u16; 10]>(&data)),
+                    32 => ClientMessageData::Long(request::decode::<[u32; 5]>(&data)),
+                    _ => ClientMessageData::Byte(data),
+                };
+
                 self.events.push(Event::ClientMessage {
                     format: generic.detail,
                     window: event.window,
                     type_: Atom::new(event.type_),
-                    data: ClientMessageData::Byte(data),
+                    data,
                 })
             }
             Response::MAPPING_NOTIFY => {

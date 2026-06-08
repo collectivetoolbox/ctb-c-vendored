@@ -29,6 +29,7 @@ impl Response {
     pub const ENTER_NOTIFY: u8 = 7;
     pub const FOCUS_IN: u8 = 9;
     pub const FOCUS_OUT: u8 = 10;
+    pub const KEYMAP_NOTIFY: u8 = 11;
     pub const CREATE_NOTIFY: u8 = 16;
     pub const DESTROY_NOTIFY: u8 = 17;
     pub const UNMAP_NOTIFY: u8 = 18;
