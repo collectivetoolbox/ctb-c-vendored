@@ -262,6 +262,20 @@ impl Clipboard {
         Ok(())
     }
 
+    pub fn set_primary_text(&self, text: &str) -> Result<(), Error> {
+        let bytes = text.as_bytes();
+
+        let data = vec![
+            ClipboardData::from_bytes(bytes.to_vec(), self.atoms.formats.utf8_string),
+            ClipboardData::from_bytes(bytes.to_vec(), self.atoms.formats.utf8_mime),
+            ClipboardData::from_bytes(bytes.to_vec(), self.atoms.formats.utf8_mime_alt),
+        ];
+
+        self.write(data, self.atoms.selections.primary)?;
+
+        Ok(())
+    }
+
     /// try to get the clipboard content as text with the following targets: UTF8_STRING, text/plain;charset=utf-8
     ///
     /// # Example
@@ -287,6 +301,25 @@ impl Clipboard {
                 continue;
             }
             if let Ok(Some(data)) = self.read(format, self.atoms.selections.clipboard) {
+                if data.is_empty() {
+                    continue;
+                }
+                return Ok(Some(String::from_utf8(data.bytes().to_owned())?));
+            }
+        }
+
+        Ok(None)
+    }
+
+    pub fn get_primary_text(&self) -> Result<Option<String>, Error> {
+        let formats = [
+            self.atoms.formats.utf8_string,
+            self.atoms.formats.utf8_mime,
+            self.atoms.formats.utf8_mime_alt,
+        ];
+
+        for format in formats {
+            if let Ok(Some(data)) = self.read(format, self.atoms.selections.primary) {
                 if data.is_empty() {
                     continue;
                 }

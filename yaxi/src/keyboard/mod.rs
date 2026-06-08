@@ -42,6 +42,10 @@ impl Keysym {
         Keysym { value }
     }
 
+    pub fn raw(&self) -> u32 {
+        self.value
+    }
+
     /// get the character representation of a keysym
     pub fn character(&self) -> Result<char, Error> {
         match ((self.value & 0xff00) >> 8) as u8 {
