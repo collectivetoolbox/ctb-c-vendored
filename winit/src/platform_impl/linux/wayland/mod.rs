@@ -1,6 +1,7 @@
 //! Winit's Wayland backend.
 
 use std::fmt::Display;
+use std::hash::{DefaultHasher, Hash, Hasher};
 use std::sync::Arc;
 
 use sctk::reexports::client::globals::{BindError, GlobalError};
@@ -74,7 +75,9 @@ impl DeviceId {
 /// Get the WindowId out of the surface.
 #[inline]
 fn make_wid(surface: &WlSurface) -> WindowId {
-    WindowId(surface.id().as_ptr() as u64)
+    let mut hasher = DefaultHasher::new();
+    surface.id().hash(&mut hasher);
+    WindowId(hasher.finish())
 }
 
 /// The default routine does floor, but we need round on Wayland.
