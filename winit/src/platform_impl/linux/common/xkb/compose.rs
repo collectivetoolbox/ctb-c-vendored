@@ -20,6 +20,11 @@ pub struct XkbComposeTable {
 
 impl XkbComposeTable {
     pub fn new(context: &XkbContext) -> Option<Self> {
+        #[cfg(wayland_platform)]
+        if context.is_rust_backend() {
+            return None;
+        }
+
         let locale = env::var_os("LC_ALL")
             .and_then(|v| if v.is_empty() { None } else { Some(v) })
             .or_else(|| env::var_os("LC_CTYPE"))

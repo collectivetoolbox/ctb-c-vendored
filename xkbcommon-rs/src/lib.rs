@@ -429,28 +429,8 @@ pub mod keysym {
     /// Re-export of [`xkeysym::NO_SYMBOL`]:
     pub use xkeysym::NO_SYMBOL;
 
-    /*
-    /// Re-export of [`xkeysym::Keysym`]
-    ///
-    /// A keycode is a number used to represent the symbols generated from a key on a keyboard.
-    ///
-    /// A key, represented by a keycode, may generate different symbols
-    /// according to keyboard state. For example, on a QWERTY keyboard,
-    /// pressing the key labeled \<A\> generates the symbol 'a'. If the shift key is held, it generates
-    /// the symbol  ‘α’.  And so on.
-    ///
-    /// Each such symbol is represented by a *keysym* (short for "key symbol").
-    /// Note that keysyms are somewhat more general, in that they can also represent
-    /// some "function", such as "Left" or "Right" for the arrow keys.
-    /// For more information, see Appendix A ["KEYSYM
-    /// Encoding"](https://www.x.org/releases/X11R7.7/doc/xproto/x11protocol.html#keysym_encoding) of the X Window System
-    /// Protocol.
-    ///
-    /// Keysym names are case-sensitive.
-    ///
+    /// Re-export of [`xkeysym::Keysym`].
     pub use xkeysym::Keysym;
-
-    */
     /// Get the name of a keysym.
     ///
     /// For a description of how keysyms are named, see [xkeysym::Keysym].
@@ -474,6 +454,12 @@ pub mod keysym {
 
     /// Converts a keysym to its uppercase representation.
     pub use super::keysyms::keysym_to_upper;
+
+    /// Converts a keysym to its UTF-8 representation.
+    pub use super::keysyms_utf::keysym_to_utf8;
+
+    /// Converts a keysym to its UTF-32 representation.
+    pub use super::keysyms_utf::keysym_to_utf32;
 
     /// The flags for [keysym_from_name()].
     pub use super::rust_xkbcommon::KeysymFlags;

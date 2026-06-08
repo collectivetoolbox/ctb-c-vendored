@@ -6,6 +6,8 @@ use std::ptr::NonNull;
 use smol_str::SmolStr;
 #[cfg(x11_platform)]
 use x11_dl::xlib_xcb::xcb_connection_t;
+#[cfg(wayland_platform)]
+use xkbcommon_rs as rxkb;
 use xkbcommon_dl::{
     self as xkb, xkb_keycode_t, xkb_keysym_t, xkb_layout_index_t, xkb_state, xkb_state_component,
 };
@@ -15,17 +17,52 @@ use crate::platform_impl::common::xkb::keymap::XkbKeymap;
 use crate::platform_impl::common::xkb::XKBXH;
 use crate::platform_impl::common::xkb::{make_string_with, XKBH};
 
-#[derive(Debug)]
 pub struct XkbState {
-    state: NonNull<xkb_state>,
+    #[cfg(wayland_platform)]
+    rust_state: Option<rxkb::State>,
+    #[cfg(x11_platform)]
+    state: Option<NonNull<xkb_state>>,
     modifiers: ModifiersState,
+}
+
+impl std::fmt::Debug for XkbState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("XkbState")
+            .field("rust_backend", &{
+                #[cfg(wayland_platform)]
+                {
+                    self.rust_state.is_some()
+                }
+                #[cfg(not(wayland_platform))]
+                {
+                    false
+                }
+            })
+            .field("x11_backend", &{
+                #[cfg(x11_platform)]
+                {
+                    self.state.is_some()
+                }
+                #[cfg(not(x11_platform))]
+                {
+                    false
+                }
+            })
+            .field("modifiers", &self.modifiers)
+            .finish()
+    }
 }
 
 impl XkbState {
     #[cfg(wayland_platform)]
+    pub fn is_rust_backend(&self) -> bool {
+        self.rust_state.is_some()
+    }
+
+    #[cfg(wayland_platform)]
     pub fn new_wayland(keymap: &XkbKeymap) -> Option<Self> {
-        let state = NonNull::new(unsafe { (XKBH.xkb_state_new)(keymap.as_ptr()) })?;
-        Some(Self::new_inner(state))
+        let state = rxkb::State::new(keymap.rust_keymap.clone()?);
+        Some(Self::new_rust(state))
     }
 
     #[cfg(x11_platform)]
@@ -37,26 +74,55 @@ impl XkbState {
         Some(Self::new_inner(state))
     }
 
+    #[cfg(wayland_platform)]
+    fn new_rust(state: rxkb::State) -> Self {
+        let modifiers = ModifiersState::default();
+        let mut this = Self {
+            rust_state: Some(state),
+            #[cfg(x11_platform)]
+            state: None,
+            modifiers,
+        };
+        this.reload_modifiers();
+        this
+    }
+
     fn new_inner(state: NonNull<xkb_state>) -> Self {
         let modifiers = ModifiersState::default();
-        let mut this = Self { state, modifiers };
+        let mut this = Self {
+            #[cfg(wayland_platform)]
+            rust_state: None,
+            #[cfg(x11_platform)]
+            state: Some(state),
+            modifiers,
+        };
         this.reload_modifiers();
         this
     }
 
     pub fn get_one_sym_raw(&mut self, keycode: xkb_keycode_t) -> xkb_keysym_t {
-        unsafe { (XKBH.xkb_state_key_get_one_sym)(self.state.as_ptr(), keycode) }
+        #[cfg(wayland_platform)]
+        if let Some(state) = &self.rust_state {
+            return state.key_get_one_sym(keycode).map(|sym| sym.raw()).unwrap_or(0);
+        }
+
+        unsafe { (XKBH.xkb_state_key_get_one_sym)(self.state.expect("X11 state missing").as_ptr(), keycode) }
     }
 
     pub fn layout(&mut self, key: xkb_keycode_t) -> xkb_layout_index_t {
-        unsafe { (XKBH.xkb_state_key_get_layout)(self.state.as_ptr(), key) }
+        #[cfg(wayland_platform)]
+        if let Some(state) = &self.rust_state {
+            return state.key_get_layout(key).and_then(|layout| layout.try_into().ok()).unwrap_or(0);
+        }
+
+        unsafe { (XKBH.xkb_state_key_get_layout)(self.state.expect("X11 state missing").as_ptr(), key) }
     }
 
     #[cfg(x11_platform)]
     pub fn depressed_modifiers(&mut self) -> xkb::xkb_mod_mask_t {
         unsafe {
             (XKBH.xkb_state_serialize_mods)(
-                self.state.as_ptr(),
+                self.state.expect("X11 state missing").as_ptr(),
                 xkb_state_component::XKB_STATE_MODS_DEPRESSED,
             )
         }
@@ -66,7 +132,7 @@ impl XkbState {
     pub fn latched_modifiers(&mut self) -> xkb::xkb_mod_mask_t {
         unsafe {
             (XKBH.xkb_state_serialize_mods)(
-                self.state.as_ptr(),
+                self.state.expect("X11 state missing").as_ptr(),
                 xkb_state_component::XKB_STATE_MODS_LATCHED,
             )
         }
@@ -76,7 +142,7 @@ impl XkbState {
     pub fn locked_modifiers(&mut self) -> xkb::xkb_mod_mask_t {
         unsafe {
             (XKBH.xkb_state_serialize_mods)(
-                self.state.as_ptr(),
+                self.state.expect("X11 state missing").as_ptr(),
                 xkb_state_component::XKB_STATE_MODS_LOCKED,
             )
         }
@@ -87,8 +153,14 @@ impl XkbState {
         keycode: xkb_keycode_t,
         scratch_buffer: &mut Vec<u8>,
     ) -> Option<SmolStr> {
+        #[cfg(wayland_platform)]
+        if let Some(state) = &self.rust_state {
+            let utf8 = state.key_get_utf8(keycode)?;
+            return super::byte_slice_to_smol_str(&utf8);
+        }
+
         make_string_with(scratch_buffer, |ptr, len| unsafe {
-            (XKBH.xkb_state_key_get_utf8)(self.state.as_ptr(), keycode, ptr, len)
+            (XKBH.xkb_state_key_get_utf8)(self.state.expect("X11 state missing").as_ptr(), keycode, ptr, len)
         })
     }
 
@@ -105,9 +177,26 @@ impl XkbState {
         latched_group: u32,
         locked_group: u32,
     ) {
+        #[cfg(wayland_platform)]
+        if let Some(state) = self.rust_state.as_mut() {
+            let mask = state.update_mask(
+                mods_depressed,
+                mods_latched,
+                mods_locked,
+                usize::try_from(depressed_group).unwrap_or(0),
+                usize::try_from(latched_group).unwrap_or(0),
+                usize::try_from(locked_group).unwrap_or(0),
+            );
+
+            if mask.contains(rxkb::xkb_state::StateComponent::MODS_EFFECTIVE) {
+                self.reload_modifiers();
+            }
+            return;
+        }
+
         let mask = unsafe {
             (XKBH.xkb_state_update_mask)(
-                self.state.as_ptr(),
+                self.state.expect("X11 state missing").as_ptr(),
                 mods_depressed,
                 mods_latched,
                 mods_locked,
@@ -135,9 +224,19 @@ impl XkbState {
 
     /// Check if the modifier is active within xkb.
     fn mod_name_is_active(&mut self, name: &[u8]) -> bool {
+        #[cfg(wayland_platform)]
+        if let Some(state) = &self.rust_state {
+            let Ok(name) = std::str::from_utf8(&name[..name.len().saturating_sub(1)]) else {
+                return false;
+            };
+            return state
+                .mod_name_is_active(name, rxkb::xkb_state::StateComponent::MODS_EFFECTIVE)
+                .unwrap_or(false);
+        }
+
         unsafe {
             (XKBH.xkb_state_mod_name_is_active)(
-                self.state.as_ptr(),
+                self.state.expect("X11 state missing").as_ptr(),
                 name.as_ptr() as *const c_char,
                 xkb_state_component::XKB_STATE_MODS_EFFECTIVE,
             ) > 0
@@ -147,8 +246,11 @@ impl XkbState {
 
 impl Drop for XkbState {
     fn drop(&mut self) {
-        unsafe {
-            (XKBH.xkb_state_unref)(self.state.as_ptr());
+        #[cfg(x11_platform)]
+        if let Some(state) = self.state {
+            unsafe {
+                (XKBH.xkb_state_unref)(state.as_ptr());
+            }
         }
     }
 }

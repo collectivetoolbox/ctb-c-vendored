@@ -8,6 +8,8 @@ use smol_str::SmolStr;
 #[cfg(wayland_platform)]
 use std::os::unix::io::OwnedFd;
 use tracing::warn;
+#[cfg(wayland_platform)]
+use xkbcommon_rs as rxkb;
 use xkbcommon_dl::{
     self as xkb, xkb_compose_status, xkb_context, xkb_context_flags, xkbcommon_compose_handle,
     xkbcommon_handle, XkbCommon, XkbCommonCompose,
@@ -66,10 +68,6 @@ pub struct Context {
 
 impl Context {
     pub fn new() -> Result<Self, Error> {
-        if xkb::xkbcommon_option().is_none() {
-            return Err(Error::XKBNotFound);
-        }
-
         let context = XkbContext::new()?;
         let mut compose_table = XkbComposeTable::new(&context);
         let mut compose_state1 = compose_table.as_ref().and_then(|table| table.new_state());
@@ -114,7 +112,17 @@ impl Context {
             return Err(Error::XKBNotFound);
         }
 
-        let mut this = Self::new()?;
+        let mut this = Self {
+            #[cfg(x11_platform)]
+            core_keyboard_id: 0,
+            state: None,
+            keymap: None,
+            compose_state1: None,
+            compose_state2: None,
+            _compose_table: None,
+            context: XkbContext::new_x11()?,
+            scratch_buffer: Vec::with_capacity(8),
+        };
         this.core_keyboard_id = unsafe { (XKBXH.xkb_x11_get_core_keyboard_device_id)(xcb) };
         this.set_keymap_from_x11(xcb);
         Ok(this)
@@ -205,6 +213,13 @@ impl KeyContext<'_> {
     }
 
     fn keysym_to_utf8_raw(&mut self, keysym: u32) -> Option<SmolStr> {
+        #[cfg(wayland_platform)]
+        if self.state.is_rust_backend() {
+            let keysym = rxkb::keysym::Keysym::from(keysym);
+            return rxkb::keysym::keysym_to_utf8(&keysym)
+                .and_then(|utf8| byte_slice_to_smol_str(&utf8));
+        }
+
         self.scratch_buffer.clear();
         self.scratch_buffer.reserve(8);
         loop {
@@ -344,13 +359,64 @@ impl<'a, 'b> KeyEventResults<'a, 'b> {
     }
 }
 
-#[derive(Debug)]
 pub struct XkbContext {
-    context: NonNull<xkb_context>,
+    #[cfg(wayland_platform)]
+    rust_context: Option<rxkb::Context>,
+    #[cfg(x11_platform)]
+    x11_context: Option<NonNull<xkb_context>>,
+}
+
+impl std::fmt::Debug for XkbContext {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("XkbContext")
+            .field("rust_backend", &{
+                #[cfg(wayland_platform)]
+                {
+                    self.rust_context.is_some()
+                }
+                #[cfg(not(wayland_platform))]
+                {
+                    false
+                }
+            })
+            .field("x11_backend", &{
+                #[cfg(x11_platform)]
+                {
+                    self.x11_context.is_some()
+                }
+                #[cfg(not(x11_platform))]
+                {
+                    false
+                }
+            })
+            .finish()
+    }
 }
 
 impl XkbContext {
     pub fn new() -> Result<Self, Error> {
+        #[cfg(wayland_platform)]
+        {
+            let context = rxkb::Context::new(0).map_err(|_| Error::XKBNotFound)?;
+            return Ok(Self {
+                rust_context: Some(context),
+                #[cfg(x11_platform)]
+                x11_context: None,
+            });
+        }
+
+        #[cfg(not(wayland_platform))]
+        {
+            Self::new_x11()
+        }
+    }
+
+    #[cfg(x11_platform)]
+    pub fn new_x11() -> Result<Self, Error> {
+        if xkb::xkbcommon_option().is_none() {
+            return Err(Error::XKBNotFound);
+        }
+
         let context = unsafe { (XKBH.xkb_context_new)(xkb_context_flags::XKB_CONTEXT_NO_FLAGS) };
 
         let context = match NonNull::new(context) {
@@ -358,14 +424,26 @@ impl XkbContext {
             None => return Err(Error::XKBNotFound),
         };
 
-        Ok(Self { context })
+        Ok(Self {
+            #[cfg(wayland_platform)]
+            rust_context: None,
+            x11_context: Some(context),
+        })
+    }
+
+    #[cfg(wayland_platform)]
+    pub fn is_rust_backend(&self) -> bool {
+        self.rust_context.is_some()
     }
 }
 
 impl Drop for XkbContext {
     fn drop(&mut self) {
-        unsafe {
-            (XKBH.xkb_context_unref)(self.context.as_ptr());
+        #[cfg(x11_platform)]
+        if let Some(context) = self.x11_context {
+            unsafe {
+                (XKBH.xkb_context_unref)(context.as_ptr());
+            }
         }
     }
 }
@@ -374,7 +452,15 @@ impl Deref for XkbContext {
     type Target = NonNull<xkb_context>;
 
     fn deref(&self) -> &Self::Target {
-        &self.context
+        #[cfg(x11_platform)]
+        {
+            self.x11_context.as_ref().expect("X11 xkb context is unavailable")
+        }
+
+        #[cfg(not(x11_platform))]
+        {
+            panic!("X11 xkb context is unavailable")
+        }
     }
 }
 
