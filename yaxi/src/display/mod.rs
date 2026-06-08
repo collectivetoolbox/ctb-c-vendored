@@ -381,8 +381,16 @@ impl Display {
         Ok(display)
     }
 
-    pub fn refresh_xid_allocator(&self) -> Result<(), Error> {
-        xid::setup(self.setup.resource_id_base, self.setup.resource_id_mask)
+    pub fn refresh_xid_allocator_at(&self, next: u32) -> Result<(), Error> {
+        xid::setup_with_next(
+            self.setup.resource_id_base,
+            self.setup.resource_id_mask,
+            next,
+        )
+    }
+
+    pub fn xid_mask(&self) -> u32 {
+        self.setup.resource_id_mask
     }
 
     /// wait for the next event

@@ -50,15 +50,34 @@ impl Xid {
     }
 }
 
-pub fn setup(base: u32, mask: u32) -> Result<(), Error> {
-    let mut lock = lock!(XID)?;
+fn set_allocator_state(lock: &mut Xid, base: u32, mask: u32, next: u32) -> Result<(), Error> {
+    let increment = mask & mask.wrapping_neg();
+    if mask == 0 || increment == 0 {
+        return Err(Error::RanOutOfXid);
+    }
+
+    if next & !mask != 0 {
+        return Err(Error::InvalidId);
+    }
 
     lock.base = base;
     lock.mask = mask;
-    lock.next = 0;
-    lock.increment = mask & mask.wrapping_neg();
+    lock.next = next;
+    lock.increment = increment;
 
     Ok(())
+}
+
+pub fn setup(base: u32, mask: u32) -> Result<(), Error> {
+    let mut lock = lock!(XID)?;
+
+    set_allocator_state(&mut lock, base, mask, 0)
+}
+
+pub fn setup_with_next(base: u32, mask: u32, next: u32) -> Result<(), Error> {
+    let mut lock = lock!(XID)?;
+
+    set_allocator_state(&mut lock, base, mask, next)
 }
 
 pub fn next() -> Result<u32, Error> {
