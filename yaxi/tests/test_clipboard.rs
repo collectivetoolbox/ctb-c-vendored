@@ -9,12 +9,17 @@ mod tests {
     use serial_test::serial;
     use yaxi::clipboard::*;
 
+    fn run_with_clipboard<T>(f: impl FnOnce(&Clipboard) -> T) -> T {
+        let clipboard = Clipboard::new(None).unwrap();
+        let result = f(&clipboard);
+        std::mem::forget(clipboard);
+        result
+    }
+
     #[test]
     #[serial]
     fn test_clipboard_get_targets() {
-        let clipboard = Clipboard::new(None).unwrap();
-
-        let result = clipboard.get_targets_with_name();
+        let result = run_with_clipboard(|clipboard| clipboard.get_targets_with_name());
         println!("{:?}", result);
         assert!(result.is_ok());
     }
@@ -22,12 +27,12 @@ mod tests {
     #[test]
     #[serial]
     fn test_clipboard_clear() {
-        let clipboard = Clipboard::new(None).unwrap();
-
-        let result = clipboard.clear();
+        let (result, text) = run_with_clipboard(|clipboard| {
+            let result = clipboard.clear();
+            let text = clipboard.get_text();
+            (result, text)
+        });
         assert!(result.is_ok());
-
-        let text = clipboard.get_text();
         assert!(text.is_ok());
         assert_eq!(None, text.unwrap());
     }
@@ -35,21 +40,19 @@ mod tests {
     #[test]
     #[serial]
     fn test_clipboard_write_image() {
-        let clipboard = Clipboard::new(None).unwrap();
-
         let data = include_bytes!("../assets/logo1.png");
         let bytes = data.to_vec();
 
-        let result = clipboard.set_image(bytes, ImageFormat::Png);
+        let result = run_with_clipboard(|clipboard| {
+            clipboard.set_image(bytes, ImageFormat::Png)
+        });
         assert!(result.is_ok());
     }
 
     #[test]
     #[serial]
     fn test_clipboard_get_image() {
-        let clipboard = Clipboard::new(None).unwrap();
-
-        let result = clipboard.get_image();
+        let result = run_with_clipboard(|clipboard| clipboard.get_image());
         assert!(result.is_ok());
 
         if let Ok(Some(image)) = result {
@@ -60,30 +63,24 @@ mod tests {
     #[test]
     #[serial]
     fn test_clipboard_write_uri_list() {
-        let clipboard = Clipboard::new(None).unwrap();
-
         let path = std::path::Path::new("tests/test_clipboard.rs");
         assert!(path.exists());
 
         let uris = vec![path];
-        let result = clipboard.set_uri_list(&uris);
+        let result = run_with_clipboard(|clipboard| clipboard.set_uri_list(&uris));
         assert!(result.is_ok());
     }
 
     #[test]
     #[serial]
     fn test_clipboard_read_uri_list() {
-        let clipboard = Clipboard::new(None).unwrap();
-
-        let result = clipboard.get_uri_list();
+        let result = run_with_clipboard(|clipboard| clipboard.get_uri_list());
         assert!(result.is_ok());
     }
 
     #[test]
     #[serial]
     fn test_clipboard_write_html() {
-        let clipboard = Clipboard::new(None).unwrap();
-
         let now = SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
@@ -91,16 +88,14 @@ mod tests {
         let html = format!("<html><body>test {}</body></html>", now);
         let alt = Some(format!("test {}", now));
 
-        let result = clipboard.set_html(&html, alt.as_deref());
+        let result = run_with_clipboard(|clipboard| clipboard.set_html(&html, alt.as_deref()));
         assert!(result.is_ok());
     }
 
     #[test]
     #[serial]
     fn test_clipboard_read_html() {
-        let clipboard = Clipboard::new(None).unwrap();
-
-        let result = clipboard.get_html();
+        let result = run_with_clipboard(|clipboard| clipboard.get_html());
         println!("{:?}", result);
         assert!(result.is_ok());
     }
@@ -108,8 +103,6 @@ mod tests {
     #[test]
     #[serial]
     fn test_clipboard_text_consistency() {
-        let clipboard = Clipboard::new(None).unwrap();
-
         let time = SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
@@ -117,9 +110,14 @@ mod tests {
 
         let excepted = format!("test-{}", time);
 
-        let result = clipboard.set_text(&excepted);
+        let (result, text) = run_with_clipboard(|clipboard| {
+            let result = clipboard.set_text(&excepted);
+            let text = clipboard.get_text();
+            (result, text)
+        });
+
         assert!(result.is_ok());
-        let text = clipboard.get_text().unwrap();
+        let text = text.unwrap();
 
         assert_eq!(Some(excepted.clone()), text);
     }
@@ -127,22 +125,19 @@ mod tests {
     #[test]
     #[serial]
     fn test_clipboard_write_text() {
-        let clipboard = Clipboard::new(None).unwrap();
         let now = SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_millis();
         let excepted = format!("test {}", now);
-        let result = clipboard.set_text(&excepted);
+        let result = run_with_clipboard(|clipboard| clipboard.set_text(&excepted));
         assert!(result.is_ok());
     }
 
     #[test]
     #[serial]
     fn test_clipboard_read_text() {
-        let clipboard = Clipboard::new(None).unwrap();
-
-        let result = clipboard.get_text();
+        let result = run_with_clipboard(|clipboard| clipboard.get_text());
         assert!(result.is_ok());
     }
 

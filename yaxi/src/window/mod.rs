@@ -302,7 +302,7 @@ impl Window {
                 depth: screen.response.root_depth,
                 id,
             }),
-            _ => unreachable!(),
+            _ => Err(Error::NoReply),
         }
     }
 

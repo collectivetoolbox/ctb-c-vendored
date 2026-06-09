@@ -590,7 +590,7 @@ impl Display {
 
         match self.replies.wait()? {
             Reply::GetSelectionOwner(response) => Ok((response.owner != 0).then(|| response.owner)),
-            _ => unreachable!(),
+            _ => Err(Error::NoReply),
         }
     }
 
