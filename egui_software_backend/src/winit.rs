@@ -241,13 +241,21 @@ impl<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp>
                 "softbuffer::Surface::new",
             ))?;
 
+        struct CustomClipboard;
+        impl egui_winit::Clipboard for CustomClipboard {
+            fn get(&mut self) -> Option<String> {
+                None
+            }
+            fn set(&mut self, _text: &str) {}
+        }
+
         let egui_winit = egui_winit::State::new(
             self.egui_context.clone(),
             egui::ViewportId::ROOT,
             &self.window,
             Some(self.window.scale_factor() as f32),
             None,
-            None,
+            Some(Box::new(CustomClipboard)),
         );
 
         let egui_app = (self.egui_app_factory)(self.egui_context.clone());
