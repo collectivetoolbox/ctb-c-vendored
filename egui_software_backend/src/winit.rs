@@ -723,7 +723,11 @@ impl<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp>
                                     self.input_events.push(egui::Event::Copy);
                                 }
                                 ViewportCommand::RequestPaste => {
-                                    if let Some(content) = self.egui_winit.clipboard_text() {
+                                    if std::env::var_os("WAYLAND_DISPLAY").is_some() {
+                                        if let Some(content) = read_wayland_clipboard() {
+                                            self.input_events.push(egui::Event::Paste(content));
+                                        }
+                                    } else if let Some(content) = self.egui_winit.clipboard_text() {
                                         self.input_events.push(egui::Event::Paste(content));
                                     }
                                 }
@@ -763,6 +767,21 @@ impl<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp>
                         }
                     });
                 });
+
+                if std::env::var_os("WAYLAND_DISPLAY").is_some() {
+                    for command in &full_output.platform_output.commands {
+                        if let egui::OutputCommand::CopyText(text) = command {
+                            write_wayland_clipboard(text);
+                        }
+                    }
+
+                    for event in &full_output.platform_output.events {
+                        let info = event.widget_info();
+                        if let Some(text) = primary_selection_text(info) {
+                            write_wayland_primary_clipboard(&text);
+                        }
+                    }
+                }
 
                 //Makes the clipboard work.
                 self.egui_winit
@@ -824,6 +843,27 @@ impl<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp>
             WindowEvent::CloseRequested => {
                 self.egui_app.on_exit(&self.egui_context);
                 elwt.exit();
+            }
+            WindowEvent::MouseInput {
+                state: winit::event::ElementState::Released,
+                button: winit::event::MouseButton::Middle,
+                ..
+            } => {
+                if std::env::var_os("WAYLAND_DISPLAY").is_some() {
+                    if let Some(content) = read_wayland_primary_clipboard() {
+                        let content = content.replace("\r\n", "\n");
+                        if !content.is_empty() {
+                            self.input_events.push(egui::Event::Paste(content));
+                            self.window.request_redraw();
+                        }
+                    }
+                }
+                let response = self
+                    .egui_winit
+                    .on_window_event(self.window.deref(), &window_event);
+                if response.repaint {
+                    self.window.request_redraw();
+                }
             }
             _ => {
                 let response = self
@@ -1291,4 +1331,45 @@ fn write_wayland_clipboard(text: &str) {
         }
         let _ = child.wait();
     }
+}
+
+fn read_wayland_primary_clipboard() -> Option<String> {
+    use std::process::Command;
+    let output = Command::new("wl-paste")
+        .arg("--primary")
+        .arg("--no-newline")
+        .output()
+        .ok()?;
+    if output.status.success() {
+        String::from_utf8(output.stdout).ok()
+    } else {
+        None
+    }
+}
+
+fn write_wayland_primary_clipboard(text: &str) {
+    use std::process::{Command, Stdio};
+    use std::io::Write;
+    if let Ok(mut child) = Command::new("wl-copy")
+        .arg("--primary")
+        .stdin(Stdio::piped())
+        .spawn()
+    {
+        if let Some(mut stdin) = child.stdin.take() {
+            let _ = stdin.write_all(text.as_bytes());
+        }
+        let _ = child.wait();
+    }
+}
+
+fn primary_selection_text(info: &egui::WidgetInfo) -> Option<String> {
+    let text = info.current_text_value.as_ref()?;
+    let selection = info.text_selection.as_ref()?;
+    let start = (*selection.start()).min(*selection.end());
+    let end = (*selection.start()).max(*selection.end());
+    if start == end {
+        return None;
+    }
+
+    Some(text.chars().skip(start).take(end - start).collect())
 }
