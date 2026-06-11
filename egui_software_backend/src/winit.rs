@@ -241,21 +241,13 @@ impl<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp>
                 "softbuffer::Surface::new",
             ))?;
 
-        struct CustomClipboard;
-        impl egui_winit::Clipboard for CustomClipboard {
-            fn get(&mut self) -> Option<String> {
-                None
-            }
-            fn set(&mut self, _text: &str) {}
-        }
-
         let egui_winit = egui_winit::State::new(
             self.egui_context.clone(),
             egui::ViewportId::ROOT,
             &self.window,
             Some(self.window.scale_factor() as f32),
             None,
-            Some(Box::new(CustomClipboard)),
+            None,
         );
 
         let egui_app = (self.egui_app_factory)(self.egui_context.clone());
@@ -1272,4 +1264,31 @@ pub fn run_app_with_software_backend<T: App>(
     }
 
     Ok(())
+}
+
+fn read_wayland_clipboard() -> Option<String> {
+    use std::process::Command;
+    let output = Command::new("wl-paste")
+        .arg("--no-newline")
+        .output()
+        .ok()?;
+    if output.status.success() {
+        String::from_utf8(output.stdout).ok()
+    } else {
+        None
+    }
+}
+
+fn write_wayland_clipboard(text: &str) {
+    use std::process::{Command, Stdio};
+    use std::io::Write;
+    if let Ok(mut child) = Command::new("wl-copy")
+        .stdin(Stdio::piped())
+        .spawn()
+    {
+        if let Some(mut stdin) = child.stdin.take() {
+            let _ = stdin.write_all(text.as_bytes());
+        }
+        let _ = child.wait();
+    }
 }
