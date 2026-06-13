@@ -1,6 +1,6 @@
 [package]
 name = "matchbox_socket"
-version = "0.13.0"
+version = "0.14.0"
 authors = ["Johan Helsing <johanhelsing@gmail.com>"]
 description = "Painless WebRTC peer-to-peer full-mesh networking socket"
 edition = "2024"
@@ -18,7 +18,7 @@ repository = "https://github.com/johanhelsing/matchbox"
 ggrs = ["dep:bincode", "dep:ggrs"]
 
 [dependencies]
-matchbox_protocol = { version = "0.13", path = "../matchbox_protocol", default-features = false }
+matchbox_protocol = { version = "0.14", path = "../matchbox_protocol", default-features = false }
 futures-channel = { version = "0.3", default-features = false, features = [
   "sink",
 ] }
@@ -79,11 +79,11 @@ web-sys = { version = "0.3.22", default-features = false, features = [
 serde-wasm-bindgen = "0.6"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-async-tungstenite = { version = "0.31", default-features = false, features = [
+async-tungstenite = { version = "0.32", default-features = false, features = [
   "async-std-runtime",
   "async-tls",
 ] }
-webrtc = { version = "0.14", default-features = false }
+webrtc = { version = "0.17", default-features = false }
 async-compat = { version = "0.2", default-features = false }
 
 [dev-dependencies]

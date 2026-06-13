@@ -146,15 +146,15 @@ version = "0.2"
 default-features = false
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies.async-tungstenite]
-version = "0.32"
+version = "0.31"
 features = [
-    "async-std-runtime",
-    "async-tls",
+    "tokio-runtime",
+    "tokio-rustls-webpki-roots",
 ]
 default-features = false
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies.webrtc]
-version = "0.17"
+version = "0.14"
 default-features = false
 
 [target.'cfg(target_arch = "wasm32")'.dependencies.futures-timer]
