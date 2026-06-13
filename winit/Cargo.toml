@@ -13,6 +13,7 @@ categories = ["gui"]
 # rust-version.workspace = true
 # repository.workspace = true
 # license.workspace = true
+license = "Apache-2.0"
 edition = "2021"
 resolver = "2"
 include = [
