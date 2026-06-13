@@ -1,6 +1,6 @@
 diff -uraN original-egui/Cargo.toml ./egui/Cargo.toml
---- original-egui/Cargo.toml	2026-06-07 22:58:51.714003750 -0400
-+++ ./egui/Cargo.toml	2026-06-07 22:58:51.718003814 -0400
+--- original-egui/Cargo.toml	2026-06-13 11:58:22.451086483 -0400
++++ ./egui/Cargo.toml	2026-06-13 11:58:22.451086483 -0400
 @@ -1,17 +1,18 @@
  [package]
  name = "egui"
@@ -67,8 +67,8 @@ diff -uraN original-egui/Cargo.toml ./egui/Cargo.toml
 +serde = { optional = true, version = "1.0.228", features = ["derive", "rc"] }
 \ No newline at end of file
 diff -uraN original-egui/src/lib.rs ./egui/src/lib.rs
---- original-egui/src/lib.rs	2026-06-07 22:58:51.714003750 -0400
-+++ ./egui/src/lib.rs	2026-06-07 22:58:51.718003814 -0400
+--- original-egui/src/lib.rs	2026-06-13 11:58:22.451086483 -0400
++++ ./egui/src/lib.rs	2026-06-13 11:58:22.451086483 -0400
 @@ -488,8 +488,8 @@
          Key, UserData,
          input::*,
@@ -81,8 +81,8 @@ diff -uraN original-egui/src/lib.rs ./egui/src/lib.rs
      },
      drag_and_drop::DragAndDrop,
 diff -uraN original-egui/src/memory/mod.rs ./egui/src/memory/mod.rs
---- original-egui/src/memory/mod.rs	2026-06-07 22:58:51.714003750 -0400
-+++ ./egui/src/memory/mod.rs	2026-06-07 22:58:51.718003814 -0400
+--- original-egui/src/memory/mod.rs	2026-06-13 11:58:22.447086403 -0400
++++ ./egui/src/memory/mod.rs	2026-06-13 11:58:22.451086483 -0400
 @@ -481,7 +481,16 @@
      last_interested: Option<Id>,
  
@@ -301,8 +301,8 @@ diff -uraN original-egui/src/memory/mod.rs ./egui/src/memory/mod.rs
  
      /// Returns true if
 diff -uraN original-egui/src/response.rs ./egui/src/response.rs
---- original-egui/src/response.rs	2026-06-07 22:58:51.714003750 -0400
-+++ ./egui/src/response.rs	2026-06-07 22:58:51.718003814 -0400
+--- original-egui/src/response.rs	2026-06-13 11:58:22.451086483 -0400
++++ ./egui/src/response.rs	2026-06-13 11:58:22.451086483 -0400
 @@ -6,6 +6,7 @@
      emath::{Align, Pos2, Rect, Vec2},
      pass_state,
@@ -328,8 +328,8 @@ diff -uraN original-egui/src/response.rs ./egui/src/response.rs
      ///
      /// This is only true if the widget sense drags.
 diff -uraN original-egui_software_backend/Cargo.toml ./egui_software_backend/Cargo.toml
---- original-egui_software_backend/Cargo.toml	2026-06-07 22:58:51.938007348 -0400
-+++ ./egui_software_backend/Cargo.toml	2026-06-07 22:58:51.942007412 -0400
+--- original-egui_software_backend/Cargo.toml	2026-06-13 11:58:22.595089359 -0400
++++ ./egui_software_backend/Cargo.toml	2026-06-13 11:58:22.595089359 -0400
 @@ -8,6 +8,12 @@
  readme = "README.md"
  license = "MIT OR Apache-2.0"
@@ -431,8 +431,8 @@ diff -uraN original-egui_software_backend/Cargo.toml ./egui_software_backend/Car
  
  allow_attributes = "warn"
 diff -uraN original-egui_software_backend/src/lib.rs ./egui_software_backend/src/lib.rs
---- original-egui_software_backend/src/lib.rs	2026-06-07 22:58:51.938007348 -0400
-+++ ./egui_software_backend/src/lib.rs	2026-06-07 22:58:51.938007348 -0400
+--- original-egui_software_backend/src/lib.rs	2026-06-13 11:58:22.595089359 -0400
++++ ./egui_software_backend/src/lib.rs	2026-06-13 11:58:22.595089359 -0400
 @@ -231,6 +231,17 @@
          }
      }
@@ -452,8 +452,8 @@ diff -uraN original-egui_software_backend/src/lib.rs ./egui_software_backend/src
      ///
      /// # Arguments
 diff -uraN original-egui_software_backend/src/render.rs ./egui_software_backend/src/render.rs
---- original-egui_software_backend/src/render.rs	2026-06-07 22:58:51.938007348 -0400
-+++ ./egui_software_backend/src/render.rs	2026-06-07 22:58:51.938007348 -0400
+--- original-egui_software_backend/src/render.rs	2026-06-13 11:58:22.595089359 -0400
++++ ./egui_software_backend/src/render.rs	2026-06-13 11:58:22.595089359 -0400
 @@ -49,7 +49,10 @@
          )
      }
@@ -467,8 +467,8 @@ diff -uraN original-egui_software_backend/src/render.rs ./egui_software_backend/
          textures,
          buffer,
 diff -uraN original-egui_software_backend/src/winit.rs ./egui_software_backend/src/winit.rs
---- original-egui_software_backend/src/winit.rs	2026-06-07 22:58:51.938007348 -0400
-+++ ./egui_software_backend/src/winit.rs	2026-06-07 22:58:51.938007348 -0400
+--- original-egui_software_backend/src/winit.rs	2026-06-13 11:58:22.595089359 -0400
++++ ./egui_software_backend/src/winit.rs	2026-06-13 11:58:22.595089359 -0400
 @@ -7,7 +7,7 @@
  use std::boxed::Box;
  use std::error::Error;
@@ -689,7 +689,42 @@ diff -uraN original-egui_software_backend/src/winit.rs ./egui_software_backend/s
                  raw_input
                      .events
                      .extend_from_slice(self.input_events.as_slice());
-@@ -702,12 +772,31 @@
+@@ -653,7 +723,11 @@
+                                     self.input_events.push(egui::Event::Copy);
+                                 }
+                                 ViewportCommand::RequestPaste => {
+-                                    if let Some(content) = self.egui_winit.clipboard_text() {
++                                    if std::env::var_os("WAYLAND_DISPLAY").is_some() {
++                                        if let Some(content) = read_wayland_clipboard() {
++                                            self.input_events.push(egui::Event::Paste(content));
++                                        }
++                                    } else if let Some(content) = self.egui_winit.clipboard_text() {
+                                         self.input_events.push(egui::Event::Paste(content));
+                                     }
+                                 }
+@@ -694,6 +768,21 @@
+                     });
+                 });
+ 
++                if std::env::var_os("WAYLAND_DISPLAY").is_some() {
++                    for command in &full_output.platform_output.commands {
++                        if let egui::OutputCommand::CopyText(text) = command {
++                            write_wayland_clipboard(text);
++                        }
++                    }
++
++                    for event in &full_output.platform_output.events {
++                        let info = event.widget_info();
++                        if let Some(text) = primary_selection_text(info) {
++                            write_wayland_primary_clipboard(&text);
++                        }
++                    }
++                }
++
+                 //Makes the clipboard work.
+                 self.egui_winit
+                     .handle_platform_output(self.window.deref(), full_output.platform_output);
+@@ -702,12 +791,31 @@
                      .egui_context
                      .tessellate(full_output.shapes, full_output.pixels_per_point);
  
@@ -726,7 +761,35 @@ diff -uraN original-egui_software_backend/src/winit.rs ./egui_software_backend/s
                  buffer.fill(0); // CLEAR
  
                  let buffer_ref = &mut BufferMutRef::new(
-@@ -783,6 +872,13 @@
+@@ -736,6 +844,27 @@
+                 self.egui_app.on_exit(&self.egui_context);
+                 elwt.exit();
+             }
++            WindowEvent::MouseInput {
++                state: winit::event::ElementState::Released,
++                button: winit::event::MouseButton::Middle,
++                ..
++            } => {
++                if std::env::var_os("WAYLAND_DISPLAY").is_some() {
++                    if let Some(content) = read_wayland_primary_clipboard() {
++                        let content = content.replace("\r\n", "\n");
++                        if !content.is_empty() {
++                            self.input_events.push(egui::Event::Paste(content));
++                            self.window.request_redraw();
++                        }
++                    }
++                }
++                let response = self
++                    .egui_winit
++                    .on_window_event(self.window.deref(), &window_event);
++                if response.repaint {
++                    self.window.request_redraw();
++                }
++            }
+             _ => {
+                 let response = self
+                     .egui_winit
+@@ -783,6 +912,13 @@
  }
  
  impl SoftwareBackend {
@@ -740,7 +803,7 @@ diff -uraN original-egui_software_backend/src/winit.rs ./egui_software_backend/s
      /// Returns true if the frame time for the next frame is captured.
      pub fn is_capture_frame_time(&self) -> bool {
          self.capture_frame_time
-@@ -1128,10 +1224,11 @@
+@@ -1128,10 +1264,11 @@
      let egui_ctx = Context::default();
  
      let event_loop_proxy = event_loop.create_proxy();
@@ -753,7 +816,7 @@ diff -uraN original-egui_software_backend/src/winit.rs ./egui_software_backend/s
              .send_event(UserEvent::RequestRepaint {
                  viewport_id: info.viewport_id,
                  when,
-@@ -1146,6 +1243,7 @@
+@@ -1146,6 +1283,7 @@
          softbuffer_context,
          egui_app_factory,
          egui_ctx,
@@ -761,9 +824,81 @@ diff -uraN original-egui_software_backend/src/winit.rs ./egui_software_backend/s
      );
  
      if let Err(event_loop_error) = event_loop.run_app(&mut app) {
+@@ -1167,3 +1305,71 @@
+ 
+     Ok(())
+ }
++
++fn read_wayland_clipboard() -> Option<String> {
++    use std::process::Command;
++    let output = Command::new("wl-paste")
++        .arg("--no-newline")
++        .output()
++        .ok()?;
++    if output.status.success() {
++        String::from_utf8(output.stdout).ok()
++    } else {
++        None
++    }
++}
++
++fn write_wayland_clipboard(text: &str) {
++    use std::process::{Command, Stdio};
++    use std::io::Write;
++    if let Ok(mut child) = Command::new("wl-copy")
++        .stdin(Stdio::piped())
++        .spawn()
++    {
++        if let Some(mut stdin) = child.stdin.take() {
++            let _ = stdin.write_all(text.as_bytes());
++        }
++        let _ = child.wait();
++    }
++}
++
++fn read_wayland_primary_clipboard() -> Option<String> {
++    use std::process::Command;
++    let output = Command::new("wl-paste")
++        .arg("--primary")
++        .arg("--no-newline")
++        .output()
++        .ok()?;
++    if output.status.success() {
++        String::from_utf8(output.stdout).ok()
++    } else {
++        None
++    }
++}
++
++fn write_wayland_primary_clipboard(text: &str) {
++    use std::process::{Command, Stdio};
++    use std::io::Write;
++    if let Ok(mut child) = Command::new("wl-copy")
++        .arg("--primary")
++        .stdin(Stdio::piped())
++        .spawn()
++    {
++        if let Some(mut stdin) = child.stdin.take() {
++            let _ = stdin.write_all(text.as_bytes());
++        }
++        let _ = child.wait();
++    }
++}
++
++fn primary_selection_text(info: &egui::WidgetInfo) -> Option<String> {
++    let text = info.current_text_value.as_ref()?;
++    let selection = info.text_selection.as_ref()?;
++    let start = (*selection.start()).min(*selection.end());
++    let end = (*selection.start()).max(*selection.end());
++    if start == end {
++        return None;
++    }
++
++    Some(text.chars().skip(start).take(end - start).collect())
++}
 diff -uraN original-egui-winit/Cargo.toml ./egui-winit/Cargo.toml
---- original-egui-winit/Cargo.toml	2026-06-07 22:58:52.170011074 -0400
-+++ ./egui-winit/Cargo.toml	2026-06-07 22:58:52.170011074 -0400
+--- original-egui-winit/Cargo.toml	2026-06-13 11:58:22.751092475 -0400
++++ ./egui-winit/Cargo.toml	2026-06-13 11:58:22.755092556 -0400
 @@ -1,17 +1,18 @@
  [package]
  name = "egui-winit"
@@ -838,7 +973,7 @@ diff -uraN original-egui-winit/Cargo.toml ./egui-winit/Cargo.toml
  
  [target.'cfg(any(target_os="linux", target_os="dragonfly", target_os="freebsd", target_os="netbsd", target_os="openbsd"))'.dependencies]
 -smithay-clipboard = { workspace = true, optional = true }
-+smithay-clipboard = { version = "0.7.2", optional = true }
++smithay-clipboard = { version = "0.7.2", optional = true, default-features = false }
  
  # The wayland-cursor normally selected doesn't properly enable all the features it uses
  # and thus doesn't compile as it is used in egui-winit. This is fixed upstream, so force
@@ -851,8 +986,8 @@ diff -uraN original-egui-winit/Cargo.toml ./egui-winit/Cargo.toml
 +arboard = { version = "3.6.1", optional = true, features = ["image-data"] }
 \ No newline at end of file
 diff -uraN original-egui-winit/src/clipboard.rs ./egui-winit/src/clipboard.rs
---- original-egui-winit/src/clipboard.rs	2026-06-07 22:58:52.170011074 -0400
-+++ ./egui-winit/src/clipboard.rs	2026-06-07 22:58:52.170011074 -0400
+--- original-egui-winit/src/clipboard.rs	2026-06-13 11:58:22.751092475 -0400
++++ ./egui-winit/src/clipboard.rs	2026-06-13 11:58:22.755092556 -0400
 @@ -179,10 +179,15 @@
  
      profiling::function_scope!();
@@ -872,540 +1007,53 @@ diff -uraN original-egui-winit/src/clipboard.rs ./egui-winit/src/clipboard.rs
      } else {
          #[cfg(feature = "wayland")]
          log::debug!("Cannot init smithay clipboard without a Wayland display handle");
-diff -uraN original-kas-text/Cargo.toml ./kas-text/Cargo.toml
---- original-kas-text/Cargo.toml	2026-06-07 22:58:52.818021484 -0400
-+++ ./kas-text/Cargo.toml	2026-06-07 22:58:52.822021548 -0400
-@@ -1,123 +1,70 @@
--# THIS FILE IS AUTOMATICALLY GENERATED BY CARGO
--#
--# When uploading crates to the registry Cargo will automatically
--# "normalize" Cargo.toml files for maximal compatibility
--# with all versions of Cargo and also rewrite `path` dependencies
--# to registry (e.g., crates.io) dependencies.
--#
--# If you are reading this file be aware that the original Cargo.toml
--# will likely look very different (and much more reasonable).
--# See Cargo.toml.orig for the original contents.
--
+diff -uraN original-matchbox_socket/Cargo.toml ./matchbox_socket/Cargo.toml
+--- original-matchbox_socket/Cargo.toml	2026-06-13 11:58:22.919095832 -0400
++++ ./matchbox_socket/Cargo.toml	2026-06-13 11:58:22.919095832 -0400
+@@ -12,7 +12,7 @@
  [package]
--edition = "2024"
--rust-version = "1.88.0"
- name = "kas-text"
- version = "0.9.0"
- authors = ["Diggory Hardy <git@dhardy.name>"]
--build = false
--exclude = ["design"]
--autolib = false
--autobins = false
--autoexamples = false
--autotests = false
--autobenches = false
-+edition = "2024"
-+license = "Apache-2.0"
- description = "Text layout and font management"
--documentation = "https://docs.rs/kas-text/"
- readme = "README.md"
--keywords = [
--    "text",
--    "bidi",
--    "shaping",
--]
-+documentation = "https://docs.rs/kas-text/"
-+keywords = ["text", "bidi", "shaping"]
- categories = ["text-processing"]
--license = "Apache-2.0"
- repository = "https://github.com/kas-gui/kas-text"
-+exclude = ["design"]
-+rust-version = "1.88.0"
- 
- [package.metadata.docs.rs]
-+# To build locally:
-+# cargo +nightly doc --all-features --no-deps --open
- all-features = true
- 
- [features]
--ab_glyph = ["dep:ab_glyph"]
--markdown = ["pulldown-cmark"]
-+# Support num_glyphs method
- num_glyphs = []
--rustybuzz = ["dep:rustybuzz"]
--serde = [
--    "dep:serde",
--    "bitflags/serde",
--]
--shaping = ["rustybuzz"]
--
--[lib]
--name = "kas_text"
--path = "src/lib.rs"
--
--[[test]]
--name = "json"
--path = "tests/json.rs"
- 
--[dependencies.ab_glyph]
--version = "0.2.10"
--optional = true
--
--[dependencies.bitflags]
--version = "2.4.2"
--
--[dependencies.cfg-if]
--version = "1.0.0"
-+# Enable shaping with the default dependency.
-+shaping = ["rustybuzz"]
-+# Enable shaping via rustybuzz.
-+rustybuzz = ["dep:rustybuzz"]
- 
--[dependencies.easy-cast]
--version = "0.5.0"
-+# Enable Markdown parsing
-+markdown = ["pulldown-cmark"]
- 
--[dependencies.fontique]
--version = "0.7.0"
-+# Serialization is optionally supported for some types:
-+serde = ["dep:serde", "bitflags/serde"]
- 
--[dependencies.log]
--version = "0.4"
-+# Optional: expose ab_glyph font face
-+ab_glyph = ["dep:ab_glyph"]
- 
--[dependencies.pulldown-cmark]
+ edition = "2024"
+ name = "matchbox_socket"
 -version = "0.13.0"
--optional = true
-+[dependencies]
-+cfg-if = "1.0.0"
-+easy-cast = "0.5.0"
-+bitflags = "2.4.2"
-+ttf-parser = "0.25.1"
-+smallvec = "1.6.1"
-+tinyvec = { version = "1.9.0", features = ["alloc"] }
-+unicode-bidi = "0.3.4"
-+unicode-bidi-mirroring = "0.4.0"
-+thiserror = "2.0.12"
-+pulldown-cmark = { version = "0.13.0", optional = true }
-+log = "0.4"
-+serde = { version = "1.0.123", features = ["derive"], optional = true }
-+ab_glyph = { version = "0.2.10", optional = true }
-+swash = "0.2.4"
-+fontique = { version = "0.7.0", features = ["std"], default-features = false }
++version = "0.14.0"
+ authors = ["Johan Helsing <johanhelsing@gmail.com>"]
+ build = false
+ autolib = false
+@@ -107,7 +107,7 @@
+ default-features = false
  
- [dependencies.rustybuzz]
- version = "0.20.1"
- optional = true
+ [dependencies.matchbox_protocol]
+-version = "0.13"
++version = "0.14"
+ default-features = false
  
--[dependencies.serde]
--version = "1.0.123"
--features = ["derive"]
--optional = true
--
--[dependencies.smallvec]
--version = "1.6.1"
--
--[dependencies.swash]
--version = "0.2.4"
--
--[dependencies.thiserror]
--version = "2.0.12"
--
--[dependencies.tinyvec]
--version = "1.9.0"
--features = ["alloc"]
--
--[dependencies.ttf-parser]
--version = "0.25.1"
--
--[dependencies.unicode-bidi]
--version = "0.3.4"
--
--[dependencies.unicode-bidi-mirroring]
--version = "0.4.0"
--
--[dev-dependencies.serde_json]
--version = "1.0"
-+[dev-dependencies]
-+serde_json = "1.0"
+ [dependencies.once_cell]
+@@ -148,8 +148,8 @@
+ [target.'cfg(not(target_arch = "wasm32"))'.dependencies.async-tungstenite]
+ version = "0.31"
+ features = [
+-    "async-std-runtime",
+-    "async-tls",
++    "tokio-runtime",
++    "tokio-rustls-webpki-roots",
+ ]
+ default-features = false
  
- [lints.clippy]
- len_zero = "allow"
--manual_is_multiple_of = "allow"
--manual_range_contains = "allow"
--needless_lifetimes = "allow"
--neg_cmp_op_on_partial_ord = "allow"
- type_complexity = "allow"
- unit_arg = "allow"
-+needless_lifetimes = "allow"
-+neg_cmp_op_on_partial_ord = "allow"
-+manual_range_contains = "allow"
-+manual_is_multiple_of = "allow"
-diff -uraN original-kas-text/CHANGELOG.md ./kas-text/CHANGELOG.md
---- original-kas-text/CHANGELOG.md	2026-06-07 22:58:52.818021484 -0400
-+++ ./kas-text/CHANGELOG.md	2026-06-07 22:58:52.822021548 -0400
-@@ -1,70 +1,289 @@
--[package]
--name = "kas-text"
--version = "0.9.0"
--authors = ["Diggory Hardy <git@dhardy.name>"]
--edition = "2024"
--license = "Apache-2.0"
--description = "Text layout and font management"
--readme = "README.md"
--documentation = "https://docs.rs/kas-text/"
--keywords = ["text", "bidi", "shaping"]
--categories = ["text-processing"]
--repository = "https://github.com/kas-gui/kas-text"
--exclude = ["design"]
--rust-version = "1.88.0"
--
--[package.metadata.docs.rs]
--# To build locally:
--# cargo +nightly doc --all-features --no-deps --open
--all-features = true
--
--[features]
--# Support num_glyphs method
--num_glyphs = []
--
--# Enable shaping with the default dependency.
--shaping = ["rustybuzz"]
--# Enable shaping via rustybuzz.
--rustybuzz = ["dep:rustybuzz"]
--
--# Enable Markdown parsing
--markdown = ["pulldown-cmark"]
--
--# Serialization is optionally supported for some types:
--serde = ["dep:serde", "bitflags/serde"]
--
--# Optional: expose ab_glyph font face
--ab_glyph = ["dep:ab_glyph"]
--
--[dependencies]
--cfg-if = "1.0.0"
--easy-cast = "0.5.0"
--bitflags = "2.4.2"
--ttf-parser = "0.25.1"
--smallvec = "1.6.1"
--tinyvec = { version = "1.9.0", features = ["alloc"] }
--unicode-bidi = "0.3.4"
--unicode-bidi-mirroring = "0.4.0"
--thiserror = "2.0.12"
--pulldown-cmark = { version = "0.13.0", optional = true }
--log = "0.4"
--serde = { version = "1.0.123", features = ["derive"], optional = true }
--ab_glyph = { version = "0.2.10", optional = true }
--swash = "0.2.4"
--fontique = "0.7.0"
--
--[dependencies.rustybuzz]
--version = "0.20.1"
--optional = true
--
--[dev-dependencies]
--serde_json = "1.0"
--
--[lints.clippy]
--len_zero = "allow"
--type_complexity = "allow"
--unit_arg = "allow"
--needless_lifetimes = "allow"
--neg_cmp_op_on_partial_ord = "allow"
--manual_range_contains = "allow"
--manual_is_multiple_of = "allow"
-+# Changelog
-+The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
-+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-+
-+## [0.9.0] — 2026-01-26
-+
-+-   Bump MSRV to 1.88 (#104)
-+-   Bump fontique to 0.7.0 (#106, #107)
-+-   Remove `Range` from pub API (#105)
-+-   Remove fn `TextDisplay::line_range` (#105)
-+-   Add fns `{TextDisplay, Text}::{get_line, lines}` (#105)
-+-   Add fns `Line::{text_range, top, bottom}` (#105)
-+-   Add parameter `max_lines` to fn `measure_height` (#105)
-+-   Add fns `FaceStore::{read_name, name_family, name_subfamily, name_full}` (#110)
-+-   Add struct `LineIterator` (#112)
-+-   Support `serde` for `FamilySelector` and `FontSelector` (#113)
-+-   Fixes for run-breaking and font selection (#104, #106, #107, #110)
-+
-+## [0.8.1] — 2025-09-17
-+
-+-   Fix sizing of empty lines by prefering to match some font than nothing (#102)
-+
-+## [0.8.0] — 2025-09-12
-+
-+-   Remove `raster` module (#91)
-+-   Removed `FontLibrary::init` and `Text::configure` (#94)
-+-   Remove support for `harfbuzz_rs` and `fontdue` (#95)
-+-   Remove trait `EditableText` (#98)
-+-   Replace `fontdb` with `fontique`, replacing usage of hard-coded font families and removing configuration of font aliases (#93, #94)
-+-   Revise `FontSelector` type: make into a small `Copy` type and embed in `Text` objects. Replaces usage of pre-resolved `FontId`, allowing font selection to be delayed until run-breaking and to use inferred script. (#94)
-+-   Replace field `Effect::aux` with `Effect::e` (#99)
-+-   Support Swash in font library (#91) and use for text analysis (#94)
-+-   Support font synthesis (#95)
-+-   Add `GlyphRun` type, replacing fns `Text{,Display}::glyphs{,_with_effects}` with `runs` (#96, #99)
-+-   Add fn `TextDisplay::apply_offset` (#98, #100)
-+-   Fix behaviour of `Align::Stretch` in some cases (#100)
-+
-+## [0.7.0] — 2024-12-02
-+
-+-   Add `Direction::AutoRtl`, `text_is_rtl` (#80)
-+-   Set the default font size to 16px (#80)
-+-   `Text` API: do not expose `prepare_runs`, `required_action` (#81); more tweaks (#84)
-+-   Move status tracking and `Env` fields into `Text` (#82)
-+-   Remove `TextApi`, `TextApiExt` and `EditableTextApi` traits (#85)
-+-   Revise `fonts` module: rename `selector::Database` to `Resolver`, separate out `fontdb::Database`, revise `init` (#87, #88)
-+-   Bump MSRV to 1.80.0 (#87)
-+
-+## [0.6.0] — 2022-12-13
-+
-+Stabilise support for Generic Associated Types (GATs). This requires Rust 1.65.0,
-+removes the `gat` feature flag and affects the `FormattableText` trait. #75
-+
-+Bump dependency versions: `ttf-parser` v0.17.1, `rustybuzz` v0.6.0 (#76),
-+`fontdb` v0.10.0 (#77).
-+
-+## [0.5.0] — 2022-08-20
-+
-+Error handling (#65):
-+
-+-   Add `NotReady` error type
-+-   Most methods now return `Result<T, NotReady>` instead of panicking
-+
-+Text environment (#68):
-+
-+-   Remove `UpdateEnv` type
-+-   Rename `Text::new` to `new_env`, `Text::new_multi` to `Text::new` and
-+    remove `Text::new_single`. Note: in usage, the `Environment::wrap` flag
-+    is usually set anyway.
-+-   `Environment` is now `Copy`
-+-   `Text::env` returns `Environment` by copy not reference
-+-   `Text::env_mut` replaced with `Text::set_env`, which sets required actions
-+-   `Environment::dir` renamed to `direction`
-+-   Enum `Direction` adjusted to include bidi and non-bidi modes.
-+-   `Environment::flags` and its type `EnvFlags` removed.
-+    `Environment::wrap: bool` added and `Direction` adjusted (see above).
-+    `PX_PALIGN` option removed (behaviour is now always enabled).
-+-   Parameters `dpp` and `pt_size` of `Environment`, `TextDisplay::prepare_runs`
-+    and `FormattableText::font_tokens` are replaced with the single `dpem`.
-+
-+Text preparation:
-+
-+-   Add `Action::VAlign` requiring only `TextDisplay::vertically_align` action
-+-   Remove `TextDisplay::prepare` (but `TextApi::prepare` remains)
-+-   `TextDisplay::resize_runs` is no longer a public method
-+-   `TextDisplay::prepare_runs` may call `resize_runs` automatically depending
-+    on preparation status
-+-   Remove `TextApi::resize_runs` and `TextApi::prepare_lines`
-+-   All `TextApi` and `TextApiExt` methods doing any preparation now do all
-+    required preparation, and avoid unnecessary steps.
-+
-+Text measurements (#68):
-+
-+-   Add `TextDisplay::bounding_box` and `TextApiExt::bounding_box` (#68, #69)
-+-   Add `TextDisplay::measure_width` and `TextDisplay::vertically_align`
-+-   Add `TextApi::measure_width` and `TextApi::measure_height`
-+-   Remove `TextDisplay::line_is_ltr` and `TextApiExt::line_is_ltr`
-+-   Add `TextApiExt::text_is_rtl`
-+-   `TextDisplay::line_is_rtl` and `TextApiExt::line_is_rtl` now return type
-+    `Result<Option<bool>, NotReady>`, returning `Ok(None)` if text is empty
-+-   `TextDisplay::prepare_lines` returns the bottom-right corner of the bounding
-+    box around content instead of the size of content.
-+
-+Font fallback:
-+
-+-   `FontLibrary::face_for_char` and `face_for_char_or_first` take an extra
-+    parameter: `last_face_id: Option<FaceId>`. This allows the font fallback
-+    mechanism to avoid switching the font unnecessarily. In usage, letters and
-+    numbers are selected as before while other characters are selected from the
-+    last font face used if possible, resulting in longer runs being passed to
-+    the shaper when using fallback fonts.
-+
-+Misc:
-+
-+-   CI: test stable and check Clippy lints (#69).
-+-   Add `Range::is_empty`
-+-   Add `num_glyphs` feature flag (#69)
-+-   Memory optimisations for `TextDisplay`: remove `line_runs` (#71)
-+-   Replace `highlight_lines` with `highlight_range` (#72)
-+-   Add `fonts::any_loaded` (#73)
-+
-+Fixes:
-+
-+-   Do not add "line gap" before first line. (In practice this is often 0 anyway.)
-+-   Do not vertically align text too tall for the input bounds.
-+-   Markdown formatter: use heading level sizes as defined by CSS
-+-   Fix position of text highlights on vertically aligned text (#67).
-+-   Fix `r_bound` for trailing space (#71)
-+
-+## [0.4.2] — 2022-02-10
-+
-+-   Spellcheck documentation (#62)
-+-   Fix selection of best font from a family (#63)
-+
-+## [0.4.1] — 2021-09-07
-+
-+-   Document loading order requirements (#59)
-+-   Additional logging of loaded fonts (#59)
-+
-+## [0.4.0] — 2021-09-03
-+
-+This is a minor release (mostly non-breaking). The primary motivation is to
-+enable `resvg` to access the loaded font database. See PR #58:
-+
-+-   **Breaking:** update dependencies: `bitflags = 1.3.1`, `fontdb = 0.6.0`,
-+    `harfbuzz_rs = 2.0`, `rustybuzz = 0.4.0`
-+-   Make `fontdb::Database` externally readable and set font families
-+-   Additional control over loading fonts
-+-   Performance improvements for alias lookups (trim and capitalise earlier)
-+
-+## [0.3.4] — 2021-07-28
-+
-+-   Fix sub-pixel positioning (#57)
-+
-+## [0.3.3] — 2021-07-19
-+
-+-   Document `raster` module and `Markdown` formatter (#56)
-+-   Export `DPU` (#56)
-+-   `Default`, `Debug` and `PartialEq` impls for some `raster` types (#56)
-+
-+## [0.3.2] — 2021-06-30
-+
-+-   Minor optimisations to `SpriteDescriptor::new` (#53)
-+
-+## [0.3.1] — 2021-06-17
-+
-+-   Make all families fall back to "sans-serif" fonts.
-+-   Cache `FontLibrary::face_for_char` glyph lookups.
-+
-+## [0.3.0] — 2021-06-15
-+
-+This release replaces all non-Rust dependencies allowing easier build/deployment
-+(though HarfBuzz is kept as an optional dependency). There is also direct
-+support for glyph rastering and some tweaks to improve raster quality making
-+even very small font sizes quite legible.
-+
-+-   Add `Effect::default` method and `default_aux` param to `glyphs_with_effects` (#45)
-+-   Replace `font-kit` dependency with the pure-Rust `fontdb` using custom font-family lists (#46),
-+    with support for run-time configuration (#48)
-+-   Support font fallbacks (#47)
-+-   Support [rustybuzz](https://github.com/RazrFalcon/rustybuzz) for pure-Rust shaping (#47)
-+-   Vertical pixel alignment (#49)
-+-   Extend public API relating to fonts (#49)
-+-   Add (glyph) `raster` module with `Config` struct and `SpriteDescriptor` cache key (#50)
-+-   Use pixels-per-Em (dpem) for most glyph sizing, not pixels-per-font-unit (DPU) or height (#50)
-+
-+## [0.2.1] — 2021-03-31
-+
-+-   Add `Option<Vec2>` return value to `TextDisplay::prepare` and `TextApi::prepare` (#41)
-+-   Fix missing run for empty text lines
-+-   Fix justified text layout (#44)
-+-   Explicitly avoid justifying last line of justified text (#44)
-+-   Update `smallvec` to 0.6.1
-+-   Update `ttf-parser` to 0.12.0
-+
-+## [0.2.0] — 2020-11-23
-+
-+This release changes a *very large* part of the API. Both `prepared` and `rich`
-+modules are removed/hidden; three new modules `conv`, `fonts` and `format`
-+are added/exposed. Formatted text traits are added. The API around the main
-+`Text` type changes massively.
-+
-+### Text type
-+
-+-   Export `prepared::Text` directly and hide the `prepared` module (#30)
-+-   Split what was `prepared::Text` into `TextDisplay` (which excludes the text,
-+    environment and formatting data but includes positioned glyph information),
-+    and `Text` struct which wraps `TextDisplay` along with text and environment (#32)
-+-   Add `TextApi` trait for run-time polymorphism over `FormattableText` texts (#32, #33)
-+-   Add `TextApiExt` auto-implemented extension-trait (#33)
-+-   Add `EditableTextApi` trait (#33)
-+-   Replace `prepared::Prepare` with `Action` (#30, #33)
-+-   Rename `Text::positioned_glyphs` → `glyphs` (#31)
-+-   Add `Text::glyphs_with_effects` for glyph-drawing with underline/strikethrough (#31, #32)
-+-   Make `TextDisplay::prepare_runs` and `prepare_lines` functions public (#33)
-+-   Support indentation with tab character `\t` (#34)
-+
-+### Parsing and representation
-+
-+-   Add `Markdown` parser (#29 - #37)
-+-   Add `FontToken` struct, `FormattableText` and `EditableText` traits with
-+    impls for `&str`, `String` and `Markdown`; these allow custom
-+    representations of formatted text (#32)
-+-   Add `FormattableTextDyn` for run-time polymorphism (#33)
-+-   Add `FormattableText::effect_tokens` for custom underlike/strikethrough effects (#34)
-+
-+### Fonts API
-+
-+-   All font API is moved into the public `fonts` module (#28)
-+-   Add `FontSelector` and `FontLibrary::load_font`, `load_pathbuf` functions (#28)
-+-   Adjust how loaded fonts are exposed; instead of an `ab_glyph` font we
-+    expose the font file data and font index (#30, #31)
-+-   Adjust use of font-size units and add documentation (#31, #33)
-+-   Switch dependency from `ab_glyph` to `ttf-parser`, but keep compatibility
-+    with `ab_glyph` (#31)
-+-   Remove `FontScale` data type (unused; #30)
-+
-+### Miscellaneous
-+
-+-   Add type-conversion helpers `conv::to_32` and `to_usize` (#31)
-+-   Add `Effect` and `EffectFlags` types used for underline and strikethrough (#31)
-+-   Add `gat` (Generic Associated Types) experimental feature (#33)
-+-   Move `Environment::bidi` and `wrap` fields to new `flags` field; combine
-+    `halign` and `valign` to into `align` field (#33)
-+-   Update `xi-unicode` dependency, allowing cleaner code (#34)
-+
-+## [0.1.5] — 2020-09-21
-+
-+-   Rewrite line-wrapping code, supporting must-not-wrap-at-end runs and
-+    resulting in much cleaner code (#24)
-+-   Do not allow selection of the position after a space causing a line-wrap (#25)
-+-   Fix alignment for wrapped RTL text with multiple spaces at wrap point (#26)
-+
-+## [0.1.4] — 2020-09-09
-+
-+-   Fixes for empty RTL lines (#21, #23)
-+-   When wrapping text against paragraph's direction, do not force a line break (#22)
-+
-+## [0.1.3] — 2020-08-14
-+
-+-   Fix re-ordering of runs on a line (#18)
-+
-+## [0.1.2] — 2020-08-14
-+
-+-   Add embedding level to result of `Text::text_glyph_pos` (#17)
-+-   Fix start offset for wrapped RTL text (#17)
-+-   Fix `Text::line_index_nearest` for right-most position in line (#17)
-+
-+## [0.1.1] — 2020-08-13
-+
-+-   `prepared::Text::positioned_glyphs` now takes an `FnMut` closure and
-+    emits glyphs in logical order (#13)
-+
-+## [0.1.0] — 2020-08-11
-+
-+Initial release version, comprising:
-+
-+-   basic font loading and font metrics
-+-   `Environment` specifying font and layout properties
-+-   `rich::Text` struct (mostly placeholder around a raw `String`)
-+-   `prepared::Text` struct with state tracking required preparation steps
-+
-+Text preparation includes:
-+
-+-   run-breaking with BIDI support
-+-   glyph shaping via internal algorithm or via HarfBuzz
-+-   line wrapping and alignment
-+-   generating a vec of positioned glyphs
-+-   cursor position lookup (index→coord and coord→index)
-+-   generating highlighting rects for a range
+diff -uraN original-matchbox_socket/src/webrtc_socket/native.rs ./matchbox_socket/src/webrtc_socket/native.rs
+--- original-matchbox_socket/src/webrtc_socket/native.rs	2026-06-13 11:58:22.919095832 -0400
++++ ./matchbox_socket/src/webrtc_socket/native.rs	2026-06-13 11:58:22.919095832 -0400
+@@ -13,7 +13,7 @@
+ use async_trait::async_trait;
+ use async_tungstenite::{
+     WebSocketStream,
+-    async_std::{ConnectStream, connect_async},
++    tokio::{ConnectStream, connect_async},
+     tungstenite::Message,
+ };
+ use bytes::Bytes;
 diff -uraN original-smithay-clipboard/Cargo.toml ./smithay-clipboard/Cargo.toml
---- original-smithay-clipboard/Cargo.toml	2026-06-07 22:58:53.414031058 -0400
-+++ ./smithay-clipboard/Cargo.toml	2026-06-07 22:58:53.414031058 -0400
+--- original-smithay-clipboard/Cargo.toml	2026-06-13 11:58:23.111099667 -0400
++++ ./smithay-clipboard/Cargo.toml	2026-06-13 11:58:23.115099747 -0400
 @@ -9,11 +9,12 @@
  license = "MIT"
  keywords = ["clipboard", "wayland"]
@@ -1421,8 +1069,8 @@ diff -uraN original-smithay-clipboard/Cargo.toml ./smithay-clipboard/Cargo.toml
  [dev-dependencies]
  sctk = { package = "smithay-client-toolkit", version = "0.20.0", default-features = false, features = ["calloop", "xkbcommon"] }
 diff -uraN original-smithay-clipboard/src/lib.rs ./smithay-clipboard/src/lib.rs
---- original-smithay-clipboard/src/lib.rs	2026-06-07 22:58:53.414031058 -0400
-+++ ./smithay-clipboard/src/lib.rs	2026-06-07 22:58:53.414031058 -0400
+--- original-smithay-clipboard/src/lib.rs	2026-06-13 11:58:23.111099667 -0400
++++ ./smithay-clipboard/src/lib.rs	2026-06-13 11:58:23.115099747 -0400
 @@ -10,7 +10,6 @@
  
  use sctk::reexports::calloop::channel::{self, Sender};
@@ -1466,8 +1114,8 @@ diff -uraN original-smithay-clipboard/src/lib.rs ./smithay-clipboard/src/lib.rs
          let (request_sender, rx_chan) = channel::channel();
          // Create channel to get data from the clipboard thread.
 diff -uraN original-softbuffer/Cargo.toml ./softbuffer/Cargo.toml
---- original-softbuffer/Cargo.toml	2026-06-07 22:58:53.870038383 -0400
-+++ ./softbuffer/Cargo.toml	2026-06-07 22:58:53.874038448 -0400
+--- original-softbuffer/Cargo.toml	2026-06-13 11:58:23.323103900 -0400
++++ ./softbuffer/Cargo.toml	2026-06-13 11:58:23.323103900 -0400
 @@ -11,23 +11,23 @@
  categories = ["game-development", "graphics", "gui", "multimedia", "rendering"]
  exclude = ["examples"]
@@ -1527,8 +1175,8 @@ diff -uraN original-softbuffer/Cargo.toml ./softbuffer/Cargo.toml
  # Run with `cargo apk r --example winit_android`
  name = "winit_android"
 diff -uraN original-softbuffer/src/backends/wayland/mod.rs ./softbuffer/src/backends/wayland/mod.rs
---- original-softbuffer/src/backends/wayland/mod.rs	2026-06-07 22:58:53.870038383 -0400
-+++ ./softbuffer/src/backends/wayland/mod.rs	2026-06-07 22:58:53.874038448 -0400
+--- original-softbuffer/src/backends/wayland/mod.rs	2026-06-13 11:58:23.323103900 -0400
++++ ./softbuffer/src/backends/wayland/mod.rs	2026-06-13 11:58:23.323103900 -0400
 @@ -9,7 +9,6 @@
      sync::{Arc, Mutex},
  };
@@ -1626,8 +1274,8 @@ diff -uraN original-softbuffer/src/backends/wayland/mod.rs ./softbuffer/src/back
  
              // Resize, if buffer isn't large enough
 diff -uraN original-tiny-xlib/Cargo.toml ./tiny-xlib/Cargo.toml
---- original-tiny-xlib/Cargo.toml	2026-06-07 22:58:54.422047252 -0400
-+++ ./tiny-xlib/Cargo.toml	2026-06-07 22:58:54.422047252 -0400
+--- original-tiny-xlib/Cargo.toml	2026-06-13 11:58:23.563108692 -0400
++++ ./tiny-xlib/Cargo.toml	2026-06-13 11:58:23.567108771 -0400
 @@ -31,6 +31,7 @@
  [features]
  default = ["tracing"]
@@ -1650,8 +1298,8 @@ diff -uraN original-tiny-xlib/Cargo.toml ./tiny-xlib/Cargo.toml
  [dependencies.as-raw-xcb-connection]
  version = "1.0.0"
 diff -uraN original-tiny-xlib/src/lib.rs ./tiny-xlib/src/lib.rs
---- original-tiny-xlib/src/lib.rs	2026-06-07 22:58:54.422047252 -0400
-+++ ./tiny-xlib/src/lib.rs	2026-06-07 22:58:54.422047252 -0400
+--- original-tiny-xlib/src/lib.rs	2026-06-13 11:58:23.563108692 -0400
++++ ./tiny-xlib/src/lib.rs	2026-06-13 11:58:23.567108771 -0400
 @@ -130,7 +130,7 @@
  use std::mem::{self, ManuallyDrop};
  use std::os::raw::{c_int, c_void};
@@ -1809,9 +1457,9 @@ diff -uraN original-tiny-xlib/src/lib.rs ./tiny-xlib/src/lib.rs
      // Insert the handler into the list.
      let mut handlers = lock!(ERROR_HANDLERS);
 diff -uraN original-winit/Cargo.toml ./winit/Cargo.toml
---- original-winit/Cargo.toml	2026-06-07 22:58:54.974056119 -0400
-+++ ./winit/Cargo.toml	2026-06-07 22:58:54.978056184 -0400
-@@ -10,10 +10,14 @@
+--- original-winit/Cargo.toml	2026-06-13 11:58:23.919115799 -0400
++++ ./winit/Cargo.toml	2026-06-13 11:58:23.923115879 -0400
+@@ -10,10 +10,12 @@
  readme = "README.md"
  documentation = "https://docs.rs/winit"
  categories = ["gui"]
@@ -1819,72 +1467,50 @@ diff -uraN original-winit/Cargo.toml ./winit/Cargo.toml
 -repository.workspace = true
 -license.workspace = true
 -edition.workspace = true
-+workspace = "../.."
-+edition = "2024"
-+rust-version = "1.85"
++# rust-version.workspace = true
++# repository.workspace = true
++# license.workspace = true
 +license = "Apache-2.0"
-+#rust-version.workspace = true
-+#repository.workspace = true
-+#license.workspace = true
-+#edition.workspace = true
++edition = "2021"
++resolver = "2"
  include = [
      "/build.rs",
      "/docs",
-@@ -57,8 +61,9 @@
+@@ -56,8 +58,9 @@
+ rustdoc-args = ["--cfg", "docsrs"]
  
  # Features are documented in either `lib.rs` or under `winit::platform`.
++# I can't figure out how to make the `wayland-csd-adwaita` feature turn off so I just deleted it. Also turned off wayland-dlopen.
  [features]
 -default = ["rwh_06", "x11", "wayland", "wayland-dlopen", "wayland-csd-adwaita"]
--x11 = ["x11-dl", "bytemuck", "percent-encoding", "xkbcommon-dl/x11", "x11rb"]
-+# I can't figure out how to make the `wayland-csd-adwaita` feature turn off so I just deleted it.
 +default = ["rwh_06", "x11", "wayland"]
-+x11 = ["dep:x11", "bytemuck", "percent-encoding", "x11rb"]
+ x11 = ["x11-dl", "bytemuck", "percent-encoding", "xkbcommon-dl/x11", "x11rb"]
  wayland = [
      "wayland-client",
-     "wayland-backend",
-@@ -68,10 +73,9 @@
-     "ahash",
-     "memmap2",
- ]
--wayland-dlopen = ["wayland-backend/dlopen"]
--wayland-csd-adwaita = ["sctk-adwaita", "sctk-adwaita/ab_glyph"]
--wayland-csd-adwaita-crossfont = ["sctk-adwaita", "sctk-adwaita/crossfont"]
--wayland-csd-adwaita-notitle = ["sctk-adwaita"]
-+#wayland-csd-adwaita = ["sctk-adwaita", "sctk-adwaita/ab_glyph"]
-+#wayland-csd-adwaita-crossfont = ["sctk-adwaita", "sctk-adwaita/crossfont"]
-+#wayland-csd-adwaita-notitle = ["sctk-adwaita"]
- android-native-activity = ["android-activity/native-activity"]
- android-game-activity = ["android-activity/game-activity"]
- serde = ["dep:serde", "cursor-icon/serde", "smol_str/serde", "dpi/serde"]
-@@ -86,7 +90,7 @@
+@@ -86,7 +89,8 @@
  [dependencies]
  bitflags = "2"
  cursor-icon = "1.1.0"
 -dpi = { version = "0.1.1", path = "dpi" }
 +dpi = { version = "0.1.1" }
++#dpi = { version = "0.1.1", path = "dpi" }
  rwh_04 = { package = "raw-window-handle", version = "0.4", optional = true }
  rwh_05 = { package = "raw-window-handle", version = "0.5.2", features = [
      "std",
-@@ -94,7 +98,7 @@
+@@ -94,9 +98,11 @@
  rwh_06 = { package = "raw-window-handle", version = "0.6", features = [
      "std",
  ], optional = true }
 -serde = { workspace = true, optional = true }
-+serde = { version = "1.0.228", optional = true }
++# serde = { workspace = true, optional = true }
  smol_str = "0.2.0"
  tracing = { version = "0.1.40", default-features = false }
++serde = { version = "1", features = ["serde_derive"], optional = true }
++mint = "0.5.6"
  
-@@ -107,9 +111,7 @@
- [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dev-dependencies]
- softbuffer = { version = "0.4.0", default-features = false, features = [
-     "x11",
--    "x11-dlopen",
-     "wayland",
--    "wayland-dlopen",
- ] }
- 
- [target.'cfg(target_os = "android")'.dependencies]
-@@ -268,9 +270,7 @@
+ [dev-dependencies]
+ image = { version = "0.25.0", default-features = false, features = ["png"] }
+@@ -268,9 +274,7 @@
      "calloop",
  ], optional = true }
  sctk-adwaita = { version = "0.10.1", default-features = false, optional = true }
@@ -1895,36 +1521,18 @@ diff -uraN original-winit/Cargo.toml ./winit/Cargo.toml
  wayland-client = { version = "0.31.10", optional = true }
  wayland-protocols = { version = "0.32.8", features = [
      "staging",
-@@ -278,16 +278,21 @@
- wayland-protocols-plasma = { version = "0.3.8", features = [
-     "client",
- ], optional = true }
--x11-dl = { version = "2.19.1", optional = true }
-+x11 = { version = "2.21.0", optional = true, default-features = false, features = [
-+    "xlib",
-+    "xlib_xcb",
-+    "xcursor",
-+    "xinput",
-+    "xfixes",
-+] }
- x11rb = { version = "0.13.0", default-features = false, features = [
-     "allow-unsafe-code",
--    "dl-libxcb",
-     "randr",
-     "resource_manager",
-     "xinput",
+@@ -288,6 +292,7 @@
      "xkb",
  ], optional = true }
--xkbcommon-dl = "0.4.2"
-+xkeysym = "0.2.1"
+ xkbcommon-dl = "0.4.2"
++xkbcommon-rs = { version = "0.1.2", features = ["client"] }
  
  [target.'cfg(target_os = "redox")'.dependencies]
  orbclient = { version = "0.3.47", default-features = false }
-@@ -362,17 +367,3 @@
- [[example]]
+@@ -363,16 +368,16 @@
  doc-scrape-examples = true
  name = "window"
--
+ 
 -[workspace]
 -resolver = "2"
 -members = ["dpi"]
@@ -1938,569 +1546,448 @@ diff -uraN original-winit/Cargo.toml ./winit/Cargo.toml
 -[workspace.dependencies]
 -serde = { version = "1", features = ["serde_derive"] }
 -mint = "0.5.6"
-diff -uraN original-winit/README.md ./winit/README.md
---- original-winit/README.md	2026-06-07 22:58:54.974056119 -0400
-+++ ./winit/README.md	2026-06-07 22:58:54.978056184 -0400
-@@ -1,4 +1,5 @@
- # winit - Cross-platform window creation and management in Rust
-+# Vendored for ctoolbox to allow static linking
- 
- [![Crates.io](https://img.shields.io/crates/v/winit.svg)](https://crates.io/crates/winit)
- [![Docs.rs](https://docs.rs/winit/badge.svg)](https://docs.rs/winit)
-diff -uraN original-winit/src/keyboard.rs ./winit/src/keyboard.rs
---- original-winit/src/keyboard.rs	2026-06-07 22:58:54.974056119 -0400
-+++ ./winit/src/keyboard.rs	2026-06-07 22:58:54.978056184 -0400
-@@ -251,7 +251,7 @@
-     #[inline]
-     fn eq(&self, rhs: &KeyCode) -> bool {
-         match self {
--            PhysicalKey::Code(ref code) => code == rhs,
-+            PhysicalKey::Code(code) => code == rhs,
-             _ => false,
-         }
-     }
-@@ -268,7 +268,7 @@
-     #[inline]
-     fn eq(&self, rhs: &NativeKeyCode) -> bool {
-         match self {
--            PhysicalKey::Unidentified(ref code) => code == rhs,
-+            PhysicalKey::Unidentified(code) => code == rhs,
-             _ => false,
-         }
-     }
-@@ -1509,7 +1509,7 @@
-     #[inline]
-     fn eq(&self, rhs: &NamedKey) -> bool {
-         match self {
--            Key::Named(ref a) => a == rhs,
-+            Key::Named(a) => a == rhs,
-             _ => false,
-         }
-     }
-@@ -1519,7 +1519,7 @@
-     #[inline]
-     fn eq(&self, rhs: &str) -> bool {
-         match self {
--            Key::Character(ref s) => s == rhs,
-+            Key::Character(s) => s == rhs,
-             _ => false,
-         }
-     }
-@@ -1536,7 +1536,7 @@
-     #[inline]
-     fn eq(&self, rhs: &NativeKey) -> bool {
-         match self {
--            Key::Unidentified(ref code) => code == rhs,
-+            Key::Unidentified(code) => code == rhs,
-             _ => false,
-         }
-     }
-diff -uraN original-winit/src/platform/startup_notify.rs ./winit/src/platform/startup_notify.rs
---- original-winit/src/platform/startup_notify.rs	2026-06-07 22:58:54.970056055 -0400
-+++ ./winit/src/platform/startup_notify.rs	2026-06-07 22:58:54.974056119 -0400
-@@ -86,14 +86,18 @@
- /// This is wise to do before running child processes,
- /// which may not to support the activation token.
- pub fn reset_activation_token_env() {
--    env::remove_var(X11_VAR);
--    env::remove_var(WAYLAND_VAR);
-+    unsafe {
-+        env::remove_var(X11_VAR);
-+        env::remove_var(WAYLAND_VAR);
-+    }
- }
- 
- /// Set environment variables responsible for activation token.
- ///
- /// This could be used before running daemon processes.
- pub fn set_activation_token_env(token: ActivationToken) {
--    env::set_var(X11_VAR, &token.token);
--    env::set_var(WAYLAND_VAR, token.token);
-+    unsafe {
-+        env::set_var(X11_VAR, &token.token);
-+        env::set_var(WAYLAND_VAR, token.token);
-+    }
- }
-diff -uraN original-winit/src/platform/wayland.rs ./winit/src/platform/wayland.rs
---- original-winit/src/platform/wayland.rs	2026-06-07 22:58:54.970056055 -0400
-+++ ./winit/src/platform/wayland.rs	2026-06-07 22:58:54.974056119 -0400
-@@ -2,8 +2,8 @@
- //!
- //! **Note:** Windows don't appear on Wayland until you draw/present to them.
- //!
--//! By default, Winit loads system libraries using `dlopen`. This can be
--//! disabled by disabling the `"wayland-dlopen"` cargo feature.
-+//! This vendored build of Winit does not use `dlopen` to load Wayland
-+//! libraries.
- //!
- //! ## Client-side decorations
- //!
++# [workspace]
++# resolver = "2"
++# members = ["dpi"]
++
++# [workspace.package]
++# rust-version = "1.70.0"
++# repository = "https://github.com/rust-windowing/winit"
++# license = "Apache-2.0"
++# edition = "2021"
++
++# [workspace.dependencies]
++# serde = { version = "1", features = ["serde_derive"] }
++# mint = "0.5.6"
 diff -uraN original-winit/src/platform_impl/linux/common/xkb/compose.rs ./winit/src/platform_impl/linux/common/xkb/compose.rs
---- original-winit/src/platform_impl/linux/common/xkb/compose.rs	2026-06-07 22:58:54.970056055 -0400
-+++ ./winit/src/platform_impl/linux/common/xkb/compose.rs	2026-06-07 22:58:54.974056119 -0400
-@@ -6,9 +6,9 @@
+--- original-winit/src/platform_impl/linux/common/xkb/compose.rs	2026-06-13 11:58:23.915115719 -0400
++++ ./winit/src/platform_impl/linux/common/xkb/compose.rs	2026-06-13 11:58:23.919115799 -0400
+@@ -6,20 +6,36 @@
  use std::os::unix::ffi::OsStringExt;
  use std::ptr::NonNull;
  
--use super::{XkbContext, XKBCH};
-+use super::{ffi as xkb, XkbContext};
++#[cfg(wayland_platform)]
++use xkbcommon_rs as rxkb;
++
+ use super::{XkbContext, XKBCH};
  use smol_str::SmolStr;
--use xkbcommon_dl::{
-+use xkb::{
+ use xkbcommon_dl::{
      xkb_compose_compile_flags, xkb_compose_feed_result, xkb_compose_state, xkb_compose_state_flags,
-     xkb_compose_status, xkb_compose_table, xkb_keysym_t,
+-    xkb_compose_status, xkb_compose_table, xkb_keysym_t,
++    xkb_compose_table, xkb_keysym_t,
  };
-@@ -30,7 +30,7 @@
-         let locale = CString::new(locale.into_vec()).unwrap();
  
-         let table = unsafe {
--            (XKBCH.xkb_compose_table_new_from_locale)(
-+            xkb::xkb_compose_table_new_from_locale(
-                 context.as_ptr(),
-                 locale.as_ptr(),
-                 xkb_compose_compile_flags::XKB_COMPOSE_COMPILE_NO_FLAGS,
-@@ -44,7 +44,7 @@
+ #[derive(Debug)]
+ pub struct XkbComposeTable {
+-    table: NonNull<xkb_compose_table>,
++    backend: ComposeTableBackend,
++}
++
++#[derive(Debug)]
++enum ComposeTableBackend {
++    System(NonNull<xkb_compose_table>),
++    #[cfg(wayland_platform)]
++    Rust(rxkb::xkb_compose::ComposeTable),
+ }
+ 
+ impl XkbComposeTable {
+     pub fn new(context: &XkbContext) -> Option<Self> {
++        #[cfg(wayland_platform)]
++        if context.is_rust_backend() {
++            return rxkb::xkb_compose::ComposeTable::new_from_locale(None)
++                .map(|table| Self { backend: ComposeTableBackend::Rust(table) });
++        }
++
+         let locale = env::var_os("LC_ALL")
+             .and_then(|v| if v.is_empty() { None } else { Some(v) })
+             .or_else(|| env::var_os("LC_CTYPE"))
+@@ -38,20 +54,28 @@
+         };
+ 
+         let table = NonNull::new(table)?;
+-        Some(Self { table })
++        Some(Self { backend: ComposeTableBackend::System(table) })
+     }
+ 
      /// Create new state with the given compose table.
      pub fn new_state(&self) -> Option<XkbComposeState> {
-         let state = unsafe {
+-        let state = unsafe {
 -            (XKBCH.xkb_compose_state_new)(
-+            xkb::xkb_compose_state_new(
-                 self.table.as_ptr(),
-                 xkb_compose_state_flags::XKB_COMPOSE_STATE_NO_FLAGS,
-             )
-@@ -66,7 +66,7 @@
+-                self.table.as_ptr(),
+-                xkb_compose_state_flags::XKB_COMPOSE_STATE_NO_FLAGS,
+-            )
+-        };
++        match &self.backend {
++            ComposeTableBackend::System(table) => {
++                let state = unsafe {
++                    (XKBCH.xkb_compose_state_new)(
++                        table.as_ptr(),
++                        xkb_compose_state_flags::XKB_COMPOSE_STATE_NO_FLAGS,
++                    )
++                };
+ 
+-        let state = NonNull::new(state)?;
+-        Some(XkbComposeState { state })
++                let state = NonNull::new(state)?;
++                Some(XkbComposeState { backend: ComposeStateBackend::System(state) })
++            },
++            #[cfg(wayland_platform)]
++            ComposeTableBackend::Rust(table) => Some(XkbComposeState {
++                backend: ComposeStateBackend::Rust(table.new_state()),
++            }),
++        }
+     }
+ }
+ 
+@@ -59,65 +83,125 @@
+     type Target = NonNull<xkb_compose_table>;
+ 
+     fn deref(&self) -> &Self::Target {
+-        &self.table
++        match &self.backend {
++            ComposeTableBackend::System(table) => table,
++            #[cfg(wayland_platform)]
++            ComposeTableBackend::Rust(_) => panic!("system compose table unavailable on rust backend"),
++        }
+     }
+ }
+ 
  impl Drop for XkbComposeTable {
      fn drop(&mut self) {
-         unsafe {
+-        unsafe {
 -            (XKBCH.xkb_compose_table_unref)(self.table.as_ptr());
-+            xkb::xkb_compose_table_unref(self.table.as_ptr());
++        if let ComposeTableBackend::System(table) = self.backend {
++            unsafe {
++                (XKBCH.xkb_compose_table_unref)(table.as_ptr());
++            }
          }
      }
  }
-@@ -79,13 +79,13 @@
+ 
+ #[derive(Debug)]
+ pub struct XkbComposeState {
+-    state: NonNull<xkb_compose_state>,
++    backend: ComposeStateBackend,
++}
++
++#[derive(Debug)]
++enum ComposeStateBackend {
++    System(NonNull<xkb_compose_state>),
++    #[cfg(wayland_platform)]
++    Rust(rxkb::xkb_compose::ComposeState),
++}
++
++#[derive(Copy, Clone, Debug, PartialEq, Eq)]
++pub enum ComposeStatusValue {
++    Nothing,
++    Composing,
++    Composed,
++    Cancelled,
+ }
+ 
  impl XkbComposeState {
      pub fn get_string(&mut self, scratch_buffer: &mut Vec<u8>) -> Option<SmolStr> {
-         super::make_string_with(scratch_buffer, |ptr, len| unsafe {
+-        super::make_string_with(scratch_buffer, |ptr, len| unsafe {
 -            (XKBCH.xkb_compose_state_get_utf8)(self.state.as_ptr(), ptr, len)
-+            xkb::xkb_compose_state_get_utf8(self.state.as_ptr(), ptr, len)
-         })
+-        })
++        match &mut self.backend {
++            ComposeStateBackend::System(state) => super::make_string_with(scratch_buffer, |ptr, len| unsafe {
++                (XKBCH.xkb_compose_state_get_utf8)(state.as_ptr(), ptr, len)
++            }),
++            #[cfg(wayland_platform)]
++            ComposeStateBackend::Rust(state) => state
++                .get_utf8()
++                .and_then(|utf8| super::byte_slice_to_smol_str(&utf8)),
++        }
      }
  
      #[inline]
      pub fn feed(&mut self, keysym: xkb_keysym_t) -> ComposeStatus {
 -        let feed_result = unsafe { (XKBCH.xkb_compose_state_feed)(self.state.as_ptr(), keysym) };
-+        let feed_result = unsafe { xkb::xkb_compose_state_feed(self.state.as_ptr(), keysym) };
-         match feed_result {
-             xkb_compose_feed_result::XKB_COMPOSE_FEED_IGNORED => ComposeStatus::Ignored,
-             xkb_compose_feed_result::XKB_COMPOSE_FEED_ACCEPTED => {
-@@ -97,20 +97,20 @@
-     #[inline]
-     pub fn reset(&mut self) {
-         unsafe {
--            (XKBCH.xkb_compose_state_reset)(self.state.as_ptr());
-+            xkb::xkb_compose_state_reset(self.state.as_ptr());
+-        match feed_result {
+-            xkb_compose_feed_result::XKB_COMPOSE_FEED_IGNORED => ComposeStatus::Ignored,
+-            xkb_compose_feed_result::XKB_COMPOSE_FEED_ACCEPTED => {
+-                ComposeStatus::Accepted(self.status())
++        match &mut self.backend {
++            ComposeStateBackend::System(state) => {
++                let feed_result = unsafe { (XKBCH.xkb_compose_state_feed)(state.as_ptr(), keysym) };
++                match feed_result {
++                    xkb_compose_feed_result::XKB_COMPOSE_FEED_IGNORED => ComposeStatus::Ignored,
++                    xkb_compose_feed_result::XKB_COMPOSE_FEED_ACCEPTED => {
++                        ComposeStatus::Accepted(self.status())
++                    },
++                }
++            },
++            #[cfg(wayland_platform)]
++            ComposeStateBackend::Rust(state) => match state.feed(rxkb::keysym::Keysym::from(keysym)) {
++                rxkb::xkb_compose::ComposeFeedResult::Ignored => ComposeStatus::Ignored,
++                rxkb::xkb_compose::ComposeFeedResult::Accepted => {
++                    ComposeStatus::Accepted(self.status())
++                },
+             },
          }
      }
  
      #[inline]
-     pub fn status(&mut self) -> xkb_compose_status {
+     pub fn reset(&mut self) {
+-        unsafe {
+-            (XKBCH.xkb_compose_state_reset)(self.state.as_ptr());
++        match &mut self.backend {
++            ComposeStateBackend::System(state) => unsafe {
++                (XKBCH.xkb_compose_state_reset)(state.as_ptr());
++            },
++            #[cfg(wayland_platform)]
++            ComposeStateBackend::Rust(state) => state.reset(),
+         }
+     }
+ 
+     #[inline]
+-    pub fn status(&mut self) -> xkb_compose_status {
 -        unsafe { (XKBCH.xkb_compose_state_get_status)(self.state.as_ptr()) }
-+        unsafe { xkb::xkb_compose_state_get_status(self.state.as_ptr()) }
++    pub fn status(&mut self) -> ComposeStatusValue {
++        match &mut self.backend {
++            ComposeStateBackend::System(state) => match unsafe {
++                (XKBCH.xkb_compose_state_get_status)(state.as_ptr())
++            } {
++                xkbcommon_dl::xkb_compose_status::XKB_COMPOSE_NOTHING => ComposeStatusValue::Nothing,
++                xkbcommon_dl::xkb_compose_status::XKB_COMPOSE_COMPOSING => ComposeStatusValue::Composing,
++                xkbcommon_dl::xkb_compose_status::XKB_COMPOSE_COMPOSED => ComposeStatusValue::Composed,
++                xkbcommon_dl::xkb_compose_status::XKB_COMPOSE_CANCELLED => ComposeStatusValue::Cancelled,
++            },
++            #[cfg(wayland_platform)]
++            ComposeStateBackend::Rust(state) => match state.status() {
++                rxkb::xkb_compose::ComposeStatus::Nothing => ComposeStatusValue::Nothing,
++                rxkb::xkb_compose::ComposeStatus::Composing => ComposeStatusValue::Composing,
++                rxkb::xkb_compose::ComposeStatus::Composed => ComposeStatusValue::Composed,
++                rxkb::xkb_compose::ComposeStatus::Cancelled => ComposeStatusValue::Cancelled,
++            },
++        }
      }
  }
  
  impl Drop for XkbComposeState {
      fn drop(&mut self) {
-         unsafe {
+-        unsafe {
 -            (XKBCH.xkb_compose_state_unref)(self.state.as_ptr());
-+            xkb::xkb_compose_state_unref(self.state.as_ptr());
-         };
+-        };
++        if let ComposeStateBackend::System(state) = self.backend {
++            unsafe {
++                (XKBCH.xkb_compose_state_unref)(state.as_ptr());
++            };
++        }
      }
  }
-diff -uraN original-winit/src/platform_impl/linux/common/xkb/ffi.rs ./winit/src/platform_impl/linux/common/xkb/ffi.rs
---- original-winit/src/platform_impl/linux/common/xkb/ffi.rs	1969-12-31 19:00:00.000000000 -0500
-+++ ./winit/src/platform_impl/linux/common/xkb/ffi.rs	2026-06-07 22:58:54.974056119 -0400
-@@ -0,0 +1,213 @@
-+#![allow(dead_code, non_camel_case_types)]
-+
-+use std::os::raw::{c_char, c_int, c_uint};
-+
-+pub const XKB_MOD_NAME_SHIFT: &[u8] = b"Shift\0";
-+pub const XKB_MOD_NAME_CAPS: &[u8] = b"Lock\0";
-+pub const XKB_MOD_NAME_CTRL: &[u8] = b"Control\0";
-+pub const XKB_MOD_NAME_ALT: &[u8] = b"Mod1\0";
-+pub const XKB_MOD_NAME_NUM: &[u8] = b"Mod2\0";
-+pub const XKB_MOD_NAME_LOGO: &[u8] = b"Mod4\0";
-+
-+pub const XKB_MOD_INVALID: u32 = 0xffffffff;
-+
-+pub type xkb_keycode_t = u32;
-+pub type xkb_keysym_t = u32;
-+pub type xkb_layout_index_t = u32;
-+pub type xkb_layout_mask_t = u32;
-+pub type xkb_mod_index_t = u32;
-+pub type xkb_mod_mask_t = u32;
-+
-+#[repr(C)]
-+pub struct xkb_context {
-+    _private: [u8; 0],
-+}
-+
-+#[repr(C)]
-+pub struct xkb_keymap {
-+    _private: [u8; 0],
-+}
-+
-+#[repr(C)]
-+pub struct xkb_state {
-+    _private: [u8; 0],
-+}
-+
-+#[repr(C)]
-+pub struct xkb_compose_table {
-+    _private: [u8; 0],
-+}
-+
-+#[repr(C)]
-+pub struct xkb_compose_state {
-+    _private: [u8; 0],
-+}
-+
-+#[repr(C)]
-+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-+pub enum xkb_context_flags {
-+    XKB_CONTEXT_NO_FLAGS = 0,
-+}
-+
-+#[repr(C)]
-+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-+pub enum xkb_keymap_compile_flags {
-+    XKB_KEYMAP_COMPILE_NO_FLAGS = 0,
-+}
-+
-+#[repr(C)]
-+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-+pub enum xkb_keymap_format {
-+    XKB_KEYMAP_FORMAT_TEXT_V1 = 1,
-+}
-+
-+// NOTE: In libxkbcommon, `xkb_state_component` is a C `enum` type.
-+//
-+// We intentionally represent it as an integer type here (rather than a Rust
-+// `struct`/bitflags wrapper) to ensure the extern "C" ABI matches on all
-+// platforms (notably i386).
-+pub type xkb_state_component = c_uint;
-+
-+pub const XKB_STATE_MODS_DEPRESSED: xkb_state_component = 1 << 0;
-+pub const XKB_STATE_MODS_LATCHED: xkb_state_component = 1 << 1;
-+pub const XKB_STATE_MODS_LOCKED: xkb_state_component = 1 << 2;
-+pub const XKB_STATE_MODS_EFFECTIVE: xkb_state_component = 1 << 3;
-+pub const XKB_STATE_LAYOUT_DEPRESSED: xkb_state_component = 1 << 4;
-+pub const XKB_STATE_LAYOUT_LATCHED: xkb_state_component = 1 << 5;
-+pub const XKB_STATE_LAYOUT_LOCKED: xkb_state_component = 1 << 6;
-+pub const XKB_STATE_LAYOUT_EFFECTIVE: xkb_state_component = 1 << 7;
-+pub const XKB_STATE_LEDS: xkb_state_component = 1 << 8;
-+
-+#[repr(C)]
-+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-+pub enum xkb_compose_compile_flags {
-+    XKB_COMPOSE_COMPILE_NO_FLAGS = 0,
-+}
-+
-+#[repr(C)]
-+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-+pub enum xkb_compose_state_flags {
-+    XKB_COMPOSE_STATE_NO_FLAGS = 0,
-+}
-+
-+#[repr(C)]
-+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-+pub enum xkb_compose_status {
-+    XKB_COMPOSE_NOTHING = 0,
-+    XKB_COMPOSE_COMPOSING = 1,
-+    XKB_COMPOSE_COMPOSED = 2,
-+    XKB_COMPOSE_CANCELLED = 3,
-+}
-+
-+#[repr(C)]
-+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-+pub enum xkb_compose_feed_result {
-+    XKB_COMPOSE_FEED_IGNORED = 0,
-+    XKB_COMPOSE_FEED_ACCEPTED = 1,
-+}
-+
-+#[link(name = "xkbcommon")]
-+unsafe extern "C" {
-+    pub fn xkb_keysym_to_utf8(keysym: xkb_keysym_t, buffer: *mut c_char, size: usize) -> c_int;
-+
-+    pub fn xkb_context_new(flags: xkb_context_flags) -> *mut xkb_context;
-+    pub fn xkb_context_unref(context: *mut xkb_context);
-+
-+    pub fn xkb_keymap_new_from_string(
-+        context: *mut xkb_context,
-+        string: *const c_char,
-+        format: xkb_keymap_format,
-+        flags: xkb_keymap_compile_flags,
-+    ) -> *mut xkb_keymap;
-+    pub fn xkb_keymap_key_get_syms_by_level(
-+        keymap: *mut xkb_keymap,
-+        key: xkb_keycode_t,
-+        layout: xkb_layout_index_t,
-+        level: u32,
-+        syms_out: *mut *const xkb_keysym_t,
-+    ) -> c_int;
-+    pub fn xkb_keymap_key_repeats(keymap: *mut xkb_keymap, key: xkb_keycode_t) -> c_int;
-+    pub fn xkb_keymap_mod_get_index(keymap: *mut xkb_keymap, name: *const c_char) -> xkb_mod_index_t;
-+    pub fn xkb_keymap_unref(keymap: *mut xkb_keymap);
-+
-+    pub fn xkb_state_new(keymap: *mut xkb_keymap) -> *mut xkb_state;
-+    pub fn xkb_state_key_get_one_sym(state: *mut xkb_state, key: xkb_keycode_t) -> xkb_keysym_t;
-+    pub fn xkb_state_key_get_layout(state: *mut xkb_state, key: xkb_keycode_t) -> xkb_layout_index_t;
-+    pub fn xkb_state_serialize_mods(state: *mut xkb_state, components: xkb_state_component) -> xkb_mod_mask_t;
-+    pub fn xkb_state_key_get_utf8(state: *mut xkb_state, key: xkb_keycode_t, buffer: *mut c_char, size: usize) -> c_int;
-+    pub fn xkb_state_update_mask(
-+        state: *mut xkb_state,
-+        depressed_mods: xkb_mod_mask_t,
-+        latched_mods: xkb_mod_mask_t,
-+        locked_mods: xkb_mod_mask_t,
-+        depressed_layout: xkb_layout_mask_t,
-+        latched_layout: xkb_layout_mask_t,
-+        locked_layout: xkb_layout_mask_t,
-+    ) -> xkb_state_component;
-+    pub fn xkb_state_mod_name_is_active(
-+        state: *mut xkb_state,
-+        name: *const c_char,
-+        component: xkb_state_component,
-+    ) -> c_int;
-+    pub fn xkb_state_unref(state: *mut xkb_state);
-+
-+    pub fn xkb_compose_table_new_from_locale(
-+        context: *mut xkb_context,
-+        locale: *const c_char,
-+        flags: xkb_compose_compile_flags,
-+    ) -> *mut xkb_compose_table;
-+    pub fn xkb_compose_table_unref(table: *mut xkb_compose_table);
-+
-+    pub fn xkb_compose_state_new(
-+        table: *mut xkb_compose_table,
-+        flags: xkb_compose_state_flags,
-+    ) -> *mut xkb_compose_state;
-+    pub fn xkb_compose_state_unref(state: *mut xkb_compose_state);
-+    pub fn xkb_compose_state_get_utf8(
-+        state: *mut xkb_compose_state,
-+        buffer: *mut c_char,
-+        size: usize,
-+    ) -> c_int;
-+    pub fn xkb_compose_state_feed(state: *mut xkb_compose_state, keysym: xkb_keysym_t) -> xkb_compose_feed_result;
-+    pub fn xkb_compose_state_reset(state: *mut xkb_compose_state);
-+    pub fn xkb_compose_state_get_status(state: *mut xkb_compose_state) -> xkb_compose_status;
-+}
-+
-+#[cfg(x11_platform)]
-+#[repr(C)]
-+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-+pub enum xkb_x11_setup_xkb_extension_flags {
-+    XKB_X11_SETUP_XKB_EXTENSION_NO_FLAGS = 0,
-+}
-+
-+#[cfg(x11_platform)]
-+#[link(name = "xkbcommon-x11")]
-+unsafe extern "C" {
-+    pub fn xkb_x11_setup_xkb_extension(
-+        conn: *mut crate::platform_impl::linux::x11::ffi::xcb_connection_t,
-+        major_xkb_version: c_uint,
-+        minor_xkb_version: c_uint,
-+        flags: xkb_x11_setup_xkb_extension_flags,
-+        major_rtrn: *mut c_uint,
-+        minor_rtrn: *mut c_uint,
-+        base_event_out: *mut c_int,
-+        base_error_out: *mut c_int,
-+    ) -> c_int;
-+
-+    pub fn xkb_x11_get_core_keyboard_device_id(
-+        conn: *mut crate::platform_impl::linux::x11::ffi::xcb_connection_t,
-+    ) -> c_int;
-+
-+    pub fn xkb_x11_keymap_new_from_device(
-+        context: *mut xkb_context,
-+        conn: *mut crate::platform_impl::linux::x11::ffi::xcb_connection_t,
-+        device_id: c_int,
-+        flags: xkb_keymap_compile_flags,
-+    ) -> *mut xkb_keymap;
-+
-+    pub fn xkb_x11_state_new_from_device(
-+        keymap: *mut xkb_keymap,
-+        conn: *mut crate::platform_impl::linux::x11::ffi::xcb_connection_t,
-+        device_id: c_int,
-+    ) -> *mut xkb_state;
-+}
-diff -uraN original-winit/src/platform_impl/linux/common/xkb/keymap.rs ./winit/src/platform_impl/linux/common/xkb/keymap.rs
---- original-winit/src/platform_impl/linux/common/xkb/keymap.rs	2026-06-07 22:58:54.970056055 -0400
-+++ ./winit/src/platform_impl/linux/common/xkb/keymap.rs	2026-06-07 22:58:54.974056119 -0400
-@@ -5,20 +5,20 @@
- use std::ptr::{self, NonNull};
  
- #[cfg(x11_platform)]
--use x11_dl::xlib_xcb::xcb_connection_t;
-+use crate::platform_impl::linux::x11::ffi::xcb_connection_t;
+ #[derive(Copy, Clone, Debug)]
+ pub enum ComposeStatus {
+-    Accepted(xkb_compose_status),
++    Accepted(ComposeStatusValue),
+     Ignored,
+     None,
+ }
+diff -uraN original-winit/src/platform_impl/linux/common/xkb/keymap.rs ./winit/src/platform_impl/linux/common/xkb/keymap.rs
+--- original-winit/src/platform_impl/linux/common/xkb/keymap.rs	2026-06-13 11:58:23.915115719 -0400
++++ ./winit/src/platform_impl/linux/common/xkb/keymap.rs	2026-06-13 11:58:23.919115799 -0400
+@@ -8,6 +8,8 @@
+ use x11_dl::xlib_xcb::xcb_connection_t;
  #[cfg(wayland_platform)]
  use {memmap2::MmapOptions, std::os::unix::io::OwnedFd};
++#[cfg(wayland_platform)]
++use xkbcommon_rs as rxkb;
  
--use xkb::XKB_MOD_INVALID;
--use xkbcommon_dl::{
--    self as xkb, xkb_keycode_t, xkb_keymap, xkb_keymap_compile_flags, xkb_keysym_t,
--    xkb_layout_index_t, xkb_mod_index_t,
-+use super::ffi as xkb;
-+use super::ffi::{
-+    xkb_keycode_t, xkb_keymap, xkb_keymap_compile_flags, xkb_keysym_t, xkb_layout_index_t,
-+    xkb_mod_index_t,
- };
+ use xkb::XKB_MOD_INVALID;
+ use xkbcommon_dl::{
+@@ -908,29 +910,57 @@
+     }
+ }
  
-+use xkb::XKB_MOD_INVALID;
+-#[derive(Debug)]
+ pub struct XkbKeymap {
+-    keymap: NonNull<xkb_keymap>,
++    #[cfg(wayland_platform)]
++    pub(crate) rust_keymap: Option<rxkb::Keymap>,
++    #[cfg(x11_platform)]
++    keymap: Option<NonNull<xkb_keymap>>,
+     _mods_indices: ModsIndices,
+     pub _core_keyboard_id: i32,
+ }
+ 
++impl std::fmt::Debug for XkbKeymap {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.debug_struct("XkbKeymap")
++            .field("rust_backend", &{
++                #[cfg(wayland_platform)]
++                {
++                    self.rust_keymap.is_some()
++                }
++                #[cfg(not(wayland_platform))]
++                {
++                    false
++                }
++            })
++            .field("x11_backend", &{
++                #[cfg(x11_platform)]
++                {
++                    self.keymap.is_some()
++                }
++                #[cfg(not(x11_platform))]
++                {
++                    false
++                }
++            })
++            .finish()
++    }
++}
 +
- use crate::keyboard::{Key, KeyCode, KeyLocation, NamedKey, NativeKey, NativeKeyCode, PhysicalKey};
--#[cfg(x11_platform)]
--use crate::platform_impl::common::xkb::XKBXH;
--use crate::platform_impl::common::xkb::{XkbContext, XKBH};
-+use crate::platform_impl::common::xkb::XkbContext;
- 
- /// Map the raw X11-style keycode to the `KeyCode` enum.
- ///
-@@ -441,7 +441,7 @@
- }
- 
- pub fn keysym_to_key(keysym: u32) -> Key {
--    use xkbcommon_dl::keysyms;
-+    use xkeysym::key as keysyms;
-     Key::Named(match keysym {
-         // TTY function keys
-         keysyms::BackSpace => NamedKey::Backspace,
-@@ -855,7 +855,7 @@
- }
- 
- pub fn keysym_location(keysym: u32) -> KeyLocation {
--    use xkbcommon_dl::keysyms;
-+    use xkeysym::key as keysyms;
-     match keysym {
-         keysyms::Shift_L
-         | keysyms::Control_L
-@@ -920,10 +920,20 @@
+ impl XkbKeymap {
+     #[cfg(wayland_platform)]
      pub fn from_fd(context: &XkbContext, fd: OwnedFd, size: usize) -> Option<Self> {
          let map = unsafe { MmapOptions::new().len(size).map_copy_read_only(&fd).ok()? };
++        let map = std::str::from_utf8(&map).ok()?;
++        let rust_context = context.rust_context.clone()?;
++        let keymap = rxkb::Keymap::new_from_string(
++            rust_context,
++            map,
++            rxkb::KeymapFormat::TextV1,
++            rxkb::xkb_keymap::CompileFlags::empty(),
++        )
++        .ok()?;
  
-+        // `xkb_keymap_new_from_string` expects a NUL-terminated C string. While
-+        // the Wayland protocol specifies that the keymap is NUL-terminated,
-+        // it's safer to enforce this here to avoid reading past the mapped
-+        // region on buggy compositors or size mismatches.
-+        let mut map_buf = Vec::with_capacity(map.len().saturating_add(1));
-+        map_buf.extend_from_slice(&map);
-+        if !map_buf.ends_with(&[0]) {
-+            map_buf.push(0);
+-        let keymap = unsafe {
+-            let keymap = (XKBH.xkb_keymap_new_from_string)(
+-                (*context).as_ptr(),
+-                map.as_ptr() as *const _,
+-                xkb::xkb_keymap_format::XKB_KEYMAP_FORMAT_TEXT_V1,
+-                xkb_keymap_compile_flags::XKB_KEYMAP_COMPILE_NO_FLAGS,
+-            );
+-            NonNull::new(keymap)?
+-        };
+-
+-        Some(Self::new_inner(keymap, 0))
++        Some(Self::new_rust(keymap))
+     }
+ 
+     #[cfg(x11_platform)]
+@@ -951,6 +981,17 @@
+         Some(Self::new_inner(keymap, core_keyboard_id))
+     }
+ 
++    #[cfg(wayland_platform)]
++    fn new_rust(keymap: rxkb::Keymap) -> Self {
++        Self { 
++            rust_keymap: Some(keymap),
++            #[cfg(x11_platform)]
++            keymap: None,
++            _mods_indices: ModsIndices::default(),
++            _core_keyboard_id: 0,
++        }
++    }
++
+     fn new_inner(keymap: NonNull<xkb_keymap>, _core_keyboard_id: i32) -> Self {
+         let mods_indices = ModsIndices {
+             shift: mod_index_for_name(keymap, xkb::XKB_MOD_NAME_SHIFT),
+@@ -963,7 +1004,14 @@
+             mod5: mod_index_for_name(keymap, b"Mod5\0"),
+         };
+ 
+-        Self { keymap, _mods_indices: mods_indices, _core_keyboard_id }
++        Self {
++            #[cfg(wayland_platform)]
++            rust_keymap: None,
++            #[cfg(x11_platform)]
++            keymap: Some(keymap),
++            _mods_indices: mods_indices,
++            _core_keyboard_id,
++        }
+     }
+ 
+     #[cfg(x11_platform)]
+@@ -976,10 +1024,20 @@
+         layout: xkb_layout_index_t,
+         keycode: xkb_keycode_t,
+     ) -> xkb_keysym_t {
++        #[cfg(wayland_platform)]
++        if let Some(keymap) = &self.rust_keymap {
++            return keymap
++                .key_get_syms_by_level(keycode, usize::try_from(layout).ok().unwrap_or(0), 0)
++                .ok()
++                .and_then(|syms| syms.first().copied())
++                .map(|sym| sym.raw())
++                .unwrap_or(0);
 +        }
 +
-         let keymap = unsafe {
--            let keymap = (XKBH.xkb_keymap_new_from_string)(
-+            let keymap = xkb::xkb_keymap_new_from_string(
-                 (*context).as_ptr(),
--                map.as_ptr() as *const _,
-+                map_buf.as_ptr() as *const _,
-                 xkb::xkb_keymap_format::XKB_KEYMAP_FORMAT_TEXT_V1,
-                 xkb_keymap_compile_flags::XKB_KEYMAP_COMPILE_NO_FLAGS,
-             );
-@@ -940,7 +950,7 @@
-         core_keyboard_id: i32,
-     ) -> Option<Self> {
-         let keymap = unsafe {
--            (XKBXH.xkb_x11_keymap_new_from_device)(
-+            xkb::xkb_x11_keymap_new_from_device(
-                 context.as_ptr(),
-                 xcb,
-                 core_keyboard_id,
-@@ -978,7 +988,7 @@
-     ) -> xkb_keysym_t {
          unsafe {
              let mut keysyms = ptr::null();
--            let count = (XKBH.xkb_keymap_key_get_syms_by_level)(
-+            let count = xkb::xkb_keymap_key_get_syms_by_level(
-                 self.keymap.as_ptr(),
+             let count = (XKBH.xkb_keymap_key_get_syms_by_level)(
+-                self.keymap.as_ptr(),
++                self.keymap.expect("X11 keymap missing").as_ptr(),
                  keycode,
                  layout,
-@@ -997,14 +1007,14 @@
+                 // NOTE: The level should be zero to ignore modifiers.
+@@ -997,15 +1055,23 @@
  
      /// Check whether the given key repeats.
      pub fn key_repeats(&mut self, keycode: xkb_keycode_t) -> bool {
 -        unsafe { (XKBH.xkb_keymap_key_repeats)(self.keymap.as_ptr(), keycode) == 1 }
-+        unsafe { xkb::xkb_keymap_key_repeats(self.keymap.as_ptr(), keycode) == 1 }
++        #[cfg(wayland_platform)]
++        if let Some(keymap) = &self.rust_keymap {
++            return keymap.key_repeats(keycode);
++        }
++
++        unsafe { (XKBH.xkb_keymap_key_repeats)(self.keymap.expect("X11 keymap missing").as_ptr(), keycode) == 1 }
      }
  }
  
  impl Drop for XkbKeymap {
      fn drop(&mut self) {
-         unsafe {
+-        unsafe {
 -            (XKBH.xkb_keymap_unref)(self.keymap.as_ptr());
-+            xkb::xkb_keymap_unref(self.keymap.as_ptr());
-         };
+-        };
++        #[cfg(x11_platform)]
++        if let Some(keymap) = self.keymap {
++            unsafe {
++                (XKBH.xkb_keymap_unref)(keymap.as_ptr());
++            };
++        }
      }
  }
-@@ -1034,7 +1044,7 @@
- fn mod_index_for_name(keymap: NonNull<xkb_keymap>, name: &[u8]) -> Option<xkb_mod_index_t> {
-     unsafe {
-         let mod_index =
--            (XKBH.xkb_keymap_mod_get_index)(keymap.as_ptr(), name.as_ptr() as *const c_char);
-+            xkb::xkb_keymap_mod_get_index(keymap.as_ptr(), name.as_ptr() as *const c_char);
-         if mod_index == XKB_MOD_INVALID {
-             None
-         } else {
-diff -uraN original-winit/src/platform_impl/linux/common/xkb/mod.rs ./winit/src/platform_impl/linux/common/xkb/mod.rs
---- original-winit/src/platform_impl/linux/common/xkb/mod.rs	2026-06-07 22:58:54.970056055 -0400
-+++ ./winit/src/platform_impl/linux/common/xkb/mod.rs	2026-06-07 22:58:54.974056119 -0400
-@@ -3,26 +3,27 @@
- use std::ptr::{self, NonNull};
- use std::sync::atomic::{AtomicBool, Ordering};
  
--use crate::utils::Lazy;
- use smol_str::SmolStr;
+@@ -1013,7 +1079,7 @@
+     type Target = NonNull<xkb_keymap>;
+ 
+     fn deref(&self) -> &Self::Target {
+-        &self.keymap
++        self.keymap.as_ref().expect("X11 keymap is unavailable")
+     }
+ }
+ 
+diff -uraN original-winit/src/platform_impl/linux/common/xkb/mod.rs ./winit/src/platform_impl/linux/common/xkb/mod.rs
+--- original-winit/src/platform_impl/linux/common/xkb/mod.rs	2026-06-13 11:58:23.915115719 -0400
++++ ./winit/src/platform_impl/linux/common/xkb/mod.rs	2026-06-13 11:58:23.919115799 -0400
+@@ -8,9 +8,11 @@
  #[cfg(wayland_platform)]
  use std::os::unix::io::OwnedFd;
  use tracing::warn;
--use xkbcommon_dl::{
++#[cfg(wayland_platform)]
++use xkbcommon_rs as rxkb;
+ use xkbcommon_dl::{
 -    self as xkb, xkb_compose_status, xkb_context, xkb_context_flags, xkbcommon_compose_handle,
 -    xkbcommon_handle, XkbCommon, XkbCommonCompose,
--};
-+
-+use self::ffi::{xkb_compose_status, xkb_context, xkb_context_flags};
-+
++    self as xkb, xkb_context, xkb_context_flags, xkbcommon_compose_handle, xkbcommon_handle,
++    XkbCommon, XkbCommonCompose,
+ };
  #[cfg(x11_platform)]
--use {x11_dl::xlib_xcb::xcb_connection_t, xkbcommon_dl::x11::xkbcommon_x11_handle};
-+use crate::platform_impl::linux::x11::ffi::xcb_connection_t;
- 
- use crate::event::{ElementState, KeyEvent};
- use crate::keyboard::{Key, KeyLocation};
- use crate::platform_impl::KeyEventExtra;
- 
- mod compose;
-+mod ffi;
+ use {x11_dl::xlib_xcb::xcb_connection_t, xkbcommon_dl::x11::xkbcommon_x11_handle};
+@@ -23,7 +25,7 @@
  mod keymap;
  mod state;
  
-+pub(crate) use self::ffi::xkb_mod_mask_t;
-+
- use compose::{ComposeStatus, XkbComposeState, XkbComposeTable};
+-use compose::{ComposeStatus, XkbComposeState, XkbComposeTable};
++use compose::{ComposeStatus, ComposeStatusValue, XkbComposeState, XkbComposeTable};
  use keymap::XkbKeymap;
  
-@@ -34,11 +35,6 @@
- // TODO: Wire this up without using a static `AtomicBool`.
- static RESET_DEAD_KEYS: AtomicBool = AtomicBool::new(false);
- 
--static XKBH: Lazy<&'static XkbCommon> = Lazy::new(xkbcommon_handle);
--static XKBCH: Lazy<&'static XkbCommonCompose> = Lazy::new(xkbcommon_compose_handle);
--#[cfg(feature = "x11")]
--static XKBXH: Lazy<&'static xkb::x11::XkbCommonX11> = Lazy::new(xkbcommon_x11_handle);
--
- #[inline(always)]
- pub fn reset_dead_keys() {
-     RESET_DEAD_KEYS.store(true, Ordering::SeqCst);
-@@ -66,10 +62,6 @@
+ #[cfg(x11_platform)]
+@@ -66,10 +68,6 @@
  
  impl Context {
      pub fn new() -> Result<Self, Error> {
@@ -2511,239 +1998,420 @@ diff -uraN original-winit/src/platform_impl/linux/common/xkb/mod.rs ./winit/src/
          let context = XkbContext::new()?;
          let mut compose_table = XkbComposeTable::new(&context);
          let mut compose_state1 = compose_table.as_ref().and_then(|table| table.new_state());
-@@ -95,14 +87,14 @@
-         })
-     }
- 
--    #[cfg(feature = "x11")]
-+    #[cfg(x11_platform)]
-     pub fn from_x11_xkb(xcb: *mut xcb_connection_t) -> Result<Self, Error> {
-         let result = unsafe {
--            (XKBXH.xkb_x11_setup_xkb_extension)(
-+            ffi::xkb_x11_setup_xkb_extension(
-                 xcb,
-                 1,
-                 2,
--                xkbcommon_dl::x11::xkb_x11_setup_xkb_extension_flags::XKB_X11_SETUP_XKB_EXTENSION_NO_FLAGS,
-+                ffi::xkb_x11_setup_xkb_extension_flags::XKB_X11_SETUP_XKB_EXTENSION_NO_FLAGS,
-                 ptr::null_mut(),
-                 ptr::null_mut(),
-                 ptr::null_mut(),
-@@ -115,7 +107,7 @@
+@@ -114,7 +112,17 @@
+             return Err(Error::XKBNotFound);
          }
  
-         let mut this = Self::new()?;
--        this.core_keyboard_id = unsafe { (XKBXH.xkb_x11_get_core_keyboard_device_id)(xcb) };
-+        this.core_keyboard_id = unsafe { ffi::xkb_x11_get_core_keyboard_device_id(xcb) };
+-        let mut this = Self::new()?;
++        let mut this = Self {
++            #[cfg(x11_platform)]
++            core_keyboard_id: 0,
++            state: None,
++            keymap: None,
++            compose_state1: None,
++            compose_state2: None,
++            _compose_table: None,
++            context: XkbContext::new_x11()?,
++            scratch_buffer: Vec::with_capacity(8),
++        };
+         this.core_keyboard_id = unsafe { (XKBXH.xkb_x11_get_core_keyboard_device_id)(xcb) };
          this.set_keymap_from_x11(xcb);
          Ok(this)
+@@ -205,6 +213,13 @@
      }
-@@ -209,7 +201,7 @@
+ 
+     fn keysym_to_utf8_raw(&mut self, keysym: u32) -> Option<SmolStr> {
++        #[cfg(wayland_platform)]
++        if self.state.is_rust_backend() {
++            let keysym = rxkb::keysym::Keysym::from(keysym);
++            return rxkb::keysym::keysym_to_utf8(&keysym)
++                .and_then(|utf8| byte_slice_to_smol_str(&utf8));
++        }
++
+         self.scratch_buffer.clear();
          self.scratch_buffer.reserve(8);
          loop {
-             let bytes_written = unsafe {
--                (XKBH.xkb_keysym_to_utf8)(
-+                ffi::xkb_keysym_to_utf8(
-                     keysym,
-                     self.scratch_buffer.as_mut_ptr().cast(),
-                     self.scratch_buffer.capacity(),
-@@ -351,7 +343,7 @@
+@@ -261,7 +276,7 @@
+             Err(undefined) => undefined,
+         };
  
- impl XkbContext {
-     pub fn new() -> Result<Self, Error> {
--        let context = unsafe { (XKBH.xkb_context_new)(xkb_context_flags::XKB_CONTEXT_NO_FLAGS) };
-+        let context = unsafe { ffi::xkb_context_new(xkb_context_flags::XKB_CONTEXT_NO_FLAGS) };
+-        if let ComposeStatus::Accepted(xkb_compose_status::XKB_COMPOSE_COMPOSING) = self.compose {
++        if let ComposeStatus::Accepted(ComposeStatusValue::Composing) = self.compose {
+             let compose_state = self.context.compose_state2.as_mut().unwrap();
+             // When pressing a dead key twice, the non-combining variant of that character will
+             // be produced. Since this function only concerns itself with a single keypress, we
+@@ -269,7 +284,10 @@
+             // twice.
  
-         let context = match NonNull::new(context) {
-             Some(context) => context,
-@@ -365,7 +357,7 @@
- impl Drop for XkbContext {
-     fn drop(&mut self) {
-         unsafe {
--            (XKBH.xkb_context_unref)(self.context.as_ptr());
-+            ffi::xkb_context_unref(self.context.as_ptr());
+             compose_state.feed(self.keysym);
+-            if matches!(compose_state.feed(self.keysym), ComposeStatus::Accepted(_)) {
++            if matches!(
++                compose_state.feed(self.keysym),
++                ComposeStatus::Accepted(ComposeStatusValue::Composed | ComposeStatusValue::Composing)
++            ) {
+                 // Extracting only a single `char` here *should* be fine, assuming that no
+                 // dead key's non-combining variant ever occupies more than one `char`.
+                 let text = compose_state.get_string(self.context.scratch_buffer);
+@@ -331,26 +349,76 @@
+     fn composed_text(&mut self) -> Result<Option<SmolStr>, ()> {
+         match self.compose {
+             ComposeStatus::Accepted(status) => match status {
+-                xkb_compose_status::XKB_COMPOSE_COMPOSED => {
++                ComposeStatusValue::Composed => {
+                     let state = self.context.compose_state1.as_mut().unwrap();
+                     Ok(state.get_string(self.context.scratch_buffer))
+                 },
+-                xkb_compose_status::XKB_COMPOSE_COMPOSING
+-                | xkb_compose_status::XKB_COMPOSE_CANCELLED => Ok(None),
+-                xkb_compose_status::XKB_COMPOSE_NOTHING => Err(()),
++                ComposeStatusValue::Composing | ComposeStatusValue::Cancelled => Ok(None),
++                ComposeStatusValue::Nothing => Err(()),
+             },
+             _ => Err(()),
          }
      }
  }
+ 
+-#[derive(Debug)]
+ pub struct XkbContext {
+-    context: NonNull<xkb_context>,
++    #[cfg(wayland_platform)]
++    rust_context: Option<rxkb::Context>,
++    #[cfg(x11_platform)]
++    x11_context: Option<NonNull<xkb_context>>,
++}
++
++impl std::fmt::Debug for XkbContext {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.debug_struct("XkbContext")
++            .field("rust_backend", &{
++                #[cfg(wayland_platform)]
++                {
++                    self.rust_context.is_some()
++                }
++                #[cfg(not(wayland_platform))]
++                {
++                    false
++                }
++            })
++            .field("x11_backend", &{
++                #[cfg(x11_platform)]
++                {
++                    self.x11_context.is_some()
++                }
++                #[cfg(not(x11_platform))]
++                {
++                    false
++                }
++            })
++            .finish()
++    }
+ }
+ 
+ impl XkbContext {
+     pub fn new() -> Result<Self, Error> {
++        #[cfg(wayland_platform)]
++        {
++            let context = rxkb::Context::new(0).map_err(|_| Error::XKBNotFound)?;
++            return Ok(Self {
++                rust_context: Some(context),
++                #[cfg(x11_platform)]
++                x11_context: None,
++            });
++        }
++
++        #[cfg(not(wayland_platform))]
++        {
++            Self::new_x11()
++        }
++    }
++
++    #[cfg(x11_platform)]
++    pub fn new_x11() -> Result<Self, Error> {
++        if xkb::xkbcommon_option().is_none() {
++            return Err(Error::XKBNotFound);
++        }
++
+         let context = unsafe { (XKBH.xkb_context_new)(xkb_context_flags::XKB_CONTEXT_NO_FLAGS) };
+ 
+         let context = match NonNull::new(context) {
+@@ -358,14 +426,26 @@
+             None => return Err(Error::XKBNotFound),
+         };
+ 
+-        Ok(Self { context })
++        Ok(Self {
++            #[cfg(wayland_platform)]
++            rust_context: None,
++            x11_context: Some(context),
++        })
++    }
++
++    #[cfg(wayland_platform)]
++    pub fn is_rust_backend(&self) -> bool {
++        self.rust_context.is_some()
+     }
+ }
+ 
+ impl Drop for XkbContext {
+     fn drop(&mut self) {
+-        unsafe {
+-            (XKBH.xkb_context_unref)(self.context.as_ptr());
++        #[cfg(x11_platform)]
++        if let Some(context) = self.x11_context {
++            unsafe {
++                (XKBH.xkb_context_unref)(context.as_ptr());
++            }
+         }
+     }
+ }
+@@ -374,7 +454,15 @@
+     type Target = NonNull<xkb_context>;
+ 
+     fn deref(&self) -> &Self::Target {
+-        &self.context
++        #[cfg(x11_platform)]
++        {
++            self.x11_context.as_ref().expect("X11 xkb context is unavailable")
++        }
++
++        #[cfg(not(x11_platform))]
++        {
++            panic!("X11 xkb context is unavailable")
++        }
+     }
+ }
+ 
 diff -uraN original-winit/src/platform_impl/linux/common/xkb/state.rs ./winit/src/platform_impl/linux/common/xkb/state.rs
---- original-winit/src/platform_impl/linux/common/xkb/state.rs	2026-06-07 22:58:54.970056055 -0400
-+++ ./winit/src/platform_impl/linux/common/xkb/state.rs	2026-06-07 22:58:54.974056119 -0400
-@@ -4,16 +4,16 @@
- use std::ptr::NonNull;
- 
+--- original-winit/src/platform_impl/linux/common/xkb/state.rs	2026-06-13 11:58:23.915115719 -0400
++++ ./winit/src/platform_impl/linux/common/xkb/state.rs	2026-06-13 11:58:23.919115799 -0400
+@@ -6,6 +6,8 @@
  use smol_str::SmolStr;
-+
  #[cfg(x11_platform)]
--use x11_dl::xlib_xcb::xcb_connection_t;
--use xkbcommon_dl::{
--    self as xkb, xkb_keycode_t, xkb_keysym_t, xkb_layout_index_t, xkb_state, xkb_state_component,
--};
-+use super::ffi as xkb;
-+use super::ffi::{xkb_keycode_t, xkb_keysym_t, xkb_layout_index_t, xkb_state};
+ use x11_dl::xlib_xcb::xcb_connection_t;
++#[cfg(wayland_platform)]
++use xkbcommon_rs as rxkb;
+ use xkbcommon_dl::{
+     self as xkb, xkb_keycode_t, xkb_keysym_t, xkb_layout_index_t, xkb_state, xkb_state_component,
+ };
+@@ -15,17 +17,52 @@
+ use crate::platform_impl::common::xkb::XKBXH;
+ use crate::platform_impl::common::xkb::{make_string_with, XKBH};
  
--use crate::platform_impl::common::xkb::keymap::XkbKeymap;
- #[cfg(x11_platform)]
--use crate::platform_impl::common::xkb::XKBXH;
--use crate::platform_impl::common::xkb::{make_string_with, XKBH};
-+use crate::platform_impl::linux::x11::ffi::xcb_connection_t;
-+
-+use crate::platform_impl::common::xkb::keymap::XkbKeymap;
-+use crate::platform_impl::common::xkb::make_string_with;
- 
- #[derive(Debug)]
+-#[derive(Debug)]
  pub struct XkbState {
-@@ -24,14 +24,14 @@
+-    state: NonNull<xkb_state>,
++    #[cfg(wayland_platform)]
++    rust_state: Option<rxkb::State>,
++    #[cfg(x11_platform)]
++    state: Option<NonNull<xkb_state>>,
+     modifiers: ModifiersState,
+ }
+ 
++impl std::fmt::Debug for XkbState {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.debug_struct("XkbState")
++            .field("rust_backend", &{
++                #[cfg(wayland_platform)]
++                {
++                    self.rust_state.is_some()
++                }
++                #[cfg(not(wayland_platform))]
++                {
++                    false
++                }
++            })
++            .field("x11_backend", &{
++                #[cfg(x11_platform)]
++                {
++                    self.state.is_some()
++                }
++                #[cfg(not(x11_platform))]
++                {
++                    false
++                }
++            })
++            .field("modifiers", &self.modifiers)
++            .finish()
++    }
++}
++
  impl XkbState {
      #[cfg(wayland_platform)]
++    pub fn is_rust_backend(&self) -> bool {
++        self.rust_state.is_some()
++    }
++
++    #[cfg(wayland_platform)]
      pub fn new_wayland(keymap: &XkbKeymap) -> Option<Self> {
 -        let state = NonNull::new(unsafe { (XKBH.xkb_state_new)(keymap.as_ptr()) })?;
-+        let state = NonNull::new(unsafe { xkb::xkb_state_new(keymap.as_ptr()) })?;
-         Some(Self::new_inner(state))
+-        Some(Self::new_inner(state))
++        let state = rxkb::State::new(keymap.rust_keymap.clone()?);
++        Some(Self::new_rust(state))
      }
  
      #[cfg(x11_platform)]
-     pub fn new_x11(xcb: *mut xcb_connection_t, keymap: &XkbKeymap) -> Option<Self> {
-         let state = unsafe {
--            (XKBXH.xkb_x11_state_new_from_device)(keymap.as_ptr(), xcb, keymap._core_keyboard_id)
-+            xkb::xkb_x11_state_new_from_device(keymap.as_ptr(), xcb, keymap._core_keyboard_id)
-         };
-         let state = NonNull::new(state)?;
+@@ -37,26 +74,55 @@
          Some(Self::new_inner(state))
-@@ -45,19 +45,19 @@
+     }
+ 
++    #[cfg(wayland_platform)]
++    fn new_rust(state: rxkb::State) -> Self {
++        let modifiers = ModifiersState::default();
++        let mut this = Self {
++            rust_state: Some(state),
++            #[cfg(x11_platform)]
++            state: None,
++            modifiers,
++        };
++        this.reload_modifiers();
++        this
++    }
++
+     fn new_inner(state: NonNull<xkb_state>) -> Self {
+         let modifiers = ModifiersState::default();
+-        let mut this = Self { state, modifiers };
++        let mut this = Self {
++            #[cfg(wayland_platform)]
++            rust_state: None,
++            #[cfg(x11_platform)]
++            state: Some(state),
++            modifiers,
++        };
+         this.reload_modifiers();
+         this
      }
  
      pub fn get_one_sym_raw(&mut self, keycode: xkb_keycode_t) -> xkb_keysym_t {
 -        unsafe { (XKBH.xkb_state_key_get_one_sym)(self.state.as_ptr(), keycode) }
-+        unsafe { xkb::xkb_state_key_get_one_sym(self.state.as_ptr(), keycode) }
++        #[cfg(wayland_platform)]
++        if let Some(state) = &self.rust_state {
++            return state.key_get_one_sym(keycode).map(|sym| sym.raw()).unwrap_or(0);
++        }
++
++        unsafe { (XKBH.xkb_state_key_get_one_sym)(self.state.expect("X11 state missing").as_ptr(), keycode) }
      }
  
      pub fn layout(&mut self, key: xkb_keycode_t) -> xkb_layout_index_t {
 -        unsafe { (XKBH.xkb_state_key_get_layout)(self.state.as_ptr(), key) }
-+        unsafe { xkb::xkb_state_key_get_layout(self.state.as_ptr(), key) }
++        #[cfg(wayland_platform)]
++        if let Some(state) = &self.rust_state {
++            return state.key_get_layout(key).and_then(|layout| layout.try_into().ok()).unwrap_or(0);
++        }
++
++        unsafe { (XKBH.xkb_state_key_get_layout)(self.state.expect("X11 state missing").as_ptr(), key) }
      }
  
      #[cfg(x11_platform)]
      pub fn depressed_modifiers(&mut self) -> xkb::xkb_mod_mask_t {
          unsafe {
--            (XKBH.xkb_state_serialize_mods)(
-+            xkb::xkb_state_serialize_mods(
-                 self.state.as_ptr(),
--                xkb_state_component::XKB_STATE_MODS_DEPRESSED,
-+                xkb::XKB_STATE_MODS_DEPRESSED,
+             (XKBH.xkb_state_serialize_mods)(
+-                self.state.as_ptr(),
++                self.state.expect("X11 state missing").as_ptr(),
+                 xkb_state_component::XKB_STATE_MODS_DEPRESSED,
              )
          }
-     }
-@@ -65,9 +65,9 @@
-     #[cfg(x11_platform)]
+@@ -66,7 +132,7 @@
      pub fn latched_modifiers(&mut self) -> xkb::xkb_mod_mask_t {
          unsafe {
--            (XKBH.xkb_state_serialize_mods)(
-+            xkb::xkb_state_serialize_mods(
-                 self.state.as_ptr(),
--                xkb_state_component::XKB_STATE_MODS_LATCHED,
-+                xkb::XKB_STATE_MODS_LATCHED,
+             (XKBH.xkb_state_serialize_mods)(
+-                self.state.as_ptr(),
++                self.state.expect("X11 state missing").as_ptr(),
+                 xkb_state_component::XKB_STATE_MODS_LATCHED,
              )
          }
-     }
-@@ -75,9 +75,9 @@
-     #[cfg(x11_platform)]
+@@ -76,7 +142,7 @@
      pub fn locked_modifiers(&mut self) -> xkb::xkb_mod_mask_t {
          unsafe {
--            (XKBH.xkb_state_serialize_mods)(
-+            xkb::xkb_state_serialize_mods(
-                 self.state.as_ptr(),
--                xkb_state_component::XKB_STATE_MODS_LOCKED,
-+                xkb::XKB_STATE_MODS_LOCKED,
+             (XKBH.xkb_state_serialize_mods)(
+-                self.state.as_ptr(),
++                self.state.expect("X11 state missing").as_ptr(),
+                 xkb_state_component::XKB_STATE_MODS_LOCKED,
              )
          }
-     }
-@@ -88,7 +88,7 @@
+@@ -87,8 +153,14 @@
+         keycode: xkb_keycode_t,
          scratch_buffer: &mut Vec<u8>,
      ) -> Option<SmolStr> {
++        #[cfg(wayland_platform)]
++        if let Some(state) = &self.rust_state {
++            let utf8 = state.key_get_utf8(keycode)?;
++            return super::byte_slice_to_smol_str(&utf8);
++        }
++
          make_string_with(scratch_buffer, |ptr, len| unsafe {
 -            (XKBH.xkb_state_key_get_utf8)(self.state.as_ptr(), keycode, ptr, len)
-+            xkb::xkb_state_key_get_utf8(self.state.as_ptr(), keycode, ptr, len)
++            (XKBH.xkb_state_key_get_utf8)(self.state.expect("X11 state missing").as_ptr(), keycode, ptr, len)
          })
      }
  
-@@ -106,7 +106,7 @@
+@@ -105,9 +177,26 @@
+         latched_group: u32,
          locked_group: u32,
      ) {
++        #[cfg(wayland_platform)]
++        if let Some(state) = self.rust_state.as_mut() {
++            let mask = state.update_mask(
++                mods_depressed,
++                mods_latched,
++                mods_locked,
++                usize::try_from(depressed_group).unwrap_or(0),
++                usize::try_from(latched_group).unwrap_or(0),
++                usize::try_from(locked_group).unwrap_or(0),
++            );
++
++            if mask.contains(rxkb::xkb_state::StateComponent::MODS_EFFECTIVE) {
++                self.reload_modifiers();
++            }
++            return;
++        }
++
          let mask = unsafe {
--            (XKBH.xkb_state_update_mask)(
-+            xkb::xkb_state_update_mask(
-                 self.state.as_ptr(),
+             (XKBH.xkb_state_update_mask)(
+-                self.state.as_ptr(),
++                self.state.expect("X11 state missing").as_ptr(),
                  mods_depressed,
                  mods_latched,
-@@ -117,7 +117,7 @@
-             )
-         };
+                 mods_locked,
+@@ -135,9 +224,19 @@
  
--        if mask.contains(xkb_state_component::XKB_STATE_MODS_EFFECTIVE) {
-+        if (mask & xkb::XKB_STATE_MODS_EFFECTIVE) != 0 {
-             // Effective value of mods have changed, we need to update our state.
-             self.reload_modifiers();
-         }
-@@ -136,10 +136,10 @@
      /// Check if the modifier is active within xkb.
      fn mod_name_is_active(&mut self, name: &[u8]) -> bool {
++        #[cfg(wayland_platform)]
++        if let Some(state) = &self.rust_state {
++            let Ok(name) = std::str::from_utf8(&name[..name.len().saturating_sub(1)]) else {
++                return false;
++            };
++            return state
++                .mod_name_is_active(name, rxkb::xkb_state::StateComponent::MODS_EFFECTIVE)
++                .unwrap_or(false);
++        }
++
          unsafe {
--            (XKBH.xkb_state_mod_name_is_active)(
-+            xkb::xkb_state_mod_name_is_active(
-                 self.state.as_ptr(),
+             (XKBH.xkb_state_mod_name_is_active)(
+-                self.state.as_ptr(),
++                self.state.expect("X11 state missing").as_ptr(),
                  name.as_ptr() as *const c_char,
--                xkb_state_component::XKB_STATE_MODS_EFFECTIVE,
-+                xkb::XKB_STATE_MODS_EFFECTIVE,
+                 xkb_state_component::XKB_STATE_MODS_EFFECTIVE,
              ) > 0
-         }
-     }
-@@ -148,7 +148,7 @@
+@@ -147,8 +246,11 @@
+ 
  impl Drop for XkbState {
      fn drop(&mut self) {
-         unsafe {
+-        unsafe {
 -            (XKBH.xkb_state_unref)(self.state.as_ptr());
-+            xkb::xkb_state_unref(self.state.as_ptr());
++        #[cfg(x11_platform)]
++        if let Some(state) = self.state {
++            unsafe {
++                (XKBH.xkb_state_unref)(state.as_ptr());
++            }
          }
      }
  }
 diff -uraN original-winit/src/platform_impl/linux/mod.rs ./winit/src/platform_impl/linux/mod.rs
---- original-winit/src/platform_impl/linux/mod.rs	2026-06-07 22:58:54.970056055 -0400
-+++ ./winit/src/platform_impl/linux/mod.rs	2026-06-07 22:58:54.978056184 -0400
-@@ -251,7 +251,7 @@
-     }
- 
-     #[inline]
--    pub fn video_modes(&self) -> Box<dyn Iterator<Item = VideoModeHandle>> {
-+    pub fn video_modes(&self) -> Box<dyn Iterator<Item = VideoModeHandle> + '_> {
-         x11_or_wayland!(match self; MonitorHandle(m) => Box::new(m.video_modes()))
-     }
- }
-@@ -560,11 +560,11 @@
-     pub fn available_monitors(&self) -> VecDeque<MonitorHandle> {
-         match self {
-             #[cfg(x11_platform)]
--            Window::X(ref window) => {
-+            Window::X(window) => {
-                 window.available_monitors().into_iter().map(MonitorHandle::X).collect()
-             },
-             #[cfg(wayland_platform)]
--            Window::Wayland(ref window) => {
-+            Window::Wayland(window) => {
-                 window.available_monitors().into_iter().map(MonitorHandle::Wayland).collect()
-             },
-         }
-@@ -666,7 +666,9 @@
-         // which do not require initialization.
-         let mut buf: [MaybeUninit<c_char>; 1024] = unsafe { MaybeUninit::uninit().assume_init() };
-         unsafe {
--            (xconn.xlib.XGetErrorText)(
-+            use crate::platform_impl::x11::ffi;
-+
-+            ffi::XGetErrorText(
-                 display,
-                 (*event).error_code as c_int,
-                 buf.as_mut_ptr() as *mut c_char,
-@@ -982,10 +984,8 @@
+--- original-winit/src/platform_impl/linux/mod.rs	2026-06-13 11:58:23.915115719 -0400
++++ ./winit/src/platform_impl/linux/mod.rs	2026-06-13 11:58:23.923115879 -0400
+@@ -982,10 +982,8 @@
  
              #[cfg(wayland_platform)]
              Self::Wayland(conn) => {
@@ -2751,34 +2419,28 @@ diff -uraN original-winit/src/platform_impl/linux/mod.rs ./winit/src/platform_im
 -
                  let mut wayland_handle = rwh_05::WaylandDisplayHandle::empty();
 -                wayland_handle.display = conn.display().id().as_ptr() as *mut _;
-+                wayland_handle.display = std::ptr::NonNull::from(conn).cast().as_ptr();
++                wayland_handle.display = (conn as *const wayland_client::Connection).cast_mut().cast();
                  wayland_handle.into()
              },
          }
-@@ -1008,10 +1008,8 @@
+@@ -1008,12 +1006,7 @@
  
              #[cfg(wayland_platform)]
              Self::Wayland(conn) => {
 -                use sctk::reexports::client::Proxy;
 -
-                 Ok(rwh_06::WaylandDisplayHandle::new(
+-                Ok(rwh_06::WaylandDisplayHandle::new(
 -                    NonNull::new(conn.display().id().as_ptr().cast()).unwrap(),
-+                    NonNull::from(conn).cast(),
-                 )
-                 .into())
+-                )
+-                .into())
++                Ok(rwh_06::WaylandDisplayHandle::new(NonNull::from(conn).cast()).into())
              },
+         }
+     }
 diff -uraN original-winit/src/platform_impl/linux/wayland/event_loop/mod.rs ./winit/src/platform_impl/linux/wayland/event_loop/mod.rs
---- original-winit/src/platform_impl/linux/wayland/event_loop/mod.rs	2026-06-07 22:58:54.970056055 -0400
-+++ ./winit/src/platform_impl/linux/wayland/event_loop/mod.rs	2026-06-07 22:58:54.974056119 -0400
-@@ -106,6 +106,7 @@
-         let wayland_source = WaylandSource::new(connection.clone(), event_queue);
-         let wayland_dispatcher =
-             calloop::Dispatcher::new(wayland_source, |_, queue, winit_state: &mut WinitState| {
-+                // tracing::warn!("Dispatching pending events");
-                 let result = queue.dispatch_pending(winit_state);
-                 if result.is_ok()
-                     && (!winit_state.events_sink.is_empty()
-@@ -696,10 +697,8 @@
+--- original-winit/src/platform_impl/linux/wayland/event_loop/mod.rs	2026-06-13 11:58:23.915115719 -0400
++++ ./winit/src/platform_impl/linux/wayland/event_loop/mod.rs	2026-06-13 11:58:23.919115799 -0400
+@@ -696,10 +696,8 @@
      #[cfg(feature = "rwh_05")]
      #[inline]
      pub fn raw_display_handle_rwh_05(&self) -> rwh_05::RawDisplayHandle {
@@ -2786,11 +2448,11 @@ diff -uraN original-winit/src/platform_impl/linux/wayland/event_loop/mod.rs ./wi
 -
          let mut display_handle = rwh_05::WaylandDisplayHandle::empty();
 -        display_handle.display = self.connection.display().id().as_ptr() as *mut _;
-+        display_handle.display = std::ptr::NonNull::from(&self.connection).cast().as_ptr();
++        display_handle.display = (&self.connection as *const Connection).cast_mut().cast();
          rwh_05::RawDisplayHandle::Wayland(display_handle)
      }
  
-@@ -708,13 +707,7 @@
+@@ -708,13 +706,8 @@
      pub fn raw_display_handle_rwh_06(
          &self,
      ) -> Result<rwh_06::RawDisplayHandle, rwh_06::HandleError> {
@@ -2801,136 +2463,128 @@ diff -uraN original-winit/src/platform_impl/linux/wayland/event_loop/mod.rs ./wi
 -            std::ptr::NonNull::new(ptr as *mut _).expect("wl_display should never be null")
 -        })
 -        .into())
-+        Ok(rwh_06::WaylandDisplayHandle::new(std::ptr::NonNull::from(&self.connection).cast()).into())
++        Ok(rwh_06::WaylandDisplayHandle::new(std::ptr::NonNull::from(&self.connection).cast())
++            .into())
      }
  }
  
-@@ -784,7 +777,7 @@
+@@ -783,8 +776,8 @@
+                             break 'outer;
                          }
                          let _ = rustix::event::poll(&mut [poll_fd, pipe_poll_fd], -1);
-                         // Non-blocking read the connection.
+-                        // Non-blocking read the connection.
 -                        let _ = read_guard.read_without_dispatch();
++                        // Non-blocking read the connection; dispatch happens on the main queue.
 +                        let _ = read_guard.read();
                      }
  
                      awakener.ping();
 diff -uraN original-winit/src/platform_impl/linux/wayland/mod.rs ./winit/src/platform_impl/linux/wayland/mod.rs
---- original-winit/src/platform_impl/linux/wayland/mod.rs	2026-06-07 22:58:54.970056055 -0400
-+++ ./winit/src/platform_impl/linux/wayland/mod.rs	2026-06-07 22:58:54.974056119 -0400
-@@ -5,7 +5,8 @@
+--- original-winit/src/platform_impl/linux/wayland/mod.rs	2026-06-13 11:58:23.915115719 -0400
++++ ./winit/src/platform_impl/linux/wayland/mod.rs	2026-06-13 11:58:23.919115799 -0400
+@@ -1,6 +1,7 @@
+ //! Winit's Wayland backend.
+ 
+ use std::fmt::Display;
++use std::hash::{DefaultHasher, Hash, Hasher};
+ use std::sync::Arc;
  
  use sctk::reexports::client::globals::{BindError, GlobalError};
- use sctk::reexports::client::protocol::wl_surface::WlSurface;
--use sctk::reexports::client::{self, ConnectError, DispatchError, Proxy};
-+use sctk::reexports::client::{self, ConnectError, DispatchError};
-+use sctk::reexports::client::Proxy;
- 
- pub(super) use crate::cursor::OnlyCursorImage as CustomCursor;
- use crate::dpi::{LogicalSize, PhysicalSize};
-@@ -74,7 +75,12 @@
+@@ -74,7 +75,9 @@
  /// Get the WindowId out of the surface.
  #[inline]
  fn make_wid(surface: &WlSurface) -> WindowId {
 -    WindowId(surface.id().as_ptr() as u64)
-+    // Use the Wayland object id, which is stable across `Proxy` clones.
-+    //
-+    // Using the Rust wrapper's address breaks because clones of a `WlSurface`
-+    // are distinct wrapper values; that can cause compositor events (like
-+    // `configure`) to be associated with the wrong `WindowId`.
-+    WindowId(u64::from(surface.id().protocol_id()))
++    let mut hasher = DefaultHasher::new();
++    surface.id().hash(&mut hasher);
++    WindowId(hasher.finish())
  }
  
  /// The default routine does floor, but we need round on Wayland.
 diff -uraN original-winit/src/platform_impl/linux/wayland/seat/keyboard/mod.rs ./winit/src/platform_impl/linux/wayland/seat/keyboard/mod.rs
---- original-winit/src/platform_impl/linux/wayland/seat/keyboard/mod.rs	2026-06-07 22:58:54.970056055 -0400
-+++ ./winit/src/platform_impl/linux/wayland/seat/keyboard/mod.rs	2026-06-07 22:58:54.974056119 -0400
-@@ -5,7 +5,6 @@
+--- original-winit/src/platform_impl/linux/wayland/seat/keyboard/mod.rs	2026-06-13 11:58:23.915115719 -0400
++++ ./winit/src/platform_impl/linux/wayland/seat/keyboard/mod.rs	2026-06-13 11:58:23.919115799 -0400
+@@ -16,7 +16,7 @@
+ use crate::event::{ElementState, WindowEvent};
+ use crate::keyboard::ModifiersState;
  
- use calloop::timer::{TimeoutAction, Timer};
- use calloop::{LoopHandle, RegistrationToken};
--use tracing::warn;
+-use crate::platform_impl::common::xkb::Context;
++use crate::platform_impl::common::xkb::{Context, Error as XkbError};
+ use crate::platform_impl::wayland::event_loop::sink::EventSink;
+ use crate::platform_impl::wayland::state::WinitState;
+ use crate::platform_impl::wayland::{self, DeviceId, WindowId};
+@@ -293,15 +293,18 @@
+ }
  
- use sctk::reexports::client::protocol::wl_keyboard::{
-     Event as WlKeyboardEvent, KeyState as WlKeyState, KeymapFormat as WlKeymapFormat, WlKeyboard,
-@@ -33,23 +32,22 @@
-         let seat_state = match state.seats.get_mut(&data.seat.id()) {
-             Some(seat_state) => seat_state,
-             None => {
--                warn!("Received keyboard event {event:?} without seat");
-+                tracing::warn!("Received keyboard event {event:?} without seat");
-                 return;
+ impl KeyboardState {
+-    pub fn new(keyboard: WlKeyboard, loop_handle: LoopHandle<'static, WinitState>) -> Self {
+-        Self {
++    pub fn new(
++        keyboard: WlKeyboard,
++        loop_handle: LoopHandle<'static, WinitState>,
++    ) -> Result<Self, XkbError> {
++        Ok(Self {
+             keyboard,
+             loop_handle,
+-            xkb_context: Context::new().unwrap(),
++            xkb_context: Context::new()?,
+             repeat_info: RepeatInfo::default(),
+             repeat_token: None,
+             current_repeat: None,
+-        }
++        })
+     }
+ }
+ 
+diff -uraN original-winit/src/platform_impl/linux/wayland/seat/mod.rs ./winit/src/platform_impl/linux/wayland/seat/mod.rs
+--- original-winit/src/platform_impl/linux/wayland/seat/mod.rs	2026-06-13 11:58:23.915115719 -0400
++++ ./winit/src/platform_impl/linux/wayland/seat/mod.rs	2026-06-13 11:58:23.919115799 -0400
+@@ -91,8 +91,16 @@
              },
-         };
-         let keyboard_state = match seat_state.keyboard_state.as_mut() {
-             Some(keyboard_state) => keyboard_state,
-             None => {
--                warn!("Received keyboard event {event:?} without keyboard");
-+                tracing::warn!("Received keyboard event {event:?} without keyboard");
-                 return;
+             SeatCapability::Keyboard if seat_state.keyboard_state.is_none() => {
+                 let keyboard = seat.get_keyboard(queue_handle, KeyboardData::new(seat.clone()));
+-                seat_state.keyboard_state =
+-                    Some(KeyboardState::new(keyboard, self.loop_handle.clone()));
++                match KeyboardState::new(keyboard, self.loop_handle.clone()) {
++                    Ok(keyboard_state) => {
++                        seat_state.keyboard_state = Some(keyboard_state);
++                    },
++                    Err(error) => {
++                        warn!(
++                            "Wayland keyboard support unavailable on this seat: {error:?}"
++                        );
++                    },
++                }
              },
-         };
--
-         match event {
-             WlKeyboardEvent::Keymap { format, fd, size } => match format {
-                 WEnum::Value(format) => match format {
-                     WlKeymapFormat::NoKeymap => {
--                        warn!("non-xkb compatible keymap")
-+                        tracing::warn!("non-xkb compatible keymap")
-                     },
-                     WlKeymapFormat::XkbV1 => {
-                         let context = &mut keyboard_state.xkb_context;
-@@ -58,7 +56,7 @@
-                     _ => unreachable!(),
-                 },
-                 WEnum::Unknown(value) => {
--                    warn!("unknown keymap format 0x{:x}", value)
-+                    tracing::warn!("unknown keymap format 0x{:x}", value)
-                 },
-             },
-             WlKeyboardEvent::Enter { surface, .. } => {
-@@ -133,7 +131,6 @@
-             },
-             WlKeyboardEvent::Key { key, state: WEnum::Value(WlKeyState::Pressed), .. } => {
-                 let key = key + 8;
--
-                 key_input(
-                     keyboard_state,
-                     &mut state.events_sink,
-@@ -185,7 +182,6 @@
-                             Some(repeat_keycode) => repeat_keycode,
-                             None => return TimeoutAction::Drop,
-                         };
--
-                         key_input(
-                             keyboard_state,
-                             &mut state.events_sink,
+             SeatCapability::Pointer if seat_state.pointer.is_none() => {
+                 let surface = self.compositor_state.create_surface(queue_handle);
 diff -uraN original-winit/src/platform_impl/linux/wayland/window/mod.rs ./winit/src/platform_impl/linux/wayland/window/mod.rs
---- original-winit/src/platform_impl/linux/wayland/window/mod.rs	2026-06-07 22:58:54.970056055 -0400
-+++ ./winit/src/platform_impl/linux/wayland/window/mod.rs	2026-06-07 22:58:54.974056119 -0400
-@@ -5,9 +5,8 @@
+--- original-winit/src/platform_impl/linux/wayland/window/mod.rs	2026-06-13 11:58:23.915115719 -0400
++++ ./winit/src/platform_impl/linux/wayland/window/mod.rs	2026-06-13 11:58:23.919115799 -0400
+@@ -5,7 +5,6 @@
  use std::sync::atomic::{AtomicBool, Ordering};
  use std::sync::{Arc, Mutex};
  
 -use sctk::reexports::client::protocol::wl_display::WlDisplay;
  use sctk::reexports::client::protocol::wl_surface::WlSurface;
--use sctk::reexports::client::{Proxy, QueueHandle};
-+use sctk::reexports::client::{Connection, Proxy, QueueHandle};
+ use sctk::reexports::client::{Proxy, QueueHandle};
  
- use sctk::compositor::{CompositorState, Region, SurfaceData};
- use sctk::reexports::protocols::xdg::activation::v1::client::xdg_activation_v1::XdgActivationV1;
-@@ -52,9 +51,9 @@
+@@ -52,9 +51,11 @@
      /// Compositor to handle WlRegion stuff.
      compositor: Arc<CompositorState>,
  
 -    /// The wayland display used solely for raw window handle.
-+    /// The wayland connection used solely for raw display handle.
-     #[allow(dead_code)]
+-    #[allow(dead_code)]
 -    display: WlDisplay,
-+    connection: Connection,
++    /// The Wayland connection used solely for raw window handle exports.
++    connection: wayland_client::Connection,
++
++    /// The Wayland surface used solely for raw window handle exports.
++    surface: WlSurface,
  
      /// Xdg activation to request user attention.
      xdg_activation: Option<XdgActivationV1>,
-@@ -92,7 +91,7 @@
+@@ -92,7 +93,7 @@
          let compositor = state.compositor_state.clone();
          let xdg_activation =
              state.xdg_activation.as_ref().map(|activation_state| activation_state.global().clone());
@@ -2939,16 +2593,17 @@ diff -uraN original-winit/src/platform_impl/linux/wayland/window/mod.rs ./winit/
  
          let size: Size = attributes.inner_size.unwrap_or(LogicalSize::new(800., 600.).into());
  
-@@ -218,7 +217,7 @@
+@@ -218,7 +219,8 @@
  
          Ok(Self {
              window,
 -            display,
 +            connection,
++            surface,
              monitors,
              window_id,
              compositor,
-@@ -233,7 +232,7 @@
+@@ -233,7 +235,7 @@
      }
  
      pub(crate) fn xdg_toplevel(&self) -> Option<NonNull<c_void>> {
@@ -2957,32 +2612,36 @@ diff -uraN original-winit/src/platform_impl/linux/wayland/window/mod.rs ./winit/
      }
  }
  
-@@ -654,8 +653,8 @@
+@@ -654,8 +656,10 @@
      #[inline]
      pub fn raw_window_handle_rwh_04(&self) -> rwh_04::RawWindowHandle {
          let mut window_handle = rwh_04::WaylandHandle::empty();
 -        window_handle.surface = self.window.wl_surface().id().as_ptr() as *mut _;
 -        window_handle.display = self.display.id().as_ptr() as *mut _;
-+        window_handle.surface = std::ptr::NonNull::from(self.window.wl_surface()).cast().as_ptr();
-+        window_handle.display = std::ptr::NonNull::from(&self.connection).cast().as_ptr();
++        window_handle.surface = (&self.surface as *const WlSurface).cast_mut().cast();
++        window_handle.display = (&self.connection as *const wayland_client::Connection)
++            .cast_mut()
++            .cast();
          rwh_04::RawWindowHandle::Wayland(window_handle)
      }
  
-@@ -663,7 +662,7 @@
+@@ -663,7 +667,7 @@
      #[inline]
      pub fn raw_window_handle_rwh_05(&self) -> rwh_05::RawWindowHandle {
          let mut window_handle = rwh_05::WaylandWindowHandle::empty();
 -        window_handle.surface = self.window.wl_surface().id().as_ptr() as *mut _;
-+        window_handle.surface = std::ptr::NonNull::from(self.window.wl_surface()).cast().as_ptr();
++        window_handle.surface = (&self.surface as *const WlSurface).cast_mut().cast();
          rwh_05::RawWindowHandle::Wayland(window_handle)
      }
  
-@@ -671,18 +670,14 @@
+@@ -671,18 +675,16 @@
      #[inline]
      pub fn raw_display_handle_rwh_05(&self) -> rwh_05::RawDisplayHandle {
          let mut display_handle = rwh_05::WaylandDisplayHandle::empty();
 -        display_handle.display = self.display.id().as_ptr() as *mut _;
-+        display_handle.display = std::ptr::NonNull::from(&self.connection).cast().as_ptr();
++        display_handle.display = (&self.connection as *const wayland_client::Connection)
++            .cast_mut()
++            .cast();
          rwh_05::RawDisplayHandle::Wayland(display_handle)
      }
  
@@ -2994,11 +2653,11 @@ diff -uraN original-winit/src/platform_impl/linux/wayland/window/mod.rs ./winit/
 -            std::ptr::NonNull::new(ptr as *mut _).expect("wl_surface will never be null")
 -        })
 -        .into())
-+        Ok(rwh_06::WaylandWindowHandle::new(std::ptr::NonNull::from(self.window.wl_surface()).cast()).into())
++        Ok(rwh_06::WaylandWindowHandle::new(NonNull::from(&self.surface).cast()).into())
      }
  
      #[cfg(feature = "rwh_06")]
-@@ -690,11 +685,7 @@
+@@ -690,11 +692,7 @@
      pub fn raw_display_handle_rwh_06(
          &self,
      ) -> Result<rwh_06::RawDisplayHandle, rwh_06::HandleError> {
@@ -3007,781 +2666,13 @@ diff -uraN original-winit/src/platform_impl/linux/wayland/window/mod.rs ./winit/
 -            std::ptr::NonNull::new(ptr as *mut _).expect("wl_proxy should never be null")
 -        })
 -        .into())
-+        Ok(rwh_06::WaylandDisplayHandle::new(std::ptr::NonNull::from(&self.connection).cast()).into())
++        Ok(rwh_06::WaylandDisplayHandle::new(NonNull::from(&self.connection).cast()).into())
      }
  
      #[inline]
-diff -uraN original-winit/src/platform_impl/linux/x11/event_processor.rs ./winit/src/platform_impl/linux/x11/event_processor.rs
---- original-winit/src/platform_impl/linux/x11/event_processor.rs	2026-06-07 22:58:54.970056055 -0400
-+++ ./winit/src/platform_impl/linux/x11/event_processor.rs	2026-06-07 22:58:54.978056184 -0400
-@@ -4,11 +4,11 @@
- use std::slice;
- use std::sync::{Arc, Mutex};
- 
--use x11_dl::xinput2::{
-+use x11::xinput2::{
-     self, XIDeviceEvent, XIEnterEvent, XIFocusInEvent, XIFocusOutEvent, XIHierarchyEvent,
-     XILeaveEvent, XIModifierState, XIRawEvent,
- };
--use x11_dl::xlib::{
-+use x11::xlib::{
-     self, Display as XDisplay, Window as XWindow, XAnyEvent, XClientMessageEvent, XConfigureEvent,
-     XDestroyWindowEvent, XEvent, XExposeEvent, XKeyEvent, XMapEvent, XPropertyEvent,
-     XReparentEvent, XSelectionEvent, XVisibilityEvent, XkbAnyEvent, XkbStateRec,
-@@ -17,7 +17,7 @@
- use x11rb::protocol::xkb::ID as XkbId;
- use x11rb::protocol::xproto::{self, ConnectionExt as _, ModMask};
- use x11rb::x11_utils::{ExtensionInformation, Serialize};
--use xkbcommon_dl::xkb_mod_mask_t;
-+use crate::platform_impl::common::xkb::xkb_mod_mask_t;
- 
- use crate::dpi::{PhysicalPosition, PhysicalSize};
- use crate::event::{
-@@ -134,9 +134,8 @@
-     /// arrow keys from being detected twice.
-     #[must_use]
-     fn filter_event(&mut self, xev: &mut XEvent) -> bool {
--        let wt = Self::window_target(&self.target);
-         unsafe {
--            (wt.xconn.xlib.XFilterEvent)(xev, {
-+            xlib::XFilterEvent(xev, {
-                 let xev: &XAnyEvent = xev.as_ref();
-                 xev.window
-             }) == xlib::True
-@@ -320,7 +319,7 @@
- 
-     pub fn poll(&self) -> bool {
-         let window_target = Self::window_target(&self.target);
--        let result = unsafe { (window_target.xconn.xlib.XPending)(window_target.xconn.display) };
-+        let result = unsafe { xlib::XPending(window_target.xconn.display) };
- 
-         result != 0
-     }
-@@ -343,7 +342,7 @@
-         }
- 
-         let result = unsafe {
--            (window_target.xconn.xlib.XCheckIfEvent)(
-+            xlib::XCheckIfEvent(
-                 window_target.xconn.display,
-                 event_ptr,
-                 Some(predicate),
-@@ -1627,23 +1626,58 @@
-     ) where
-         F: FnMut(&RootAEL, Event<T>),
-     {
-+        // XInput2 reports modifier/group state as signed integers.
-+        //
-+        // On some systems (notably 32-bit / i586 builds) we've observed invalid negative values
-+        // reaching here. Casting those values to `u32` produces huge numbers, which can trigger
-+        // crashes inside libxkbcommon when we call `xkb_state_update_mask`.
-+        //
-+        // Be defensive: if any values are invalid, fall back to querying XKB state from X11.
-+        let window_id = match self.active_window.map(super::mkwid) {
-+            Some(window_id) => window_id,
-+            None => return,
-+        };
-+
-+        let Some(mods_depressed) = u32::try_from(mods.base).ok() else {
-+            self.update_mods_from_query(window_id, callback);
-+            return;
-+        };
-+
-+        let Some(mods_latched) = u32::try_from(mods.latched).ok() else {
-+            self.update_mods_from_query(window_id, callback);
-+            return;
-+        };
-+
-+        let Some(mods_locked) = u32::try_from(mods.locked).ok() else {
-+            self.update_mods_from_query(window_id, callback);
-+            return;
-+        };
-+
-+        let Some(depressed_group) = u32::try_from(group.base).ok().filter(|g| *g <= 64) else {
-+            self.update_mods_from_query(window_id, callback);
-+            return;
-+        };
-+
-+        let Some(latched_group) = u32::try_from(group.latched).ok().filter(|g| *g <= 64) else {
-+            self.update_mods_from_query(window_id, callback);
-+            return;
-+        };
-+
-+        let Some(locked_group) = u32::try_from(group.locked).ok().filter(|g| *g <= 64) else {
-+            self.update_mods_from_query(window_id, callback);
-+            return;
-+        };
-+
-         if let Some(state) = self.xkb_context.state_mut() {
-             state.update_modifiers(
--                mods.base as u32,
--                mods.latched as u32,
--                mods.locked as u32,
--                group.base as u32,
--                group.latched as u32,
--                group.locked as u32,
-+                mods_depressed,
-+                mods_latched,
-+                mods_locked,
-+                depressed_group,
-+                latched_group,
-+                locked_group,
-             );
- 
--            // NOTE: we use active window since generally sub windows don't have keyboard input,
--            // and winit assumes that unfocused window doesn't have modifiers.
--            let window_id = match self.active_window.map(super::mkwid) {
--                Some(window_id) => window_id,
--                None => return,
--            };
--
-             let mods = state.modifiers();
-             self.send_modifiers(window_id, mods.into(), force, &mut callback);
-         }
-@@ -1665,7 +1699,7 @@
- 
-         unsafe {
-             let mut state: XkbStateRec = std::mem::zeroed();
--            if (wt.xconn.xlib.XkbGetState)(wt.xconn.display, XkbId::USE_CORE_KBD.into(), &mut state)
-+            if xlib::XkbGetState(wt.xconn.display, XkbId::USE_CORE_KBD.into(), &mut state)
-                 == xlib::True
-             {
-                 xkb_state.update_modifiers(
-diff -uraN original-winit/src/platform_impl/linux/x11/ffi.rs ./winit/src/platform_impl/linux/x11/ffi.rs
---- original-winit/src/platform_impl/linux/x11/ffi.rs	2026-06-07 22:58:54.970056055 -0400
-+++ ./winit/src/platform_impl/linux/x11/ffi.rs	2026-06-07 22:58:54.978056184 -0400
-@@ -1,5 +1,4 @@
--pub use x11_dl::error::OpenError;
--pub use x11_dl::xcursor::*;
--pub use x11_dl::xinput2::*;
--pub use x11_dl::xlib::*;
--pub use x11_dl::xlib_xcb::*;
-+pub use x11::xcursor::*;
-+pub use x11::xinput2::*;
-+pub use x11::xlib::*;
-+pub use x11::xlib_xcb::*;
-diff -uraN original-winit/src/platform_impl/linux/x11/ime/callbacks.rs ./winit/src/platform_impl/linux/x11/ime/callbacks.rs
---- original-winit/src/platform_impl/linux/x11/ime/callbacks.rs	2026-06-07 22:58:54.970056055 -0400
-+++ ./winit/src/platform_impl/linux/x11/ime/callbacks.rs	2026-06-07 22:58:54.974056119 -0400
-@@ -17,7 +17,7 @@
- ) -> Result<(), XError> {
-     // It's advisable to wrap variadic FFI functions in our own functions, as we want to minimize
-     // access that isn't type-checked.
--    unsafe { (xconn.xlib.XSetIMValues)(xim, field, callback, ptr::null_mut::<()>()) };
-+    unsafe { ffi::XSetIMValues(xim, field, callback, ptr::null_mut::<()>()) };
-     xconn.check_errors()
- }
- 
-@@ -32,7 +32,7 @@
-     client_data: ffi::XPointer,
- ) -> Result<(), XError> {
-     unsafe {
--        (xconn.xlib.XRegisterIMInstantiateCallback)(
-+        ffi::XRegisterIMInstantiateCallback(
-             xconn.display,
-             ptr::null_mut(),
-             ptr::null_mut(),
-@@ -49,7 +49,7 @@
-     client_data: ffi::XPointer,
- ) -> Result<(), XError> {
-     unsafe {
--        (xconn.xlib.XUnregisterIMInstantiateCallback)(
-+        ffi::XUnregisterIMInstantiateCallback(
-             xconn.display,
-             ptr::null_mut(),
-             ptr::null_mut(),
-diff -uraN original-winit/src/platform_impl/linux/x11/ime/context.rs ./winit/src/platform_impl/linux/x11/ime/context.rs
---- original-winit/src/platform_impl/linux/x11/ime/context.rs	2026-06-07 22:58:54.970056055 -0400
-+++ ./winit/src/platform_impl/linux/x11/ime/context.rs	2026-06-07 22:58:54.974056119 -0400
-@@ -3,7 +3,7 @@
- use std::sync::Arc;
- use std::{mem, ptr};
- 
--use x11_dl::xlib::{XIMCallback, XIMPreeditCaretCallbackStruct, XIMPreeditDrawCallbackStruct};
-+use super::ffi::{XIMCallback, XIMPreeditCaretCallbackStruct, XIMPreeditDrawCallbackStruct};
- 
- use super::{ffi, util, XConnection, XError};
- use crate::platform_impl::platform::x11::ime::input_method::{InputMethod, Style, XIMStyle};
-@@ -220,9 +220,7 @@
-             Style::Nothing(style) => unsafe {
-                 ImeContext::create_nothing_ic(xconn, im.im, style, window)
-             },
--            Style::None(style) => unsafe {
--                ImeContext::create_none_ic(xconn, im.im, style, window)
--            },
-+            Style::None(style) => unsafe { ImeContext::create_none_ic(xconn, im.im, style, window) },
-         }
-         .ok_or(ImeContextCreationError::Null)?;
- 
-@@ -244,13 +242,13 @@
-     }
- 
-     unsafe fn create_none_ic(
--        xconn: &Arc<XConnection>,
-+        _xconn: &Arc<XConnection>,
-         im: ffi::XIM,
-         style: XIMStyle,
-         window: ffi::Window,
-     ) -> Option<ffi::XIC> {
-         let ic = unsafe {
--            (xconn.xlib.XCreateIC)(
-+            ffi::XCreateIC(
-                 im,
-                 ffi::XNInputStyle_0.as_ptr() as *const _,
-                 style,
-@@ -272,7 +270,7 @@
-     ) -> Option<ffi::XIC> {
-         let preedit_callbacks = PreeditCallbacks::new(client_data);
-         let preedit_attr = util::memory::XSmartPointer::new(xconn, unsafe {
--            (xconn.xlib.XVaCreateNestedList)(
-+            ffi::XVaCreateNestedList(
-                 0,
-                 ffi::XNPreeditStartCallback_0.as_ptr() as *const _,
-                 &(preedit_callbacks.start_callback) as *const _,
-@@ -288,7 +286,7 @@
-         .expect("XVaCreateNestedList returned NULL");
- 
-         let ic = unsafe {
--            (xconn.xlib.XCreateIC)(
-+            ffi::XCreateIC(
-                 im,
-                 ffi::XNInputStyle_0.as_ptr() as *const _,
-                 style,
-@@ -304,13 +302,13 @@
-     }
- 
-     unsafe fn create_nothing_ic(
--        xconn: &Arc<XConnection>,
-+        _xconn: &Arc<XConnection>,
-         im: ffi::XIM,
-         style: XIMStyle,
-         window: ffi::Window,
-     ) -> Option<ffi::XIC> {
-         let ic = unsafe {
--            (xconn.xlib.XCreateIC)(
-+            ffi::XCreateIC(
-                 im,
-                 ffi::XNInputStyle_0.as_ptr() as *const _,
-                 style,
-@@ -325,14 +323,14 @@
- 
-     pub(crate) fn focus(&self, xconn: &Arc<XConnection>) -> Result<(), XError> {
-         unsafe {
--            (xconn.xlib.XSetICFocus)(self.ic);
-+            ffi::XSetICFocus(self.ic);
-         }
-         xconn.check_errors()
-     }
- 
-     pub(crate) fn unfocus(&self, xconn: &Arc<XConnection>) -> Result<(), XError> {
-         unsafe {
--            (xconn.xlib.XUnsetICFocus)(self.ic);
-+            ffi::XUnsetICFocus(self.ic);
-         }
-         xconn.check_errors()
-     }
-@@ -356,7 +354,7 @@
-         unsafe {
-             let preedit_attr = util::memory::XSmartPointer::new(
-                 xconn,
--                (xconn.xlib.XVaCreateNestedList)(
-+                ffi::XVaCreateNestedList(
-                     0,
-                     ffi::XNSpotLocation_0.as_ptr(),
-                     &self.ic_spot,
-@@ -365,7 +363,7 @@
-             )
-             .expect("XVaCreateNestedList returned NULL");
- 
--            (xconn.xlib.XSetICValues)(
-+            ffi::XSetICValues(
-                 self.ic,
-                 ffi::XNPreeditAttributes_0.as_ptr() as *const _,
-                 preedit_attr.ptr,
-diff -uraN original-winit/src/platform_impl/linux/x11/ime/inner.rs ./winit/src/platform_impl/linux/x11/ime/inner.rs
---- original-winit/src/platform_impl/linux/x11/ime/inner.rs	2026-06-07 22:58:54.970056055 -0400
-+++ ./winit/src/platform_impl/linux/x11/ime/inner.rs	2026-06-07 22:58:54.974056119 -0400
-@@ -9,12 +9,12 @@
- use crate::platform_impl::platform::x11::ime::ImeEventSender;
- 
- pub(crate) unsafe fn close_im(xconn: &Arc<XConnection>, im: ffi::XIM) -> Result<(), XError> {
--    unsafe { (xconn.xlib.XCloseIM)(im) };
-+    unsafe { ffi::XCloseIM(im) };
-     xconn.check_errors()
- }
- 
- pub(crate) unsafe fn destroy_ic(xconn: &Arc<XConnection>, ic: ffi::XIC) -> Result<(), XError> {
--    unsafe { (xconn.xlib.XDestroyIC)(ic) };
-+    unsafe { ffi::XDestroyIC(ic) };
-     xconn.check_errors()
- }
- 
-diff -uraN original-winit/src/platform_impl/linux/x11/ime/input_method.rs ./winit/src/platform_impl/linux/x11/ime/input_method.rs
---- original-winit/src/platform_impl/linux/x11/ime/input_method.rs	2026-06-07 22:58:54.970056055 -0400
-+++ ./winit/src/platform_impl/linux/x11/ime/input_method.rs	2026-06-07 22:58:54.974056119 -0400
-@@ -17,11 +17,9 @@
-     // * The new locale modifiers if we succeeded in setting them.
-     // * NULL if the locale modifiers string is malformed or if the current locale is not supported
-     //   by Xlib.
--    unsafe { (xconn.xlib.XSetLocaleModifiers)(locale_modifiers.as_ptr()) };
-+    unsafe { ffi::XSetLocaleModifiers(locale_modifiers.as_ptr()) };
- 
--    let im = unsafe {
--        (xconn.xlib.XOpenIM)(xconn.display, ptr::null_mut(), ptr::null_mut(), ptr::null_mut())
--    };
-+    let im = unsafe { ffi::XOpenIM(xconn.display, ptr::null_mut(), ptr::null_mut(), ptr::null_mut()) };
- 
-     if im.is_null() {
-         None
-@@ -39,12 +37,12 @@
- }
- 
- impl InputMethod {
--    fn new(xconn: &Arc<XConnection>, im: ffi::XIM, name: String) -> Option<Self> {
-+    fn new(_xconn: &Arc<XConnection>, im: ffi::XIM, name: String) -> Option<Self> {
-         let mut styles: *mut XIMStyles = std::ptr::null_mut();
- 
-         // Query the styles supported by the XIM.
-         unsafe {
--            if !(xconn.xlib.XGetIMValues)(
-+            if !ffi::XGetIMValues(
-                 im,
-                 ffi::XNQueryInputStyle_0.as_ptr() as *const _,
-                 (&mut styles) as *mut _,
-@@ -73,7 +71,7 @@
-                     _ => (),
-                 });
- 
--            (xconn.xlib.XFree)(styles.cast());
-+            ffi::XFree(styles.cast());
-         };
- 
-         if preedit_style.is_none() && none_style.is_none() {
-@@ -166,7 +164,7 @@
-     let atoms = xconn.atoms();
-     let servers_atom = atoms[XIM_SERVERS];
- 
--    let root = unsafe { (xconn.xlib.XDefaultRootWindow)(xconn.display) };
-+    let root = unsafe { ffi::XDefaultRootWindow(xconn.display) };
- 
-     let mut atoms: Vec<ffi::Atom> = xconn
-         .get_property::<xproto::Atom>(
-@@ -181,7 +179,7 @@
- 
-     let mut names: Vec<*const c_char> = Vec::with_capacity(atoms.len());
-     unsafe {
--        (xconn.xlib.XGetAtomNames)(
-+        ffi::XGetAtomNames(
-             xconn.display,
-             atoms.as_mut_ptr(),
-             atoms.len() as _,
-@@ -196,7 +194,7 @@
-             .to_owned()
-             .into_string()
-             .map_err(GetXimServersError::InvalidUtf8)?;
--        unsafe { (xconn.xlib.XFree)(name as _) };
-+        unsafe { ffi::XFree(name as _) };
-         formatted_names.push(string.replace("@server=", "@im="));
-     }
-     xconn.check_errors().map_err(GetXimServersError::XError)?;
-diff -uraN original-winit/src/platform_impl/linux/x11/mod.rs ./winit/src/platform_impl/linux/x11/mod.rs
---- original-winit/src/platform_impl/linux/x11/mod.rs	2026-06-07 22:58:54.970056055 -0400
-+++ ./winit/src/platform_impl/linux/x11/mod.rs	2026-06-07 22:58:54.978056184 -0400
-@@ -190,12 +190,12 @@
-             // Remember default locale to restore it if target locale is unsupported
-             // by Xlib
-             let default_locale = setlocale(LC_CTYPE, ptr::null());
--            setlocale(LC_CTYPE, b"\0".as_ptr() as *const _);
-+            setlocale(LC_CTYPE, c"".as_ptr() as *const _);
- 
-             // Check if set locale is supported by Xlib.
-             // If not, calls to some Xlib functions like `XSetLocaleModifiers`
-             // will fail.
--            let locale_supported = (xconn.xlib.XSupportsLocale)() == 1;
-+            let locale_supported = ffi::XSupportsLocale() == 1;
-             if !locale_supported {
-                 let unsupported_locale = setlocale(LC_CTYPE, ptr::null());
-                 warn!(
-@@ -731,6 +731,7 @@
- }
- 
- struct DeviceInfo<'a> {
-+    #[allow(dead_code)]
-     xconn: &'a XConnection,
-     info: *const ffi::XIDeviceInfo,
-     count: usize,
-@@ -740,7 +741,7 @@
-     fn get(xconn: &'a XConnection, device: c_int) -> Option<Self> {
-         unsafe {
-             let mut count = 0;
--            let info = (xconn.xinput2.XIQueryDevice)(xconn.display, device, &mut count);
-+            let info = ffi::XIQueryDevice(xconn.display, device, &mut count);
-             xconn.check_errors().ok()?;
- 
-             if info.is_null() || count == 0 {
-@@ -755,7 +756,7 @@
- impl Drop for DeviceInfo<'_> {
-     fn drop(&mut self) {
-         assert!(!self.info.is_null());
--        unsafe { (self.xconn.xinput2.XIFreeDeviceInfo)(self.info as *mut _) };
-+        unsafe { ffi::XIFreeDeviceInfo(self.info as *mut _) };
-     }
- }
- 
-diff -uraN original-winit/src/platform_impl/linux/x11/util/cookie.rs ./winit/src/platform_impl/linux/x11/util/cookie.rs
---- original-winit/src/platform_impl/linux/x11/util/cookie.rs	2026-06-07 22:58:54.970056055 -0400
-+++ ./winit/src/platform_impl/linux/x11/util/cookie.rs	2026-06-07 22:58:54.978056184 -0400
-@@ -1,7 +1,7 @@
- use std::ffi::c_int;
- use std::sync::Arc;
- 
--use x11_dl::xlib::{self, XEvent, XGenericEventCookie};
-+use super::super::ffi::{self, XEvent, XGenericEventCookie};
- 
- use crate::platform_impl::x11::XConnection;
- 
-@@ -17,7 +17,7 @@
-     pub fn from_event(xconn: Arc<XConnection>, event: XEvent) -> Option<GenericEventCookie> {
-         unsafe {
-             let mut cookie: XGenericEventCookie = From::from(event);
--            if (xconn.xlib.XGetEventData)(xconn.display, &mut cookie) == xlib::True {
-+            if ffi::XGetEventData(xconn.display, &mut cookie) == ffi::True {
-                 Some(GenericEventCookie { cookie, xconn })
-             } else {
-                 None
-@@ -49,7 +49,7 @@
- impl Drop for GenericEventCookie {
-     fn drop(&mut self) {
-         unsafe {
--            (self.xconn.xlib.XFreeEventData)(self.xconn.display, &mut self.cookie);
-+            ffi::XFreeEventData(self.xconn.display, &mut self.cookie);
-         }
-     }
- }
-diff -uraN original-winit/src/platform_impl/linux/x11/util/cursor.rs ./winit/src/platform_impl/linux/x11/util/cursor.rs
---- original-winit/src/platform_impl/linux/x11/util/cursor.rs	2026-06-07 22:58:54.970056055 -0400
-+++ ./winit/src/platform_impl/linux/x11/util/cursor.rs	2026-06-07 22:58:54.978056184 -0400
-@@ -30,9 +30,9 @@
-     fn create_empty_cursor(&self) -> ffi::Cursor {
-         let data = 0;
-         let pixmap = unsafe {
--            let screen = (self.xlib.XDefaultScreen)(self.display);
--            let window = (self.xlib.XRootWindow)(self.display, screen);
--            (self.xlib.XCreateBitmapFromData)(self.display, window, &data, 1, 1)
-+            let screen = ffi::XDefaultScreen(self.display);
-+            let window = ffi::XRootWindow(self.display, screen);
-+            ffi::XCreateBitmapFromData(self.display, window, &data, 1, 1)
-         };
- 
-         if pixmap == 0 {
-@@ -43,7 +43,7 @@
-             // We don't care about this color, since it only fills bytes
-             // in the pixmap which are not 0 in the mask.
-             let mut dummy_color = MaybeUninit::uninit();
--            let cursor = (self.xlib.XCreatePixmapCursor)(
-+            let cursor = ffi::XCreatePixmapCursor(
-                 self.display,
-                 pixmap,
-                 pixmap,
-@@ -52,7 +52,7 @@
-                 0,
-                 0,
-             );
--            (self.xlib.XFreePixmap)(self.display, pixmap);
-+            ffi::XFreePixmap(self.display, pixmap);
- 
-             cursor
-         }
-@@ -67,12 +67,8 @@
-         let mut xcursor = 0;
-         for &name in iter::once(&cursor.name()).chain(cursor.alt_names().iter()) {
-             let name = CString::new(name).unwrap();
--            xcursor = unsafe {
--                (self.xcursor.XcursorLibraryLoadCursor)(
--                    self.display,
--                    name.as_ptr() as *const c_char,
--                )
--            };
-+            xcursor =
-+                unsafe { ffi::XcursorLibraryLoadCursor(self.display, name.as_ptr() as *const c_char) };
- 
-             if xcursor != 0 {
-                 break;
-@@ -126,7 +122,7 @@
-         cursor: PlatformCustomCursorSource,
-     ) -> CustomCursor {
-         unsafe {
--            let ximage = (event_loop.xconn.xcursor.XcursorImageCreate)(
-+            let ximage = ffi::XcursorImageCreate(
-                 cursor.0.width as i32,
-                 cursor.0.height as i32,
-             );
-@@ -145,9 +141,8 @@
-                     | (chunk[3] as u32) << 24;
-             }
- 
--            let cursor =
--                (event_loop.xconn.xcursor.XcursorImageLoadCursor)(event_loop.xconn.display, ximage);
--            (event_loop.xconn.xcursor.XcursorImageDestroy)(ximage);
-+            let cursor = ffi::XcursorImageLoadCursor(event_loop.xconn.display, ximage);
-+            ffi::XcursorImageDestroy(ximage);
-             Self { inner: Arc::new(CustomCursorInner { xconn: event_loop.xconn.clone(), cursor }) }
-         }
-     }
-@@ -162,7 +157,7 @@
- impl Drop for CustomCursorInner {
-     fn drop(&mut self) {
-         unsafe {
--            (self.xconn.xlib.XFreeCursor)(self.xconn.display, self.cursor);
-+            ffi::XFreeCursor(self.xconn.display, self.cursor);
-         }
-     }
- }
-diff -uraN original-winit/src/platform_impl/linux/x11/util/input.rs ./winit/src/platform_impl/linux/x11/util/input.rs
---- original-winit/src/platform_impl/linux/x11/util/input.rs	2026-06-07 22:58:54.970056055 -0400
-+++ ./winit/src/platform_impl/linux/x11/util/input.rs	2026-06-07 22:58:54.978056184 -0400
-@@ -33,8 +33,7 @@
-         mask: xkb::EventType,
-     ) -> Result<bool, X11Error> {
-         let mask = u16::from(mask) as _;
--        let status =
--            unsafe { (self.xlib.XkbSelectEvents)(self.display, device_id as _, mask, mask) };
-+        let status = unsafe { ffi::XkbSelectEvents(self.display, device_id as _, mask, mask) };
- 
-         if status == ffi::True {
-             self.flush_requests()?;
-@@ -66,7 +65,7 @@
-         let mut keysym: ffi::KeySym = 0;
-         let mut status: ffi::Status = 0;
-         let count = unsafe {
--            (self.xlib.Xutf8LookupString)(
-+            ffi::Xutf8LookupString(
-                 ic,
-                 key_event,
-                 buffer as *mut c_char,
-diff -uraN original-winit/src/platform_impl/linux/x11/util/keys.rs ./winit/src/platform_impl/linux/x11/util/keys.rs
---- original-winit/src/platform_impl/linux/x11/util/keys.rs	2026-06-07 22:58:54.970056055 -0400
-+++ ./winit/src/platform_impl/linux/x11/util/keys.rs	2026-06-07 22:58:54.978056184 -0400
-@@ -63,7 +63,7 @@
-         let mut keys = [0; 32];
- 
-         unsafe {
--            (self.xlib.XQueryKeymap)(self.display, keys.as_mut_ptr() as *mut c_char);
-+            ffi::XQueryKeymap(self.display, keys.as_mut_ptr() as *mut c_char);
-         }
- 
-         Keymap { keys }
-diff -uraN original-winit/src/platform_impl/linux/x11/util/memory.rs ./winit/src/platform_impl/linux/x11/util/memory.rs
---- original-winit/src/platform_impl/linux/x11/util/memory.rs	2026-06-07 22:58:54.970056055 -0400
-+++ ./winit/src/platform_impl/linux/x11/util/memory.rs	2026-06-07 22:58:54.978056184 -0400
-@@ -3,6 +3,7 @@
- use super::*;
- 
- pub(crate) struct XSmartPointer<'a, T> {
-+    #[allow(dead_code)]
-     xconn: &'a XConnection,
-     pub ptr: *mut T,
- }
-@@ -36,7 +37,7 @@
- impl<T> Drop for XSmartPointer<'_, T> {
-     fn drop(&mut self) {
-         unsafe {
--            (self.xconn.xlib.XFree)(self.ptr as *mut _);
-+            ffi::XFree(self.ptr as *mut _);
-         }
-     }
- }
-diff -uraN original-winit/src/platform_impl/linux/x11/util/modifiers.rs ./winit/src/platform_impl/linux/x11/util/modifiers.rs
---- original-winit/src/platform_impl/linux/x11/util/modifiers.rs	2026-06-07 22:58:54.970056055 -0400
-+++ ./winit/src/platform_impl/linux/x11/util/modifiers.rs	2026-06-07 22:58:54.978056184 -0400
-@@ -57,7 +57,7 @@
- 
-             self.reset_from_x_keymap(&*keymap);
- 
--            (xconn.xlib.XFreeModifiermap)(keymap);
-+            ffi::XFreeModifiermap(keymap);
-         }
-     }
- 
-diff -uraN original-winit/src/platform_impl/linux/x11/util/mod.rs ./winit/src/platform_impl/linux/x11/util/mod.rs
---- original-winit/src/platform_impl/linux/x11/util/mod.rs	2026-06-07 22:58:54.970056055 -0400
-+++ ./winit/src/platform_impl/linux/x11/util/mod.rs	2026-06-07 22:58:54.978056184 -0400
-@@ -62,7 +62,7 @@
-     //    and waits.
-     // All util functions that abstract an async function will return a `Flusher`.
-     pub fn flush_requests(&self) -> Result<(), XError> {
--        unsafe { (self.xlib.XFlush)(self.display) };
-+        unsafe { ffi::XFlush(self.display) };
-         // println!("XFlush");
-         // This isn't necessarily a useful time to check for errors (since our request hasn't
-         // necessarily been processed yet)
-@@ -70,7 +70,7 @@
-     }
- 
-     pub fn sync_with_server(&self) -> Result<(), XError> {
--        unsafe { (self.xlib.XSync)(self.display, ffi::False) };
-+        unsafe { ffi::XSync(self.display, ffi::False) };
-         // println!("XSync");
-         self.check_errors()
-     }
-diff -uraN original-winit/src/platform_impl/linux/x11/util/xmodmap.rs ./winit/src/platform_impl/linux/x11/util/xmodmap.rs
---- original-winit/src/platform_impl/linux/x11/util/xmodmap.rs	2026-06-07 22:58:54.970056055 -0400
-+++ ./winit/src/platform_impl/linux/x11/util/xmodmap.rs	2026-06-07 22:58:54.978056184 -0400
-@@ -1,7 +1,7 @@
- use std::collections::HashSet;
- use std::slice;
- 
--use x11_dl::xlib::{KeyCode as XKeyCode, XModifierKeymap};
-+use super::super::ffi::{self, KeyCode as XKeyCode, XModifierKeymap};
- 
- // Offsets within XModifierKeymap to each set of keycodes.
- // We are only interested in Shift, Control, Alt, and Logo.
-@@ -30,7 +30,7 @@
- 
-     pub fn reload_from_x_connection(&mut self, xconn: &super::XConnection) {
-         unsafe {
--            let keymap = (xconn.xlib.XGetModifierMapping)(xconn.display);
-+            let keymap = ffi::XGetModifierMapping(xconn.display);
- 
-             if keymap.is_null() {
-                 return;
-@@ -38,7 +38,7 @@
- 
-             self.reset_from_x_keymap(&*keymap);
- 
--            (xconn.xlib.XFreeModifiermap)(keymap);
-+            ffi::XFreeModifiermap(keymap);
-         }
-     }
- 
-diff -uraN original-winit/src/platform_impl/linux/x11/window.rs ./winit/src/platform_impl/linux/x11/window.rs
---- original-winit/src/platform_impl/linux/x11/window.rs	2026-06-07 22:58:54.970056055 -0400
-+++ ./winit/src/platform_impl/linux/x11/window.rs	2026-06-07 22:58:54.978056184 -0400
-@@ -516,7 +516,7 @@
-             // Attempt to make keyboard input repeat detectable
-             unsafe {
-                 let mut supported_ptr = ffi::False;
--                (xconn.xlib.XkbSetDetectableAutoRepeat)(
-+                ffi::XkbSetDetectableAutoRepeat(
-                     xconn.display,
-                     ffi::True,
-                     &mut supported_ptr,
-diff -uraN original-winit/src/platform_impl/linux/x11/xdisplay.rs ./winit/src/platform_impl/linux/x11/xdisplay.rs
---- original-winit/src/platform_impl/linux/x11/xdisplay.rs	2026-06-07 22:58:54.970056055 -0400
-+++ ./winit/src/platform_impl/linux/x11/xdisplay.rs	2026-06-07 22:58:54.978056184 -0400
-@@ -17,13 +17,6 @@
- 
- /// A connection to an X server.
- pub struct XConnection {
--    pub xlib: ffi::Xlib,
--    pub xcursor: ffi::Xcursor,
--
--    // TODO(notgull): I'd like to remove this, but apparently Xlib and Xinput2 are tied together
--    // for some reason.
--    pub xinput2: ffi::XInput2,
--
-     pub display: *mut ffi::Display,
- 
-     /// The manager for the XCB connection.
-@@ -67,18 +60,12 @@
- 
- impl XConnection {
-     pub fn new(error_handler: XErrorHandler) -> Result<XConnection, XNotSupported> {
--        // opening the libraries
--        let xlib = ffi::Xlib::open()?;
--        let xcursor = ffi::Xcursor::open()?;
--        let xlib_xcb = ffi::Xlib_xcb::open()?;
--        let xinput2 = ffi::XInput2::open()?;
--
--        unsafe { (xlib.XInitThreads)() };
--        unsafe { (xlib.XSetErrorHandler)(error_handler) };
-+        unsafe { ffi::XInitThreads() };
-+        unsafe { ffi::XSetErrorHandler(error_handler) };
- 
-         // calling XOpenDisplay
-         let display = unsafe {
--            let display = (xlib.XOpenDisplay)(ptr::null());
-+            let display = ffi::XOpenDisplay(ptr::null());
-             if display.is_null() {
-                 return Err(XNotSupported::XOpenDisplayFailed);
-             }
-@@ -88,8 +75,7 @@
-         // Open the x11rb XCB connection.
-         let xcb = {
-             // Get a pointer to the underlying XCB connection
--            let xcb_connection =
--                unsafe { (xlib_xcb.XGetXCBConnection)(display as *mut ffi::Display) };
-+            let xcb_connection = unsafe { ffi::XGetXCBConnection(display as *mut ffi::Display) };
-             assert!(!xcb_connection.is_null());
- 
-             // Wrap the XCB connection in an x11rb XCB connection
-@@ -100,7 +86,7 @@
-         };
- 
-         // Get the default screen.
--        let default_screen = unsafe { (xlib.XDefaultScreen)(display) } as usize;
-+        let default_screen = unsafe { ffi::XDefaultScreen(display) } as usize;
- 
-         // Load the database.
-         let database = resource_manager::new_from_default(&xcb)
-@@ -125,9 +111,6 @@
-             .map_err(|e| XNotSupported::XcbConversionError(Arc::new(e)))?;
- 
-         Ok(XConnection {
--            xlib,
--            xcursor,
--            xinput2,
-             display,
-             xcb: Some(xcb),
-             atoms: Box::new(atoms),
-@@ -267,7 +250,7 @@
-     #[inline]
-     fn drop(&mut self) {
-         self.xcb = None;
--        unsafe { (self.xlib.XCloseDisplay)(self.display) };
-+        unsafe { ffi::XCloseDisplay(self.display) };
-     }
- }
- 
-@@ -295,9 +278,6 @@
- /// Error returned if this system doesn't have XLib or can't create an X connection.
- #[derive(Clone, Debug)]
- pub enum XNotSupported {
--    /// Failed to load one or several shared libraries.
--    LibraryOpenError(ffi::OpenError),
--
-     /// Connecting to the X server with `XOpenDisplay` failed.
-     XOpenDisplayFailed, // TODO: add better message.
- 
-@@ -305,17 +285,9 @@
-     XcbConversionError(Arc<dyn Error + Send + Sync + 'static>),
- }
- 
--impl From<ffi::OpenError> for XNotSupported {
--    #[inline]
--    fn from(err: ffi::OpenError) -> XNotSupported {
--        XNotSupported::LibraryOpenError(err)
--    }
--}
--
- impl XNotSupported {
-     fn description(&self) -> &'static str {
-         match self {
--            XNotSupported::LibraryOpenError(_) => "Failed to load one of xlib's shared libraries",
-             XNotSupported::XOpenDisplayFailed => "Failed to open connection to X server",
-             XNotSupported::XcbConversionError(_) => "Failed to convert Xlib connection to XCB",
-         }
-@@ -326,7 +298,6 @@
-     #[inline]
-     fn source(&self) -> Option<&(dyn Error + 'static)> {
-         match *self {
--            XNotSupported::LibraryOpenError(ref err) => Some(err),
-             XNotSupported::XcbConversionError(ref err) => Some(&**err),
-             _ => None,
-         }
 diff -uraN original-x11/Cargo.toml ./x11/Cargo.toml
---- original-x11/Cargo.toml	2026-06-07 22:58:55.942071672 -0400
-+++ ./x11/Cargo.toml	2026-06-07 22:58:56.070073729 -0400
+--- original-x11/Cargo.toml	2026-06-13 11:58:24.543128252 -0400
++++ ./x11/Cargo.toml	2026-06-13 11:58:24.607129529 -0400
 @@ -1,16 +1,4 @@
 -# THIS FILE IS AUTOMATICALLY GENERATED BY CARGO
 -#
@@ -3832,8 +2723,8 @@ diff -uraN original-x11/Cargo.toml ./x11/Cargo.toml
  all = [
      "dpms",
 diff -uraN original-x11/examples/hello-world.rs ./x11/examples/hello-world.rs
---- original-x11/examples/hello-world.rs	2026-06-07 22:58:55.942071672 -0400
-+++ ./x11/examples/hello-world.rs	2026-06-07 22:58:56.066073665 -0400
+--- original-x11/examples/hello-world.rs	2026-06-13 11:58:24.543128252 -0400
++++ ./x11/examples/hello-world.rs	2026-06-13 11:58:24.607129529 -0400
 @@ -33,7 +33,8 @@
          let screen = xlib::XDefaultScreen(display);
          let root = xlib::XRootWindow(display, screen);
@@ -3865,12 +2756,852 @@ diff -uraN original-x11/examples/hello-world.rs ./x11/examples/hello-world.rs
                          let protocol = xclient.data.get_long(0) as xlib::Atom;
 diff -uraN original-x11/.gitignore ./x11/.gitignore
 --- original-x11/.gitignore	1969-12-31 19:00:00.000000000 -0500
-+++ ./x11/.gitignore	2026-06-07 22:58:56.070073729 -0400
++++ ./x11/.gitignore	2026-06-13 11:58:24.607129529 -0400
 @@ -0,0 +1 @@
 +/target
+diff -uraN original-xkbcommon-rs/src/compose.rs ./xkbcommon-rs/src/compose.rs
+--- original-xkbcommon-rs/src/compose.rs	1969-12-31 19:00:00.000000000 -0500
++++ ./xkbcommon-rs/src/compose.rs	2026-06-13 11:58:29.395224932 -0400
+@@ -0,0 +1,769 @@
++// SPDX-License-Identifier for parts derived from libxkbcommon: X11
++use std::collections::{BTreeMap, BTreeSet};
++use std::env;
++use std::fs;
++use std::path::{Path, PathBuf};
++
++use log::warn;
++use xkeysym::Keysym;
++
++/// Result of feeding a keysym into the compose state machine.
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub enum ComposeFeedResult {
++    Ignored,
++    Accepted,
++}
++
++/// Current state of the compose state machine.
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub enum ComposeStatus {
++    Nothing,
++    Composing,
++    Composed,
++    Cancelled,
++}
++
++#[derive(Clone, Debug, Default)]
++pub struct ComposeTable {
++    _locale: Option<String>,
++    entries: BTreeMap<Vec<Keysym>, String>,
++}
++
++impl ComposeTable {
++    pub fn new_from_locale(locale: Option<&str>) -> Option<Self> {
++        let requested_locale = locale
++            .map(ToOwned::to_owned)
++            .or_else(|| compose_locale_from_env());
++        let entries = load_compose_entries(requested_locale.as_deref()).unwrap_or_else(|error| {
++            warn!("failed to load Compose table: {error}");
++            BTreeMap::new()
++        });
++
++        Some(Self { _locale: requested_locale, entries })
++    }
++
++    pub fn new_state(&self) -> ComposeState {
++        ComposeState { table: self.entries.clone(), ..ComposeState::default() }
++    }
++}
++
++#[derive(Clone, Debug, Default)]
++pub struct ComposeState {
++    table: BTreeMap<Vec<Keysym>, String>,
++    sequence: Vec<Keysym>,
++    state: ComposeInner,
++}
++
++#[derive(Clone, Debug, Default)]
++enum ComposeInner {
++    #[default]
++    Nothing,
++    MultiKey,
++    Dead(Vec<DeadAccent>),
++    TableComposing,
++    Composed(String),
++    Cancelled,
++}
++
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++struct DeadAccent {
++    keysym: Keysym,
++    combining: char,
++    spacing: Option<char>,
++}
++
++impl ComposeState {
++    /// The transition behavior intentionally follows libxkbcommon's compose
++    /// state machine shape from `src/compose/state.c`, but this Rust backend
++    /// currently implements algorithmic dead-key composition instead of
++    /// loading locale-specific Compose tables.
++    pub fn feed(&mut self, keysym: Keysym) -> ComposeFeedResult {
++        if keysym.is_modifier_key() {
++            return ComposeFeedResult::Ignored;
++        }
++
++        if matches!(self.state, ComposeInner::Composed(_) | ComposeInner::Cancelled) {
++            self.reset();
++        }
++
++        if !self.table.is_empty() {
++            return self.feed_table(keysym);
++        }
++
++        match &mut self.state {
++            ComposeInner::Nothing => {
++                if keysym == Keysym::Multi_key {
++                    self.state = ComposeInner::MultiKey;
++                } else if let Some(accent) = dead_accent_from_keysym(keysym) {
++                    self.state = ComposeInner::Dead(vec![accent]);
++                }
++            },
++            ComposeInner::MultiKey => {
++                if let Some(accent) = dead_accent_from_keysym(keysym)
++                    .or_else(|| dead_accent_from_prefix(keysym))
++                {
++                    self.state = ComposeInner::Dead(vec![accent]);
++                } else {
++                    self.state = ComposeInner::Cancelled;
++                }
++            },
++            ComposeInner::Dead(accents) => {
++                if let Some(accent) = dead_accent_from_keysym(keysym)
++                    .or_else(|| dead_accent_from_prefix(keysym))
++                {
++                    if accents.len() == 1 && accents[0] == accent {
++                        self.state = ComposeInner::Composed(
++                            accent.spacing.unwrap_or(accent.combining).to_string(),
++                        );
++                    } else {
++                        accents.push(accent);
++                    }
++                } else if let Some(base) = keysym.key_char() {
++                    if accents.len() == 1 && base == ' ' {
++                        let accent = accents[0];
++                        self.state = ComposeInner::Composed(
++                            accent.spacing.unwrap_or(accent.combining).to_string(),
++                        );
++                    } else {
++                        self.state = ComposeInner::Composed(compose_text(base, accents));
++                    }
++                } else {
++                    self.state = ComposeInner::Cancelled;
++                }
++            },
++            ComposeInner::Composed(_) | ComposeInner::Cancelled => {
++                self.reset();
++                return self.feed(keysym);
++            },
++            ComposeInner::TableComposing => {
++                self.state = ComposeInner::Cancelled;
++            },
++        }
++
++        ComposeFeedResult::Accepted
++    }
++
++    pub fn reset(&mut self) {
++        self.sequence.clear();
++        self.state = ComposeInner::Nothing;
++    }
++
++    pub fn status(&self) -> ComposeStatus {
++        match &self.state {
++            ComposeInner::Nothing => ComposeStatus::Nothing,
++            ComposeInner::MultiKey | ComposeInner::Dead(_) | ComposeInner::TableComposing => {
++                ComposeStatus::Composing
++            }
++            ComposeInner::Composed(_) => ComposeStatus::Composed,
++            ComposeInner::Cancelled => ComposeStatus::Cancelled,
++        }
++    }
++
++    pub fn get_utf8(&self) -> Option<Vec<u8>> {
++        let ComposeInner::Composed(text) = &self.state else {
++            return None;
++        };
++        Some(text.as_bytes().to_vec())
++    }
++
++    fn feed_table(&mut self, keysym: Keysym) -> ComposeFeedResult {
++        self.sequence.push(keysym);
++
++        if let Some(text) = self.table.get(&self.sequence) {
++            self.state = ComposeInner::Composed(text.clone());
++            return ComposeFeedResult::Accepted;
++        }
++
++        let has_prefix = self
++            .table
++            .keys()
++            .any(|sequence| sequence.starts_with(&self.sequence));
++
++        if has_prefix {
++            self.state = ComposeInner::TableComposing;
++            return ComposeFeedResult::Accepted;
++        }
++
++        self.sequence.pop();
++
++        if self.sequence.is_empty() {
++            self.feed_algorithmic(keysym)
++        } else {
++            self.state = ComposeInner::Cancelled;
++            ComposeFeedResult::Accepted
++        }
++    }
++
++    fn feed_algorithmic(&mut self, keysym: Keysym) -> ComposeFeedResult {
++        match &mut self.state {
++            ComposeInner::Nothing => {
++                if keysym == Keysym::Multi_key {
++                    self.state = ComposeInner::MultiKey;
++                } else if let Some(accent) = dead_accent_from_keysym(keysym) {
++                    self.state = ComposeInner::Dead(vec![accent]);
++                }
++            },
++            ComposeInner::MultiKey => {
++                if let Some(accent) = dead_accent_from_keysym(keysym)
++                    .or_else(|| dead_accent_from_prefix(keysym))
++                {
++                    self.state = ComposeInner::Dead(vec![accent]);
++                } else {
++                    self.state = ComposeInner::Cancelled;
++                }
++            },
++            ComposeInner::Dead(accents) => {
++                if let Some(accent) = dead_accent_from_keysym(keysym)
++                    .or_else(|| dead_accent_from_prefix(keysym))
++                {
++                    if accents.len() == 1 && accents[0] == accent {
++                        self.state = ComposeInner::Composed(
++                            accent.spacing.unwrap_or(accent.combining).to_string(),
++                        );
++                    } else {
++                        accents.push(accent);
++                    }
++                } else if let Some(base) = keysym.key_char() {
++                    if accents.len() == 1 && base == ' ' {
++                        let accent = accents[0];
++                        self.state = ComposeInner::Composed(
++                            accent.spacing.unwrap_or(accent.combining).to_string(),
++                        );
++                    } else {
++                        self.state = ComposeInner::Composed(compose_text(base, accents));
++                    }
++                } else {
++                    self.state = ComposeInner::Cancelled;
++                }
++            },
++            ComposeInner::Composed(_) | ComposeInner::Cancelled => {
++                self.reset();
++                return self.feed(keysym);
++            },
++            ComposeInner::TableComposing => {
++                self.state = ComposeInner::Cancelled;
++            },
++        }
++
++        ComposeFeedResult::Accepted
++    }
++}
++
++fn compose_text(base: char, accents: &[DeadAccent]) -> String {
++    let mut text = String::new();
++    text.push(base);
++    for accent in accents {
++        text.push(accent.combining);
++    }
++    text
++}
++
++fn dead_accent_from_prefix(keysym: Keysym) -> Option<DeadAccent> {
++    let ch = keysym.key_char()?;
++    match ch {
++        '\'' => dead_accent_from_keysym(Keysym::dead_acute),
++        '`' => dead_accent_from_keysym(Keysym::dead_grave),
++        '^' => dead_accent_from_keysym(Keysym::dead_circumflex),
++        '~' => dead_accent_from_keysym(Keysym::dead_tilde),
++        '"' => dead_accent_from_keysym(Keysym::dead_diaeresis),
++        '-' => dead_accent_from_keysym(Keysym::dead_macron),
++        ',' => dead_accent_from_keysym(Keysym::dead_cedilla),
++        '.' => dead_accent_from_keysym(Keysym::dead_belowdot),
++        'o' | 'O' => dead_accent_from_keysym(Keysym::dead_abovering),
++        'u' | 'U' => dead_accent_from_keysym(Keysym::dead_breve),
++        'v' | 'V' => dead_accent_from_keysym(Keysym::dead_caron),
++        ';' => dead_accent_from_keysym(Keysym::dead_ogonek),
++        '/' => dead_accent_from_keysym(Keysym::dead_stroke),
++        _ => None,
++    }
++}
++
++fn dead_accent_from_keysym(keysym: Keysym) -> Option<DeadAccent> {
++    let accent = match keysym {
++        Keysym::dead_grave => DeadAccent { keysym, combining: '\u{0300}', spacing: Some('`') },
++        Keysym::dead_acute => DeadAccent { keysym, combining: '\u{0301}', spacing: Some('\u{00B4}') },
++        Keysym::dead_circumflex => DeadAccent { keysym, combining: '\u{0302}', spacing: Some('^') },
++        Keysym::dead_tilde => DeadAccent { keysym, combining: '\u{0303}', spacing: Some('~') },
++        Keysym::dead_macron => DeadAccent { keysym, combining: '\u{0304}', spacing: Some('\u{00AF}') },
++        Keysym::dead_breve => DeadAccent { keysym, combining: '\u{0306}', spacing: Some('\u{02D8}') },
++        Keysym::dead_abovedot => DeadAccent { keysym, combining: '\u{0307}', spacing: Some('\u{02D9}') },
++        Keysym::dead_diaeresis => DeadAccent { keysym, combining: '\u{0308}', spacing: Some('\u{00A8}') },
++        Keysym::dead_abovering => DeadAccent { keysym, combining: '\u{030A}', spacing: Some('\u{02DA}') },
++        Keysym::dead_doubleacute => DeadAccent { keysym, combining: '\u{030B}', spacing: Some('\u{02DD}') },
++        Keysym::dead_caron => DeadAccent { keysym, combining: '\u{030C}', spacing: Some('\u{02C7}') },
++        Keysym::dead_cedilla => DeadAccent { keysym, combining: '\u{0327}', spacing: Some('\u{00B8}') },
++        Keysym::dead_ogonek => DeadAccent { keysym, combining: '\u{0328}', spacing: Some('\u{02DB}') },
++        Keysym::dead_belowdot => DeadAccent { keysym, combining: '\u{0323}', spacing: None },
++        Keysym::dead_hook => DeadAccent { keysym, combining: '\u{0309}', spacing: None },
++        Keysym::dead_horn => DeadAccent { keysym, combining: '\u{031B}', spacing: None },
++        Keysym::dead_stroke => DeadAccent { keysym, combining: '\u{0335}', spacing: None },
++        _ => return None,
++    };
++    Some(accent)
++}
++
++fn compose_locale_from_env() -> Option<String> {
++    ["LC_ALL", "LC_CTYPE", "LANG"]
++        .into_iter()
++        .find_map(|key| env::var_os(key))
++        .and_then(|value| {
++            let value = value.to_string_lossy().trim().to_string();
++            if value.is_empty() { None } else { Some(value) }
++        })
++}
++
++fn load_compose_entries(locale: Option<&str>) -> Result<BTreeMap<Vec<Keysym>, String>, String> {
++    let locale_root = locale_root().ok_or_else(|| "XLOCALEDIR is not set".to_string())?;
++
++    if let Some(path) = env::var_os("XCOMPOSEFILE") {
++        let path = PathBuf::from(path);
++        if path.is_file() {
++            let mut visited = BTreeSet::new();
++            return parse_compose_file(&path, &locale_root, &mut visited);
++        }
++    }
++
++    let requested = locale.unwrap_or("C");
++    let alias_map = parse_locale_aliases(&locale_root.join("locale.alias"))?;
++    let compose_map = parse_locale_index(&locale_root.join("compose.dir"))?;
++    let resolved = resolve_locale(requested, &alias_map, &compose_map)
++        .ok_or_else(|| format!("no compose mapping for locale {requested}"))?;
++    let compose_path = locale_root.join(resolved);
++    let mut visited = BTreeSet::new();
++    parse_compose_file(&compose_path, &locale_root, &mut visited)
++}
++
++fn locale_root() -> Option<PathBuf> {
++    env::var_os("XLOCALEDIR").map(PathBuf::from).filter(|path| path.is_dir())
++}
++
++fn parse_locale_aliases(path: &Path) -> Result<BTreeMap<String, String>, String> {
++    let contents = fs::read_to_string(path)
++        .map_err(|error| format!("read {}: {error}", path.display()))?;
++    let mut aliases = BTreeMap::new();
++    for line in contents.lines() {
++        let line = line.trim();
++        if line.is_empty() || line.starts_with("XCOMM") {
++            continue;
++        }
++        let Some((alias, target)) = split_mapping(line) else {
++            continue;
++        };
++        aliases.insert(alias.to_string(), target.to_string());
++    }
++    Ok(aliases)
++}
++
++fn parse_locale_index(path: &Path) -> Result<BTreeMap<String, String>, String> {
++    let contents = fs::read_to_string(path)
++        .map_err(|error| format!("read {}: {error}", path.display()))?;
++    let mut mappings = BTreeMap::new();
++    for line in contents.lines() {
++        let line = line.trim();
++        if line.is_empty() || line.starts_with("XCOMM") {
++            continue;
++        }
++        let Some((file_name, locale)) = split_mapping(line) else {
++            continue;
++        };
++        mappings.insert(locale.to_string(), file_name.to_string());
++    }
++    Ok(mappings)
++}
++
++fn split_mapping(line: &str) -> Option<(&str, &str)> {
++    let mut parts = line.splitn(2, ':');
++    let left = parts.next()?.trim();
++    let right = parts.next()?.trim();
++    if left.is_empty() || right.is_empty() {
++        return None;
++    }
++    Some((left, right))
++}
++
++fn resolve_locale(
++    requested: &str,
++    aliases: &BTreeMap<String, String>,
++    mappings: &BTreeMap<String, String>,
++) -> Option<String> {
++    let mut candidates = Vec::new();
++    candidates.push(requested.to_string());
++
++    if let Some(alias) = aliases.get(requested) {
++        candidates.push(alias.clone());
++    }
++
++    if let Some(stripped) = requested.split('@').next() {
++        if stripped != requested {
++            candidates.push(stripped.to_string());
++        }
++    }
++
++    if let Some(stripped) = requested.split('.').next() {
++        if stripped != requested {
++            candidates.push(stripped.to_string());
++        }
++    }
++
++    if let Some((lang, _)) = requested.split_once('_') {
++        candidates.push(lang.to_string());
++    }
++
++    candidates.push("C".to_string());
++
++    for candidate in candidates {
++        if let Some(path) = mappings.get(&candidate) {
++            return Some(path.clone());
++        }
++        if let Some(alias) = aliases.get(&candidate) {
++            if let Some(path) = mappings.get(alias) {
++                return Some(path.clone());
++            }
++        }
++    }
++
++    None
++}
++
++fn parse_compose_file(
++    path: &Path,
++    locale_root: &Path,
++    visited: &mut BTreeSet<PathBuf>,
++) -> Result<BTreeMap<Vec<Keysym>, String>, String> {
++    let canonical = path.to_path_buf();
++    if !visited.insert(canonical.clone()) {
++        return Ok(BTreeMap::new());
++    }
++
++    let contents = fs::read_to_string(&canonical)
++        .map_err(|error| format!("read {}: {error}", canonical.display()))?;
++    let mut entries = BTreeMap::new();
++
++    for raw_line in contents.lines() {
++        let line = raw_line.trim();
++        if line.is_empty() || line.starts_with("XCOMM") || line.starts_with('#') {
++            continue;
++        }
++
++        if let Some(include_path) = parse_include(line) {
++            let include_path = resolve_include_path(&canonical, locale_root, &include_path);
++            let included = parse_compose_file(&include_path, locale_root, visited)?;
++            for (sequence, text) in included {
++                entries.insert(sequence, text);
++            }
++            continue;
++        }
++
++        if let Some((sequence, text)) = parse_compose_entry(line) {
++            entries.insert(sequence, text);
++        }
++    }
++
++    Ok(entries)
++}
++
++fn parse_include(line: &str) -> Option<String> {
++    let line = line.strip_prefix("include")?.trim();
++    let line = line.strip_prefix('"')?;
++    let end = line.find('"')?;
++    Some(line[..end].to_string())
++}
++
++fn resolve_include_path(current_file: &Path, locale_root: &Path, include_path: &str) -> PathBuf {
++    if let Some(stripped) = include_path.strip_prefix("X11_LOCALEDATADIR/") {
++        return locale_root.join(stripped);
++    }
++
++    let include = Path::new(include_path);
++    if include.is_absolute() {
++        include.to_path_buf()
++    } else {
++        current_file.parent().unwrap_or(locale_root).join(include)
++    }
++}
++
++fn parse_compose_entry(line: &str) -> Option<(Vec<Keysym>, String)> {
++    let commentless = line.split('#').next()?.trim();
++    let (lhs, rhs) = commentless.split_once(':')?;
++    let sequence = parse_sequence(lhs.trim())?;
++    let text = parse_compose_string(rhs.trim())?;
++    Some((sequence, text))
++}
++
++fn parse_sequence(input: &str) -> Option<Vec<Keysym>> {
++    let mut sequence = Vec::new();
++    let mut rest = input.trim();
++    while let Some(start) = rest.find('<') {
++        let rest_after = &rest[start + 1..];
++        let end = rest_after.find('>')?;
++        let token = &rest_after[..end];
++        let keysym = crate::keysym::keysym_from_name(token, 0)?;
++        sequence.push(keysym);
++        rest = &rest_after[end + 1..];
++    }
++    if sequence.is_empty() { None } else { Some(sequence) }
++}
++
++fn parse_compose_string(input: &str) -> Option<String> {
++    let input = input.strip_prefix('"')?;
++    let mut out = String::new();
++    let mut chars = input.chars().peekable();
++    while let Some(ch) = chars.next() {
++        match ch {
++            '"' => return Some(out),
++            '\\' => {
++                let escaped = chars.next()?;
++                match escaped {
++                    '\\' => out.push('\\'),
++                    '"' => out.push('"'),
++                    'n' => out.push('\n'),
++                    'r' => out.push('\r'),
++                    't' => out.push('\t'),
++                    '0'..='7' => {
++                        let mut octal = String::new();
++                        octal.push(escaped);
++                        for _ in 0..2 {
++                            let Some(next) = chars.peek().copied() else {
++                                break;
++                            };
++                            if !matches!(next, '0'..='7') {
++                                break;
++                            }
++                            octal.push(chars.next().unwrap());
++                        }
++                        let byte = u8::from_str_radix(&octal, 8).ok()?;
++                        out.push(char::from(byte));
++                    }
++                    other => out.push(other),
++                }
++            }
++            other => out.push(other),
++        }
++    }
++    None
++}
++
++/*
++
++Based on libxkbcommon, which has the following license notices.
++-----------------
++
++
++
++The following is a list of all copyright notices and license statements which
++appear in the xkbcommon source tree.
++
++If making new contributions, the first form (i.e. Daniel Stone, Ran Benita,
++etc) is vastly preferred.
++
++All licenses are derivative of the MIT/X11 license, mostly identical other
++than no-endorsement clauses (e.g. paragraph 4 of The Open Group's license).
++
++These statements are split into two sections: one for the code compiled and
++distributed as part of the libxkbcommon shared library and the code
++component of all tests (i.e. everything under src/ and xkbcommon/, plus the
++.c and .h files under test/), and another for the test data under test/data,
++which is distributed with the xkbcommon source tarball, but not installed to
++the system.
++
++
++BEGINNING OF SOFTWARE COPYRIGHT/LICENSE STATEMENTS:
++
++
++-------------------------------------------------------------------------------
++
++Copyright © 2009-2012, 2016 Daniel Stone
++Copyright © 2012 Ran Benita <ran234@gmail.com>
++Copyright © 2010, 2012 Intel Corporation
++Copyright © 2008, 2009 Dan Nicholson
++Copyright © 2010 Francisco Jerez <currojerez@riseup.net>
++
++Permission is hereby granted, free of charge, to any person obtaining a
++copy of this software and associated documentation files (the "Software"),
++to deal in the Software without restriction, including without limitation
++the rights to use, copy, modify, merge, publish, distribute, sublicense,
++and/or sell copies of the Software, and to permit persons to whom the
++Software is furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice (including the next
++paragraph) shall be included in all copies or substantial portions of the
++Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
++THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
++FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
++DEALINGS IN THE SOFTWARE.
++
++
++-------------------------------------------------------------------------------
++
++
++Copyright 1985, 1987, 1988, 1990, 1998  The Open Group
++
++Permission is hereby granted, free of charge, to any person obtaining a
++copy of this software and associated documentation files (the "Software"),
++to deal in the Software without restriction, including without limitation
++the rights to use, copy, modify, merge, publish, distribute, sublicense,
++and/or sell copies of the Software, and to permit persons to whom the
++Software is furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice shall be included in
++all copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
++ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
++CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
++
++Except as contained in this notice, the names of the authors or their
++institutions shall not be used in advertising or otherwise to promote the
++sale, use or other dealings in this Software without prior written
++authorization from the authors.
++
++
++-------------------------------------------------------------------------------
++
++
++Copyright (c) 1993, 1994, 1995, 1996 by Silicon Graphics Computer Systems, Inc.
++
++Permission to use, copy, modify, and distribute this
++software and its documentation for any purpose and without
++fee is hereby granted, provided that the above copyright
++notice appear in all copies and that both that copyright
++notice and this permission notice appear in supporting
++documentation, and that the name of Silicon Graphics not be
++used in advertising or publicity pertaining to distribution
++of the software without specific prior written permission.
++Silicon Graphics makes no representation about the suitability
++of this software for any purpose. It is provided "as is"
++without any express or implied warranty.
++
++SILICON GRAPHICS DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
++SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
++AND FITNESS FOR A PARTICULAR PURPOSE. IN NO EVENT SHALL SILICON
++GRAPHICS BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL
++DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
++DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
++OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION  WITH
++THE USE OR PERFORMANCE OF THIS SOFTWARE.
++
++
++-------------------------------------------------------------------------------
++
++
++Copyright 1987, 1988 by Digital Equipment Corporation, Maynard, Massachusetts.
++
++                        All Rights Reserved
++
++Permission to use, copy, modify, and distribute this software and its
++documentation for any purpose and without fee is hereby granted,
++provided that the above copyright notice appear in all copies and that
++both that copyright notice and this permission notice appear in
++supporting documentation, and that the name of Digital not be
++used in advertising or publicity pertaining to distribution of the
++software without specific, written prior permission.
++
++DIGITAL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
++ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
++DIGITAL BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR
++ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
++WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
++ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
++SOFTWARE.
++
++
++-------------------------------------------------------------------------------
++
++
++Copyright (C) 2011 Joseph Adams <joeyadams3.14159@gmail.com>
++
++Permission is hereby granted, free of charge, to any person obtaining a copy
++of this software and associated documentation files (the "Software"), to deal
++in the Software without restriction, including without limitation the rights
++to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++copies of the Software, and to permit persons to whom the Software is
++furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice shall be included in
++all copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
++THE SOFTWARE.
++
++
++-------------------------------------------------------------------------------
++
++
++
++END OF SOFTWARE COPYRIGHT/LICENSE STATEMENTS
++
++
++BEGINNING OF LICENSE STATEMENTS FOR UNDISTRIBUTED DATA FILES IN test/data,
++derived from xkeyboard-config:
++
++
++
++-------------------------------------------------------------------------------
++
++Copyright 1996 by Joseph Moss
++Copyright (C) 2002-2007 Free Software Foundation, Inc.
++Copyright (C) Dmitry Golubev <lastguru@mail.ru>, 2003-2004
++Copyright (C) 2004, Gregory Mokhin <mokhin@bog.msu.ru>
++Copyright (C) 2006 Erdal Ronahî
++
++Permission to use, copy, modify, distribute, and sell this software and its
++documentation for any purpose is hereby granted without fee, provided that
++the above copyright notice appear in all copies and that both that
++copyright notice and this permission notice appear in supporting
++documentation, and that the name of the copyright holder(s) not be used in
++advertising or publicity pertaining to distribution of the software without
++specific, written prior permission.  The copyright holder(s) makes no
++representations about the suitability of this software for any purpose.  It
++is provided "as is" without express or implied warranty.
++
++THE COPYRIGHT HOLDER(S) DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
++INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO
++EVENT SHALL THE COPYRIGHT HOLDER(S) BE LIABLE FOR ANY SPECIAL, INDIRECT OR
++CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
++DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
++TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
++PERFORMANCE OF THIS SOFTWARE.
++
++
++-------------------------------------------------------------------------------
++
++              Copyright 1992 by Oki Technosystems Laboratory, Inc.
++              Copyright 1992 by Fuji Xerox Co., Ltd.
++
++Permission to use, copy, modify, distribute, and sell this software
++and its documentation for any purpose is hereby granted without fee,
++provided that the above copyright notice appear in all copies and
++that both that copyright notice and this permission notice appear
++in supporting documentation, and that the name of Oki Technosystems
++Laboratory and Fuji Xerox not be used in advertising or publicity
++pertaining to distribution of the software without specific, written
++prior permission.
++Oki Technosystems Laboratory and Fuji Xerox make no representations
++about the suitability of this software for any purpose.  It is provided
++"as is" without express or implied warranty.
++
++OKI TECHNOSYSTEMS LABORATORY AND FUJI XEROX DISCLAIM ALL WARRANTIES
++WITH REGARD TO THIS SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF
++MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL OKI TECHNOSYSTEMS
++LABORATORY AND FUJI XEROX BE LIABLE FOR ANY SPECIAL, INDIRECT OR
++CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS
++OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
++OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE
++OR PERFORMANCE OF THIS SOFTWARE.
++
++*/
+\ No newline at end of file
+diff -uraN original-xkbcommon-rs/src/lib.rs ./xkbcommon-rs/src/lib.rs
+--- original-xkbcommon-rs/src/lib.rs	2026-06-13 11:58:29.391224853 -0400
++++ ./xkbcommon-rs/src/lib.rs	2026-06-13 11:58:29.395224932 -0400
+@@ -161,6 +161,7 @@
+ mod keysyms;
+ 
+ mod atom;
++mod compose;
+ mod context;
+ mod errors;
+ mod keymap;
+@@ -372,6 +373,11 @@
+ }
+ pub use xkb_state::State;
+ 
++/// Compose and dead-key support for the Rust backend.
++pub mod xkb_compose {
++    pub use super::compose::{ComposeFeedResult, ComposeState, ComposeStatus, ComposeTable};
++}
++
+ /// A [Keycode](crate::keycode::Keycode) is a number used to represent a physical key on a keyboard.
+ ///
+ /// A standard PC-compatible keyboard might have 102 keys.
+@@ -429,28 +435,8 @@
+     /// Re-export of [`xkeysym::NO_SYMBOL`]:
+     pub use xkeysym::NO_SYMBOL;
+ 
+-    /*
+-    /// Re-export of [`xkeysym::Keysym`]
+-    ///
+-    /// A keycode is a number used to represent the symbols generated from a key on a keyboard.
+-    ///
+-    /// A key, represented by a keycode, may generate different symbols
+-    /// according to keyboard state. For example, on a QWERTY keyboard,
+-    /// pressing the key labeled \<A\> generates the symbol 'a'. If the shift key is held, it generates
+-    /// the symbol  ‘α’.  And so on.
+-    ///
+-    /// Each such symbol is represented by a *keysym* (short for "key symbol").
+-    /// Note that keysyms are somewhat more general, in that they can also represent
+-    /// some "function", such as "Left" or "Right" for the arrow keys.
+-    /// For more information, see Appendix A ["KEYSYM
+-    /// Encoding"](https://www.x.org/releases/X11R7.7/doc/xproto/x11protocol.html#keysym_encoding) of the X Window System
+-    /// Protocol.
+-    ///
+-    /// Keysym names are case-sensitive.
+-    ///
++    /// Re-export of [`xkeysym::Keysym`].
+     pub use xkeysym::Keysym;
+-
+-    */
+     /// Get the name of a keysym.
+     ///
+     /// For a description of how keysyms are named, see [xkeysym::Keysym].
+@@ -475,6 +461,12 @@
+     /// Converts a keysym to its uppercase representation.
+     pub use super::keysyms::keysym_to_upper;
+ 
++    /// Converts a keysym to its UTF-8 representation.
++    pub use super::keysyms_utf::keysym_to_utf8;
++
++    /// Converts a keysym to its UTF-32 representation.
++    pub use super::keysyms_utf::keysym_to_utf32;
++
+     /// The flags for [keysym_from_name()].
+     pub use super::rust_xkbcommon::KeysymFlags;
+ 
 diff -uraN original-yaxi/src/clipboard/mod.rs ./yaxi/src/clipboard/mod.rs
---- original-yaxi/src/clipboard/mod.rs	2026-06-07 22:59:01.946168158 -0400
-+++ ./yaxi/src/clipboard/mod.rs	2026-06-07 22:59:01.946168158 -0400
+--- original-yaxi/src/clipboard/mod.rs	2026-06-13 11:58:30.763252142 -0400
++++ ./yaxi/src/clipboard/mod.rs	2026-06-13 11:58:30.763252142 -0400
 @@ -262,6 +262,20 @@
          Ok(())
      }
@@ -3919,8 +3650,8 @@ diff -uraN original-yaxi/src/clipboard/mod.rs ./yaxi/src/clipboard/mod.rs
              }
          }
 diff -uraN original-yaxi/src/display/mod.rs ./yaxi/src/display/mod.rs
---- original-yaxi/src/display/mod.rs	2026-06-07 22:59:01.946168158 -0400
-+++ ./yaxi/src/display/mod.rs	2026-06-07 22:59:01.946168158 -0400
+--- original-yaxi/src/display/mod.rs	2026-06-13 11:58:30.763252142 -0400
++++ ./yaxi/src/display/mod.rs	2026-06-13 11:58:30.763252142 -0400
 @@ -381,6 +381,18 @@
          Ok(display)
      }
@@ -3940,6 +3671,15 @@ diff -uraN original-yaxi/src/display/mod.rs ./yaxi/src/display/mod.rs
      /// wait for the next event
      pub fn next_event(&self) -> Result<Event, Error> {
          self.events.wait()
+@@ -578,7 +590,7 @@
+ 
+         match self.replies.wait()? {
+             Reply::GetSelectionOwner(response) => Ok((response.owner != 0).then(|| response.owner)),
+-            _ => unreachable!(),
++            _ => Err(Error::NoReply),
+         }
+     }
+ 
 @@ -1068,6 +1080,11 @@
                      window: event.event,
                  })
@@ -3991,8 +3731,8 @@ diff -uraN original-yaxi/src/display/mod.rs ./yaxi/src/display/mod.rs
              }
              Response::MAPPING_NOTIFY => {
 diff -uraN original-yaxi/src/display/request.rs ./yaxi/src/display/request.rs
---- original-yaxi/src/display/request.rs	2026-06-07 22:59:01.946168158 -0400
-+++ ./yaxi/src/display/request.rs	2026-06-07 22:59:01.946168158 -0400
+--- original-yaxi/src/display/request.rs	2026-06-13 11:58:30.763252142 -0400
++++ ./yaxi/src/display/request.rs	2026-06-13 11:58:30.763252142 -0400
 @@ -619,6 +619,43 @@
  
  #[repr(packed, C)]
@@ -4038,8 +3778,8 @@ diff -uraN original-yaxi/src/display/request.rs ./yaxi/src/display/request.rs
      pub opcode: u8,
      pub pad0: u8,
 diff -uraN original-yaxi/src/display/xid.rs ./yaxi/src/display/xid.rs
---- original-yaxi/src/display/xid.rs	2026-06-07 22:59:01.946168158 -0400
-+++ ./yaxi/src/display/xid.rs	2026-06-07 22:59:01.946168158 -0400
+--- original-yaxi/src/display/xid.rs	2026-06-13 11:58:30.763252142 -0400
++++ ./yaxi/src/display/xid.rs	2026-06-13 11:58:30.763252142 -0400
 @@ -14,37 +14,72 @@
      base: u32,
      mask: u32,
@@ -4122,8 +3862,8 @@ diff -uraN original-yaxi/src/display/xid.rs ./yaxi/src/display/xid.rs
      lock!(XID)?.next()
  }
 diff -uraN original-yaxi/src/keyboard/mod.rs ./yaxi/src/keyboard/mod.rs
---- original-yaxi/src/keyboard/mod.rs	2026-06-07 22:59:01.946168158 -0400
-+++ ./yaxi/src/keyboard/mod.rs	2026-06-07 22:59:01.946168158 -0400
+--- original-yaxi/src/keyboard/mod.rs	2026-06-13 11:58:30.763252142 -0400
++++ ./yaxi/src/keyboard/mod.rs	2026-06-13 11:58:30.763252142 -0400
 @@ -42,6 +42,10 @@
          Keysym { value }
      }
@@ -4136,8 +3876,8 @@ diff -uraN original-yaxi/src/keyboard/mod.rs ./yaxi/src/keyboard/mod.rs
      pub fn character(&self) -> Result<char, Error> {
          match ((self.value & 0xff00) >> 8) as u8 {
 diff -uraN original-yaxi/src/proto/mod.rs ./yaxi/src/proto/mod.rs
---- original-yaxi/src/proto/mod.rs	2026-06-07 22:59:01.946168158 -0400
-+++ ./yaxi/src/proto/mod.rs	2026-06-07 22:59:01.946168158 -0400
+--- original-yaxi/src/proto/mod.rs	2026-06-13 11:58:30.763252142 -0400
++++ ./yaxi/src/proto/mod.rs	2026-06-13 11:58:30.763252142 -0400
 @@ -29,6 +29,7 @@
      pub const ENTER_NOTIFY: u8 = 7;
      pub const FOCUS_IN: u8 = 9;
@@ -4147,8 +3887,8 @@ diff -uraN original-yaxi/src/proto/mod.rs ./yaxi/src/proto/mod.rs
      pub const DESTROY_NOTIFY: u8 = 17;
      pub const UNMAP_NOTIFY: u8 = 18;
 diff -uraN original-yaxi/src/window/mod.rs ./yaxi/src/window/mod.rs
---- original-yaxi/src/window/mod.rs	2026-06-07 22:59:01.946168158 -0400
-+++ ./yaxi/src/window/mod.rs	2026-06-07 22:59:01.946168158 -0400
+--- original-yaxi/src/window/mod.rs	2026-06-13 11:58:30.763252142 -0400
++++ ./yaxi/src/window/mod.rs	2026-06-13 11:58:30.763252142 -0400
 @@ -221,6 +221,13 @@
      Append = 2,
  }
@@ -4163,6 +3903,15 @@ diff -uraN original-yaxi/src/window/mod.rs ./yaxi/src/window/mod.rs
  #[derive(Clone)]
  pub struct Window {
      stream: Stream,
+@@ -295,7 +302,7 @@
+                 depth: screen.response.root_depth,
+                 id,
+             }),
+-            _ => unreachable!(),
++            _ => Err(Error::NoReply),
+         }
+     }
+ 
 @@ -548,7 +555,7 @@
          };
  
@@ -4249,3 +3998,174 @@ diff -uraN original-yaxi/src/window/mod.rs ./yaxi/src/window/mod.rs
  
      /// delete a property from a window
      pub fn delete_property(&self, property: Atom) -> Result<(), Error> {
+diff -uraN original-yaxi/tests/test_clipboard.rs ./yaxi/tests/test_clipboard.rs
+--- original-yaxi/tests/test_clipboard.rs	2026-06-13 11:58:30.763252142 -0400
++++ ./yaxi/tests/test_clipboard.rs	2026-06-13 11:58:30.763252142 -0400
+@@ -9,12 +9,17 @@
+     use serial_test::serial;
+     use yaxi::clipboard::*;
+ 
++    fn run_with_clipboard<T>(f: impl FnOnce(&Clipboard) -> T) -> T {
++        let clipboard = Clipboard::new(None).unwrap();
++        let result = f(&clipboard);
++        std::mem::forget(clipboard);
++        result
++    }
++
+     #[test]
+     #[serial]
+     fn test_clipboard_get_targets() {
+-        let clipboard = Clipboard::new(None).unwrap();
+-
+-        let result = clipboard.get_targets_with_name();
++        let result = run_with_clipboard(|clipboard| clipboard.get_targets_with_name());
+         println!("{:?}", result);
+         assert!(result.is_ok());
+     }
+@@ -22,12 +27,12 @@
+     #[test]
+     #[serial]
+     fn test_clipboard_clear() {
+-        let clipboard = Clipboard::new(None).unwrap();
+-
+-        let result = clipboard.clear();
++        let (result, text) = run_with_clipboard(|clipboard| {
++            let result = clipboard.clear();
++            let text = clipboard.get_text();
++            (result, text)
++        });
+         assert!(result.is_ok());
+-
+-        let text = clipboard.get_text();
+         assert!(text.is_ok());
+         assert_eq!(None, text.unwrap());
+     }
+@@ -35,21 +40,19 @@
+     #[test]
+     #[serial]
+     fn test_clipboard_write_image() {
+-        let clipboard = Clipboard::new(None).unwrap();
+-
+         let data = include_bytes!("../assets/logo1.png");
+         let bytes = data.to_vec();
+ 
+-        let result = clipboard.set_image(bytes, ImageFormat::Png);
++        let result = run_with_clipboard(|clipboard| {
++            clipboard.set_image(bytes, ImageFormat::Png)
++        });
+         assert!(result.is_ok());
+     }
+ 
+     #[test]
+     #[serial]
+     fn test_clipboard_get_image() {
+-        let clipboard = Clipboard::new(None).unwrap();
+-
+-        let result = clipboard.get_image();
++        let result = run_with_clipboard(|clipboard| clipboard.get_image());
+         assert!(result.is_ok());
+ 
+         if let Ok(Some(image)) = result {
+@@ -60,30 +63,24 @@
+     #[test]
+     #[serial]
+     fn test_clipboard_write_uri_list() {
+-        let clipboard = Clipboard::new(None).unwrap();
+-
+         let path = std::path::Path::new("tests/test_clipboard.rs");
+         assert!(path.exists());
+ 
+         let uris = vec![path];
+-        let result = clipboard.set_uri_list(&uris);
++        let result = run_with_clipboard(|clipboard| clipboard.set_uri_list(&uris));
+         assert!(result.is_ok());
+     }
+ 
+     #[test]
+     #[serial]
+     fn test_clipboard_read_uri_list() {
+-        let clipboard = Clipboard::new(None).unwrap();
+-
+-        let result = clipboard.get_uri_list();
++        let result = run_with_clipboard(|clipboard| clipboard.get_uri_list());
+         assert!(result.is_ok());
+     }
+ 
+     #[test]
+     #[serial]
+     fn test_clipboard_write_html() {
+-        let clipboard = Clipboard::new(None).unwrap();
+-
+         let now = SystemTime::now()
+             .duration_since(std::time::UNIX_EPOCH)
+             .unwrap()
+@@ -91,16 +88,14 @@
+         let html = format!("<html><body>test {}</body></html>", now);
+         let alt = Some(format!("test {}", now));
+ 
+-        let result = clipboard.set_html(&html, alt.as_deref());
++        let result = run_with_clipboard(|clipboard| clipboard.set_html(&html, alt.as_deref()));
+         assert!(result.is_ok());
+     }
+ 
+     #[test]
+     #[serial]
+     fn test_clipboard_read_html() {
+-        let clipboard = Clipboard::new(None).unwrap();
+-
+-        let result = clipboard.get_html();
++        let result = run_with_clipboard(|clipboard| clipboard.get_html());
+         println!("{:?}", result);
+         assert!(result.is_ok());
+     }
+@@ -108,8 +103,6 @@
+     #[test]
+     #[serial]
+     fn test_clipboard_text_consistency() {
+-        let clipboard = Clipboard::new(None).unwrap();
+-
+         let time = SystemTime::now()
+             .duration_since(std::time::UNIX_EPOCH)
+             .unwrap()
+@@ -117,9 +110,14 @@
+ 
+         let excepted = format!("test-{}", time);
+ 
+-        let result = clipboard.set_text(&excepted);
++        let (result, text) = run_with_clipboard(|clipboard| {
++            let result = clipboard.set_text(&excepted);
++            let text = clipboard.get_text();
++            (result, text)
++        });
++
+         assert!(result.is_ok());
+-        let text = clipboard.get_text().unwrap();
++        let text = text.unwrap();
+ 
+         assert_eq!(Some(excepted.clone()), text);
+     }
+@@ -127,22 +125,19 @@
+     #[test]
+     #[serial]
+     fn test_clipboard_write_text() {
+-        let clipboard = Clipboard::new(None).unwrap();
+         let now = SystemTime::now()
+             .duration_since(std::time::UNIX_EPOCH)
+             .unwrap()
+             .as_millis();
+         let excepted = format!("test {}", now);
+-        let result = clipboard.set_text(&excepted);
++        let result = run_with_clipboard(|clipboard| clipboard.set_text(&excepted));
+         assert!(result.is_ok());
+     }
+ 
+     #[test]
+     #[serial]
+     fn test_clipboard_read_text() {
+-        let clipboard = Clipboard::new(None).unwrap();
+-
+-        let result = clipboard.get_text();
++        let result = run_with_clipboard(|clipboard| clipboard.get_text());
+         assert!(result.is_ok());
+     }
+ 

@@ -4,8 +4,7 @@ packages=(
   "egui"
   "egui_software_backend"
   "egui-winit"
-  "kas-core"
-  "kas-text"
+  "matchbox_socket"
   "smithay-clipboard"
   "softbuffer"
   "tiny-xlib"
@@ -13,6 +12,7 @@ packages=(
   "x11"
   "x11-dl"
   "x11rb"
+  "xkbcommon-rs"
   "yaxi"
 )
 
