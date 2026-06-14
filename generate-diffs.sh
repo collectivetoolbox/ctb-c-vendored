@@ -8,6 +8,7 @@ packages=(
   "smithay-clipboard"
   "softbuffer"
   "tiny-xlib"
+  "TypeScript"
   "winit"
   "x11"
   "x11-dl"
