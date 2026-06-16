@@ -9,6 +9,7 @@ packages=(
   "softbuffer"
   "tiny-xlib"
   "TypeScript"
+  "types-node"
   "winit"
   "x11"
   "x11-dl"
