@@ -83,7 +83,8 @@ pub fn egui_blend_u8_slice_one_src(src: [u8; 4], dst: &mut [[u8; 4]]) {
                 let res16 = vaddq_u16(vmulq_u16(dst16, simd_alpha_compl), e1);
 
                 // ((x >> 8) + x) >> 8
-                let res16 = vshrq_n_u16(vaddq_u16(res16, vshrq_n_u16(res16, 8)), 8);
+                let res16 =
+                    vshrq_n_u16(vaddq_u16(res16, vshrq_n_u16(res16, 8)), 8);
                 let mut dst8 = vqmovn_u16(res16);
 
                 // dst.saturating_add(src)
@@ -143,7 +144,11 @@ pub fn egui_blend_u8_slice(src: &[[u8; 4]], dst: &mut [[u8; 4]]) {
 // https://www.lgfae.com/posts/2025-09-01-AlphaBlendWithSIMD.html
 /// dst[i] = blend(src[i] * vert, dst[i]) // As unorm
 /// blend fn is (ONE, ONE_MINUS_SRC_ALPHA)
-pub fn egui_blend_u8_slice_tinted(src: &[[u8; 4]], tint: [u8; 4], dst: &mut [[u8; 4]]) {
+pub fn egui_blend_u8_slice_tinted(
+    src: &[[u8; 4]],
+    tint: [u8; 4],
+    dst: &mut [[u8; 4]],
+) {
     unsafe {
         assert_eq!(src.len(), dst.len());
         let n = dst.len();
@@ -249,8 +254,10 @@ pub fn egui_blend_u8_slice_one_src_tinted_fn(
 fn unorm_mult4x4(a: [u8; 4], b: [u8; 4]) -> [u8; 4] {
     unsafe {
         let e1 = vdupq_n_u16(0x0080);
-        let a = vmovl_u8(vreinterpret_u8_u32(vdup_n_u32(u32::from_le_bytes(a))));
-        let b = vmovl_u8(vreinterpret_u8_u32(vdup_n_u32(u32::from_le_bytes(b))));
+        let a =
+            vmovl_u8(vreinterpret_u8_u32(vdup_n_u32(u32::from_le_bytes(a))));
+        let b =
+            vmovl_u8(vreinterpret_u8_u32(vdup_n_u32(u32::from_le_bytes(b))));
 
         // a * b + 0x0080
         let mut dst = vaddq_u16(vmulq_u16(a, b), e1);
@@ -270,7 +277,11 @@ fn unorm_mult4x4(a: [u8; 4], b: [u8; 4]) -> [u8; 4] {
 /// src8 is should have two 8 bit per channel rgba samples stored in the low bits
 /// src16 is should have two 16 bit per channel rgba samples
 /// dst16 is should have two 16 bit per channel rgba samples
-fn egui_blend_two_u16x4(src8: uint8x8_t, src16: uint16x8_t, dst16: uint16x8_t) -> uint8x8_t {
+fn egui_blend_two_u16x4(
+    src8: uint8x8_t,
+    src16: uint16x8_t,
+    dst16: uint16x8_t,
+) -> uint8x8_t {
     unsafe {
         let ones = vdupq_n_u16(0x00FF);
         let e1 = vdupq_n_u16(0x0080);

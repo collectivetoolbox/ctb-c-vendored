@@ -366,25 +366,29 @@ impl Handover {
     }
 
     pub(super) fn status(&self) -> Result<HandoverStatus, Error> {
-        self.status.lock()
+        self.status
+            .lock()
             .map(|lock| *lock)
             .map_err(|e| Error::Lock(e.to_string()))
     }
 
     pub(super) fn is_completed(&self) -> Result<bool, Error> {
-        self.status.lock()
+        self.status
+            .lock()
             .map(|status| status.is_completed())
             .map_err(|e| Error::Lock(e.to_string()))
     }
 
     pub(super) fn is_in_progress(&self) -> Result<bool, Error> {
-        self.status.lock()
+        self.status
+            .lock()
             .map(|status| status.is_in_progress())
             .map_err(|e| Error::Lock(e.to_string()))
     }
 
     pub(super) fn set_in_progress(&self) -> Result<(), Error> {
-        self.status.lock()
+        self.status
+            .lock()
             .map(|mut status| status.state = HandoverState::InProgress)
             .map_err(|e| Error::Lock(e.to_string()))
     }

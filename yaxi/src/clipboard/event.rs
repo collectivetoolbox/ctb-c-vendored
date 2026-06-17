@@ -30,7 +30,12 @@ pub(super) struct EventLoop {
 
 impl EventLoop {
     pub(super) fn start(&self, display: Display) -> Result<(), Error> {
-        if self.handle.lock().map_err(|e| Error::Lock(e.to_string()))?.is_some() {
+        if self
+            .handle
+            .lock()
+            .map_err(|e| Error::Lock(e.to_string()))?
+            .is_some()
+        {
             return Err(Error::EventLoopError("Event loop already running".into()));
         }
 
@@ -80,7 +85,10 @@ impl EventLoop {
         let mut events = self.events.lock().map_err(|e| Error::Lock(e.to_string()))?;
 
         while events.is_empty() && !self.killed.load(Ordering::Relaxed) {
-            events = self.condvar.wait(events).map_err(|e| Error::Other(e.to_string()))?;
+            events = self
+                .condvar
+                .wait(events)
+                .map_err(|e| Error::Other(e.to_string()))?;
         }
 
         if self.killed.load(Ordering::Relaxed) {
@@ -94,7 +102,12 @@ impl EventLoop {
         self.killed.store(true, Ordering::Relaxed);
         self.condvar.notify_all();
 
-        if let Some(handle) = self.handle.lock().map_err(|e| Error::Lock(e.to_string()))?.take() {
+        if let Some(handle) = self
+            .handle
+            .lock()
+            .map_err(|e| Error::Lock(e.to_string()))?
+            .take()
+        {
             return handle.join().map_err(|_| Error::Terminated)?;
         }
 
@@ -226,7 +239,8 @@ impl EventHandler {
                         Self::handle_selection_request(
                             &state, selection, target, property, owner, time,
                         )?;
-                        if target != state.atoms.protocol.targets && state.handover.is_in_progress()?
+                        if target != state.atoms.protocol.targets
+                            && state.handover.is_in_progress()?
                         {
                             state.handover.update_status(true, false)?;
                         }
@@ -245,7 +259,10 @@ impl EventHandler {
             Ok(())
         });
 
-        *self.join_handle.lock().map_err(|e| Error::Lock(e.to_string()))? = Some(handle);
+        *self
+            .join_handle
+            .lock()
+            .map_err(|e| Error::Lock(e.to_string()))? = Some(handle);
 
         Ok(())
     }
@@ -278,7 +295,11 @@ impl EventHandler {
 
             // Create transfer state
             let (_state, sync) = {
-                let mut transfers = self.state.transfers.lock().map_err(|e| Error::Lock(e.to_string()))?;
+                let mut transfers = self
+                    .state
+                    .transfers
+                    .lock()
+                    .map_err(|e| Error::Lock(e.to_string()))?;
 
                 let entry = transfers.entry((selection, target)).or_insert_with(|| {
                     (
@@ -309,7 +330,9 @@ impl EventHandler {
                     return Err(Error::Timeout);
                 }
                 let duration = timeout - now;
-                let (new_completed, timeout_result) = cvar.wait_timeout(completed, duration).map_err(|e| Error::Other(e.to_string()))?;
+                let (new_completed, timeout_result) = cvar
+                    .wait_timeout(completed, duration)
+                    .map_err(|e| Error::Other(e.to_string()))?;
                 completed = new_completed;
 
                 if timeout_result.timed_out() {
@@ -318,7 +341,11 @@ impl EventHandler {
             }
 
             // Get data from cache
-            let mut transfers = self.state.transfers.lock().map_err(|e| Error::Lock(e.to_string()))?;
+            let mut transfers = self
+                .state
+                .transfers
+                .lock()
+                .map_err(|e| Error::Lock(e.to_string()))?;
 
             if let Some((state, _)) = transfers.remove(&(selection, target)) {
                 if state.completed {
@@ -367,7 +394,12 @@ impl EventHandler {
     pub(super) fn stop(&self) -> Result<(), Error> {
         self.event_loop.stop()?;
 
-        if let Some(handle) = self.join_handle.lock().map_err(|e| Error::Lock(e.to_string()))?.take() {
+        if let Some(handle) = self
+            .join_handle
+            .lock()
+            .map_err(|e| Error::Lock(e.to_string()))?
+            .take()
+        {
             return handle.join().map_err(|_| Error::Terminated)?;
         }
 
