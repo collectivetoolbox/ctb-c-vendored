@@ -55,8 +55,8 @@ use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::TokenStream;
 use quote::{quote, quote_spanned};
 use syn::{
-    Block, ConstParam, FnArg, GenericParam, ItemFn, Pat, PatIdent, Result, Token, Type,
-    parse_macro_input, parse_quote, spanned::Spanned,
+    Block, ConstParam, FnArg, GenericParam, ItemFn, Pat, PatIdent, Result,
+    Token, Type, parse_macro_input, parse_quote, spanned::Spanned,
 };
 
 #[proc_macro_attribute]
@@ -99,7 +99,8 @@ fn inner(item: ItemFn) -> Result<TokenStream> {
                         "Only simple identifiers are supported for constifyed args",
                     ));
                 };
-                if !matches!(&*typed.ty, Type::Path(tp) if tp.path.is_ident("bool")) {
+                if !matches!(&*typed.ty, Type::Path(tp) if tp.path.is_ident("bool"))
+                {
                     return Err(syn::Error::new(
                         typed.ty.span(),
                         "#[constify] only supports `bool` parameters",
@@ -122,10 +123,8 @@ fn inner(item: ItemFn) -> Result<TokenStream> {
     // convert Vec<FnArg> non_constify_args into Punctuated<FnArg, Comma>
     new_sig.inputs = non_constify_args.into_iter().collect();
 
-    new_sig
-        .generics
-        .params
-        .extend(constify_args.iter().map(|(arg_name, input)| {
+    new_sig.generics.params.extend(constify_args.iter().map(
+        |(arg_name, input)| {
             GenericParam::Const(ConstParam {
                 attrs: vec![],
                 const_token: Token![const](arg_name.span()),
@@ -135,7 +134,8 @@ fn inner(item: ItemFn) -> Result<TokenStream> {
                 default: None,
                 eq_token: None,
             })
-        }));
+        },
+    ));
 
     let mut new_attrs = attrs.clone();
     new_attrs.push(parse_quote!(#[allow(warnings)]));
@@ -211,7 +211,8 @@ fn inner(item: ItemFn) -> Result<TokenStream> {
         let mut new_attrs = attrs.clone();
         new_attrs.push(parse_quote!(#[inline(always)]));
 
-        let all_target_names: Vec<_> = constify_args.iter().map(|(name, _)| name).collect();
+        let all_target_names: Vec<_> =
+            constify_args.iter().map(|(name, _)| name).collect();
 
         let body: Block = parse_quote! {{
             #specialized_fn

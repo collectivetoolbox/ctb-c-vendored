@@ -5,7 +5,6 @@ use crate::window::{PropFormat, PropMode, Window};
 use std::collections::HashMap;
 use std::string::FromUtf8Error;
 
-
 /// this represents one of the possible window types defined in ewmh, <https://specifications.freedesktop.org/wm-spec/1.3/ar01s05.html#id-1.6.7>
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -30,10 +29,7 @@ pub struct DesktopGeometry {
 
 impl DesktopGeometry {
     pub fn new(width: u32, height: u32) -> DesktopGeometry {
-        DesktopGeometry {
-            width,
-            height,
-        }
+        DesktopGeometry { width, height }
     }
 }
 
@@ -47,10 +43,7 @@ pub struct DesktopViewport {
 
 impl DesktopViewport {
     pub fn new(x: u32, y: u32) -> DesktopViewport {
-        DesktopViewport {
-            x,
-            y,
-        }
+        DesktopViewport { x, y }
     }
 }
 

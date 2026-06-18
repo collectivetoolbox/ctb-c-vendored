@@ -382,7 +382,12 @@ impl Window {
 
     /// This request actively grabs control of the keyboard. Further key events are reported only to the
     /// grabbing client. This request overrides any active keyboard grab by this client.
-    pub fn grab_keyboard(&self, owner_events: bool, pointer_mode: PointerMode, keyboard_mode: KeyboardMode) -> Result<GrabKeyboardStatus, Error> {
+    pub fn grab_keyboard(
+        &self,
+        owner_events: bool,
+        pointer_mode: PointerMode,
+        keyboard_mode: KeyboardMode,
+    ) -> Result<GrabKeyboardStatus, Error> {
         self.sequence.append(ReplyKind::GrabKeyboard)?;
 
         self.stream.send_encode(GrabKeyboard {

@@ -74,7 +74,8 @@ pub fn egui_blend_u8_slice_one_src(src: [u8; 4], dst: &mut [[u8; 4]]) {
             let dst16 = _mm_cvtepu8_epi16(d8);
 
             // dst * alpha_compl + 0x0080008000800080
-            let res16 = _mm_add_epi16(_mm_mullo_epi16(dst16, simd_alpha_compl), e1);
+            let res16 =
+                _mm_add_epi16(_mm_mullo_epi16(dst16, simd_alpha_compl), e1);
 
             // This mulhi is equivalent to the ((x >> 8) + x) >> 8 operation. (can you see why?)
             let res16 = _mm_mulhi_epu16(res16, e2);
@@ -136,7 +137,11 @@ pub fn egui_blend_u8_slice(src: &[[u8; 4]], dst: &mut [[u8; 4]]) {
 /// dst[i] = blend(src[i] * vert, dst[i]) // As unorm
 /// blend fn is (ONE, ONE_MINUS_SRC_ALPHA)
 #[target_feature(enable = "sse4.1")]
-pub fn egui_blend_u8_slice_tinted(src: &[[u8; 4]], tint: [u8; 4], dst: &mut [[u8; 4]]) {
+pub fn egui_blend_u8_slice_tinted(
+    src: &[[u8; 4]],
+    tint: [u8; 4],
+    dst: &mut [[u8; 4]],
+) {
     assert_eq!(src.len(), dst.len());
     let n = dst.len();
     if n == 0 {
@@ -262,7 +267,11 @@ fn unorm_mult4x4(a: [u8; 4], b: [u8; 4]) -> [u8; 4] {
 /// src16 is should have two 16 bit per channel rgba samples
 /// dst16 is should have two 16 bit per channel rgba samples
 #[target_feature(enable = "sse4.1")]
-fn egui_blend_two_u16x4(src8: __m128i, src16: __m128i, dst16: __m128i) -> __m128i {
+fn egui_blend_two_u16x4(
+    src8: __m128i,
+    src16: __m128i,
+    dst16: __m128i,
+) -> __m128i {
     let ones = _mm_set1_epi16(0x00FF);
     let e1 = _mm_set1_epi16(0x0080);
     let e2 = _mm_set1_epi16(0x0101);

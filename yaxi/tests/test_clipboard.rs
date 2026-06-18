@@ -43,9 +43,7 @@ mod tests {
         let data = include_bytes!("../assets/logo1.png");
         let bytes = data.to_vec();
 
-        let result = run_with_clipboard(|clipboard| {
-            clipboard.set_image(bytes, ImageFormat::Png)
-        });
+        let result = run_with_clipboard(|clipboard| clipboard.set_image(bytes, ImageFormat::Png));
         assert!(result.is_ok());
     }
 
