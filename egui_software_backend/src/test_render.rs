@@ -16,18 +16,14 @@ impl TestRenderer for EguiSoftwareRender {
         ctx: &egui::Context,
         output: &egui::FullOutput,
     ) -> Result<image::RgbaImage, String> {
-        let paint_jobs =
-            ctx.tessellate(output.shapes.clone(), output.pixels_per_point);
+        let paint_jobs = ctx.tessellate(output.shapes.clone(), output.pixels_per_point);
 
-        let width =
-            (ctx.content_rect().width() * output.pixels_per_point) as usize;
-        let height =
-            (ctx.content_rect().height() * output.pixels_per_point) as usize;
+        let width = (ctx.content_rect().width() * output.pixels_per_point) as usize;
+        let height = (ctx.content_rect().height() * output.pixels_per_point) as usize;
 
         let mut buffer = vec![[0u8; 4]; width * height];
 
-        let mut buffer_ref =
-            BufferMutRef::new(&mut buffer, width as usize, height as usize);
+        let mut buffer_ref = BufferMutRef::new(&mut buffer, width as usize, height as usize);
 
         self.render(
             &mut buffer_ref,

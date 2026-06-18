@@ -105,8 +105,7 @@ mod winit;
 
 #[cfg(feature = "winit")]
 pub use winit::{
-    App, SoftwareBackend, SoftwareBackendAppConfiguration,
-    run_app_with_software_backend,
+    App, SoftwareBackend, SoftwareBackendAppConfiguration, run_app_with_software_backend,
 };
 
 #[inline(always)]
@@ -228,12 +227,7 @@ impl EguiSoftwareRender {
             );
             self.blit_canvas_to_buffer(buffer_ref);
         } else {
-            self.render_direct(
-                buffer_ref,
-                paint_jobs,
-                textures_delta,
-                pixels_per_point,
-            );
+            self.render_direct(buffer_ref, paint_jobs, textures_delta, pixels_per_point);
         }
     }
 
@@ -243,10 +237,7 @@ impl EguiSoftwareRender {
     /// when the back buffer is temporarily busy) but the renderer still needs to
     /// keep its texture state synchronized with egui to avoid corrupt or
     /// distorted text rendering on subsequent frames.
-    pub fn handle_textures_delta(
-        &mut self,
-        textures_delta: &egui::TexturesDelta,
-    ) {
+    pub fn handle_textures_delta(&mut self, textures_delta: &egui::TexturesDelta) {
         self.set_textures(textures_delta);
         self.free_textures(textures_delta);
     }
@@ -288,8 +279,7 @@ impl EguiSoftwareRender {
         }
 
         self.target_size = vec2(width as f32, height as f32);
-        self.tiles_dim =
-            [width.div_ceil(TILE_SIZE), height.div_ceil(TILE_SIZE)];
+        self.tiles_dim = [width.div_ceil(TILE_SIZE), height.div_ceil(TILE_SIZE)];
 
         self.set_textures(textures_delta);
 
@@ -356,11 +346,9 @@ impl EguiSoftwareRender {
                 .enumerate()
                 .for_each(|(tile_row, tile_height_row)| {
                     let height = tile_height_row.len() / width; // Might be less than TILE_SIZE
-                    let buffer_tile_row =
-                        &mut BufferMutRef::new(tile_height_row, width, height);
+                    let buffer_tile_row = &mut BufferMutRef::new(tile_height_row, width, height);
 
-                    for (tile_idx, &mask) in self.dirty_tiles.iter().enumerate()
-                    {
+                    for (tile_idx, &mask) in self.dirty_tiles.iter().enumerate() {
                         if mask & Self::OCCUPIED_TILE_MASK == 0 {
                             continue;
                         }
@@ -428,17 +416,11 @@ impl EguiSoftwareRender {
             #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
             {
                 for y in y_start..y_end {
-                    let src_row = self.canvas.get_span(
-                        x_start,
-                        x_end,
-                        y + canvas_row_offset,
-                    );
+                    let src_row = self.canvas.get_span(x_start, x_end, y + canvas_row_offset);
                     let dst_row = &mut buffer.get_mut_span(x_start, x_end, y);
                     #[cfg(target_arch = "x86_64")]
                     unsafe {
-                        crate::color_sse41::egui_blend_u8_slice(
-                            src_row, dst_row,
-                        )
+                        crate::color_sse41::egui_blend_u8_slice(src_row, dst_row)
                     }
                     #[cfg(target_arch = "aarch64")]
                     crate::color_neon::egui_blend_u8_slice(src_row, dst_row);
@@ -446,8 +428,7 @@ impl EguiSoftwareRender {
             }
         } else {
             for y in y_start..y_end {
-                let src_row =
-                    self.canvas.get_span(x_start, x_end, y + canvas_row_offset);
+                let src_row = self.canvas.get_span(x_start, x_end, y + canvas_row_offset);
                 let dst_row = &mut buffer.get_mut_span(x_start, x_end, y);
                 for (dst, &src) in dst_row.iter_mut().zip(src_row.iter()) {
                     *dst = egui_blend_u8(src, *dst);
@@ -486,9 +467,7 @@ impl EguiSoftwareRender {
                 egui::epaint::Primitive::Mesh(input_mesh) => input_mesh,
                 egui::epaint::Primitive::Callback(_) => {
                     #[cfg(feature = "log")]
-                    log::error!(
-                        "egui::epaint::Primitive::Callback(PaintCallback) not supported"
-                    );
+                    log::error!("egui::epaint::Primitive::Callback(PaintCallback) not supported");
                     continue;
                 }
             };
@@ -506,12 +485,8 @@ impl EguiSoftwareRender {
             let mut mesh_min = egui::Vec2::splat(f32::MAX);
             let mut mesh_max = egui::Vec2::splat(-f32::MAX);
 
-            let px_mesh = self.prepare_px_mesh(
-                pixels_per_point,
-                input_mesh,
-                &mut mesh_min,
-                &mut mesh_max,
-            );
+            let px_mesh =
+                self.prepare_px_mesh(pixels_per_point, input_mesh, &mut mesh_min, &mut mesh_max);
 
             let mesh_size = mesh_max - mesh_min;
             if mesh_size.x > 8192.0 || mesh_size.y > 8192.0 {
@@ -519,8 +494,7 @@ impl EguiSoftwareRender {
                 continue;
             }
 
-            let render_in_low_precision =
-                mesh_size.x > 4096.0 || mesh_size.y > 4096.0;
+            let render_in_low_precision = mesh_size.x > 4096.0 || mesh_size.y > 4096.0;
             if render_in_low_precision {
                 draw_egui_mesh::<2>(
                     &self.textures,
@@ -530,10 +504,7 @@ impl EguiSoftwareRender {
                     Vec2::ZERO,
                     self.allow_raster_opt,
                     self.convert_tris_to_rects,
-                    #[cfg(all(
-                        feature = "raster_stats",
-                        not(feature = "rayon")
-                    ))]
+                    #[cfg(all(feature = "raster_stats", not(feature = "rayon")))]
                     &mut self.stats,
                 );
             } else {
@@ -545,10 +516,7 @@ impl EguiSoftwareRender {
                     Vec2::ZERO,
                     self.allow_raster_opt,
                     self.convert_tris_to_rects,
-                    #[cfg(all(
-                        feature = "raster_stats",
-                        not(feature = "rayon")
-                    ))]
+                    #[cfg(all(feature = "raster_stats", not(feature = "rayon")))]
                     &mut self.stats,
                 );
             }
@@ -577,9 +545,7 @@ impl EguiSoftwareRender {
                 ColorFieldOrder::Rgba => (), // egui uses rgba
                 ColorFieldOrder::Bgra => {
                     let d = swizzle_rgba_bgra(v.color.to_array());
-                    v.color = Color32::from_rgba_premultiplied(
-                        d[0], d[1], d[2], d[3],
-                    );
+                    v.color = Color32::from_rgba_premultiplied(d[0], d[1], d[2], d[3]);
                 }
             }
 
@@ -629,9 +595,7 @@ impl EguiSoftwareRender {
 
         // Render paint jobs in parallel
         #[cfg(feature = "rayon")]
-        use rayon::iter::{
-            IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator,
-        };
+        use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
         #[cfg(feature = "rayon")]
         let iter = paint_jobs.par_iter().enumerate();
 
@@ -790,16 +754,12 @@ impl EguiSoftwareRender {
 
         updates.into_iter().for_each(|update| match update {
             CacheUpdate::CacheReuse(cache_reuse) => {
-                if let Some(cached_primitive) =
-                    self.cached_primitives.get_mut(&cache_reuse.hash)
-                {
-                    cached_primitive.seen_this_frame =
-                        cache_reuse.seen_this_frame;
+                if let Some(cached_primitive) = self.cached_primitives.get_mut(&cache_reuse.hash) {
+                    cached_primitive.seen_this_frame = cache_reuse.seen_this_frame;
                     cached_primitive.z_order = cache_reuse.z_order;
                     cached_primitive.min_x = cache_reuse.min_x;
                     cached_primitive.min_y = cache_reuse.min_y;
-                    cached_primitive.rendered_this_frame =
-                        cache_reuse.rendered_this_frame;
+                    cached_primitive.rendered_this_frame = cache_reuse.rendered_this_frame;
                 }
             }
             CacheUpdate::New(hash, prim) => {
@@ -819,16 +779,12 @@ impl EguiSoftwareRender {
         #[cfg(feature = "raster_stats")]
         let start = std::time::Instant::now();
 
-        let mut sorted_prim_cache =
-            self.cached_primitives.values().collect::<Vec<_>>();
+        let mut sorted_prim_cache = self.cached_primitives.values().collect::<Vec<_>>();
         sorted_prim_cache.sort_unstable_by_key(|prim| prim.z_order);
 
         #[allow(unused_mut)]
-        let mut canvas = BufferMutRef::new(
-            &mut self.canvas.data,
-            self.canvas.width,
-            self.canvas.height,
-        );
+        let mut canvas =
+            BufferMutRef::new(&mut self.canvas.data, self.canvas.width, self.canvas.height);
 
         #[cfg(feature = "rayon")]
         {
@@ -849,12 +805,10 @@ impl EguiSoftwareRender {
                 .enumerate()
                 .for_each(|(tile_row, tile_height_row)| {
                     let height = tile_height_row.len() / width; // Might be less than TILE_SIZE
-                    let canvas_tile_row =
-                        &mut BufferMutRef::new(tile_height_row, width, height);
+                    let canvas_tile_row = &mut BufferMutRef::new(tile_height_row, width, height);
 
                     let dirty_tile_row_start = tile_row * self.tiles_dim[0];
-                    let dirty_tile_row_end =
-                        dirty_tile_row_start + self.tiles_dim[0];
+                    let dirty_tile_row_end = dirty_tile_row_start + self.tiles_dim[0];
 
                     self.dirty_tiles
                         .iter()
@@ -909,8 +863,7 @@ impl EguiSoftwareRender {
         }
         #[cfg(feature = "raster_stats")]
         {
-            self.stats.update_canvas_from_cached =
-                start.elapsed().as_secs_f32();
+            self.stats.update_canvas_from_cached = start.elapsed().as_secs_f32();
         }
     }
 
@@ -929,8 +882,8 @@ impl EguiSoftwareRender {
         self.dirty_tiles.fill(0);
         for prim in self.cached_primitives.values() {
             for tile in &prim.occupied_tiles {
-                let mask = &mut self.dirty_tiles
-                    [tile[0] as usize + tile[1] as usize * self.tiles_dim[0]];
+                let mask =
+                    &mut self.dirty_tiles[tile[0] as usize + tile[1] as usize * self.tiles_dim[0]];
                 if !prim.seen_this_frame || prim.rendered_this_frame {
                     *mask |= Self::DIRTY_TILE_MASK;
                 }
@@ -956,10 +909,7 @@ impl EguiSoftwareRender {
             }
             let pixels = match &delta.image {
                 egui::ImageData::Color(image) => {
-                    assert_eq!(
-                        image.width() * image.height(),
-                        image.pixels.len()
-                    );
+                    assert_eq!(image.width() * image.height(), image.pixels.len());
                     Cow::Borrowed(&image.pixels)
                 }
             };
@@ -969,27 +919,19 @@ impl EguiSoftwareRender {
                     for y in 0..size[1] {
                         for x in 0..size[0] {
                             let src_pos = x + y * size[0];
-                            let dest_pos =
-                                (x + pos[0]) + (y + pos[1]) * texture.width;
-                            texture.data[dest_pos] =
-                                match self.output_field_order {
-                                    ColorFieldOrder::Rgba => {
-                                        pixels[src_pos].to_array()
-                                    }
-                                    ColorFieldOrder::Bgra => swizzle_rgba_bgra(
-                                        pixels[src_pos].to_array(),
-                                    ),
-                                };
+                            let dest_pos = (x + pos[0]) + (y + pos[1]) * texture.width;
+                            texture.data[dest_pos] = match self.output_field_order {
+                                ColorFieldOrder::Rgba => pixels[src_pos].to_array(),
+                                ColorFieldOrder::Bgra => {
+                                    swizzle_rgba_bgra(pixels[src_pos].to_array())
+                                }
+                            };
                         }
                     }
                 }
             } else {
-                let new_texture = EguiTexture::new(
-                    self.output_field_order,
-                    delta.options,
-                    size,
-                    &pixels,
-                );
+                let new_texture =
+                    EguiTexture::new(self.output_field_order, delta.options, size, &pixels);
 
                 self.textures.insert(*id, new_texture);
             }
@@ -1021,9 +963,7 @@ fn update_canvas_tile(
     let tile_y_end = (tile_y_start + TILE_SIZE).min(full_height);
 
     // clear tile
-    for y in
-        (tile_y_start - canvas_row_offset)..(tile_y_end - canvas_row_offset)
-    {
+    for y in (tile_y_start - canvas_row_offset)..(tile_y_end - canvas_row_offset) {
         let row_start = y * canvas.width;
         let start = row_start + tile_x_start;
         let end = row_start + tile_x_end;
@@ -1058,8 +998,7 @@ fn update_canvas_tile(
         let prim_x_max = (max_x - prim.min_x).min(prim_buf.width);
 
         let get_ranges = |y: usize| -> (Range<usize>, Range<usize>) {
-            let canvas_row_start =
-                (y - canvas_row_offset).min(canvas.height) * canvas.width;
+            let canvas_row_start = (y - canvas_row_offset).min(canvas.height) * canvas.width;
             let canvas_start = canvas_row_start + min_x;
             let canvas_end = canvas_row_start + max_x;
 
@@ -1080,9 +1019,7 @@ fn update_canvas_tile(
                     let dst_row = &mut canvas.data[canvas_slice];
                     #[cfg(target_arch = "x86_64")]
                     unsafe {
-                        crate::color_sse41::egui_blend_u8_slice(
-                            src_row, dst_row,
-                        )
+                        crate::color_sse41::egui_blend_u8_slice(src_row, dst_row)
                     }
                     #[cfg(target_arch = "aarch64")]
                     crate::color_neon::egui_blend_u8_slice(src_row, dst_row)
@@ -1130,12 +1067,7 @@ impl Canvas {
     }
 
     #[inline(always)]
-    pub fn get_range(
-        &self,
-        start: usize,
-        end: usize,
-        y: usize,
-    ) -> Range<usize> {
+    pub fn get_range(&self, start: usize, end: usize, y: usize) -> Range<usize> {
         let row_start = y * self.width;
         let start = row_start + start;
         let end = row_start + end;
@@ -1173,13 +1105,7 @@ impl CachedPrimitive {
         }
     }
 
-    fn new(
-        min_x: usize,
-        min_y: usize,
-        width: usize,
-        height: usize,
-        z_order: usize,
-    ) -> Self {
+    fn new(min_x: usize, min_y: usize, width: usize, height: usize, z_order: usize) -> Self {
         CachedPrimitive {
             buffer: vec![[0; 4]; width * height],
             min_x,
@@ -1218,11 +1144,8 @@ impl CachedPrimitive {
                     for x in px_start_x..px_end_x {
                         // Purposefully panicing when out of bounds. If it's out of bounds then the math is wrong and
                         // the tile is not being calculated correctly.
-                        if u32::from_le_bytes(self.buffer[x + y * self.width])
-                            > 0
-                        {
-                            self.occupied_tiles
-                                .push([tile_x as u16, tile_y as u16]);
+                        if u32::from_le_bytes(self.buffer[x + y * self.width]) > 0 {
+                            self.occupied_tiles.push([tile_x as u16, tile_y as u16]);
                             break 'px_outer;
                         }
                     }
@@ -1256,12 +1179,7 @@ impl<'a> BufferMutRef<'a> {
     }
 
     #[inline(always)]
-    pub fn get_range(
-        &self,
-        start: usize,
-        end: usize,
-        y: usize,
-    ) -> Range<usize> {
+    pub fn get_range(&self, start: usize, end: usize, y: usize) -> Range<usize> {
         let row_start = y * self.width;
         let start = row_start + start;
         let end = row_start + end;
@@ -1269,12 +1187,7 @@ impl<'a> BufferMutRef<'a> {
     }
 
     #[inline(always)]
-    pub fn get_mut_span(
-        &mut self,
-        start: usize,
-        end: usize,
-        y: usize,
-    ) -> &mut [[u8; 4]] {
+    pub fn get_mut_span(&mut self, start: usize, end: usize, y: usize) -> &mut [[u8; 4]] {
         let range = self.get_range(start, end, y);
         &mut self.data[range]
     }

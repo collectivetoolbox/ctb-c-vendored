@@ -19,15 +19,15 @@ pub struct RasterStats {
     pub tri_height_buckets: HashMap<u32, Stat>, // Key is tri height
     pub rect_width_buckets: HashMap<u32, Stat>, // Key is rect width
     pub rect_height_buckets: HashMap<u32, Stat>, // Key is rect height
-    pub tri_vert_col_vary: u32, // Count of tris where the vertex colors varied
-    pub tri_vert_uvs_vary: u32, // Count of tris where the vertex uvs varied
-    pub tri_alpha_blend: u32,   // Count of tris that required alpha blending
-    pub rect_vert_col_vary: u32, // Count of rects where the vertex colors varied
-    pub rect_vert_uvs_vary: u32, // Count of rects where the vertex uvs varied
-    pub rect_alpha_blend: u32,   // Count of rects that required alpha blending
-    pub tris: u32,               // Total tris drawn
-    pub rects: u32,              // Total rects drawn
-    pub start: Instant,          // Time just before latest rasterization
+    pub tri_vert_col_vary: u32,                // Count of tris where the vertex colors varied
+    pub tri_vert_uvs_vary: u32,                // Count of tris where the vertex uvs varied
+    pub tri_alpha_blend: u32,                  // Count of tris that required alpha blending
+    pub rect_vert_col_vary: u32,               // Count of rects where the vertex colors varied
+    pub rect_vert_uvs_vary: u32,               // Count of rects where the vertex uvs varied
+    pub rect_alpha_blend: u32,                 // Count of rects that required alpha blending
+    pub tris: u32,                             // Total tris drawn
+    pub rects: u32,                            // Total rects drawn
+    pub start: Instant,                        // Time just before latest rasterization
     pub set_textures: f32,
     pub update_dirty_tiles: f32,
     pub update_canvas_from_cached: f32,
@@ -63,12 +63,7 @@ impl Default for RasterStats {
 }
 
 #[cfg(not(feature = "rayon"))]
-fn insert_or_increment(
-    long_side_size: u32,
-    elapsed: f32,
-    area: f32,
-    map: &mut HashMap<u32, Stat>,
-) {
+fn insert_or_increment(long_side_size: u32, elapsed: f32, area: f32, map: &mut HashMap<u32, Stat>) {
     if let Some(stat) = map.get_mut(&long_side_size) {
         stat.count += 1;
         stat.time += elapsed;
@@ -165,10 +160,7 @@ impl RasterStats {
                     stat("set_textures", self.set_textures);
                     stat("render_prims_to_cache", self.render_prims_to_cache);
                     stat("update_dirty_tiles", self.update_dirty_tiles);
-                    stat(
-                        "update_canvas_from_cached",
-                        self.update_canvas_from_cached,
-                    );
+                    stat("update_canvas_from_cached", self.update_canvas_from_cached);
                     stat("blit_canvas_to_buffer", self.blit_canvas_to_buffer);
                     stat("render_direct", self.render_direct);
 
@@ -202,25 +194,16 @@ impl RasterStats {
                 ui.label("");
                 ui.end_row();
 
-                fn collect_and_sort(
-                    map: &HashMap<u32, Stat>,
-                ) -> Vec<(u32, Stat)> {
-                    let mut v: Vec<_> =
-                        map.iter().map(|(&k, &s)| (k, s)).collect();
-                    v.sort_by_key(|&(_, s)| {
-                        std::cmp::Reverse((s.time * 1000000.0) as u32)
-                    }); // Seconds to microseconds
+                fn collect_and_sort(map: &HashMap<u32, Stat>) -> Vec<(u32, Stat)> {
+                    let mut v: Vec<_> = map.iter().map(|(&k, &s)| (k, s)).collect();
+                    v.sort_by_key(|&(_, s)| std::cmp::Reverse((s.time * 1000000.0) as u32)); // Seconds to microseconds
                     v
                 }
 
-                let tri_width_bucket =
-                    collect_and_sort(&self.tri_width_buckets);
-                let tri_height_bucket =
-                    collect_and_sort(&self.tri_height_buckets);
-                let rect_width_bucket =
-                    collect_and_sort(&self.rect_width_buckets);
-                let rect_height_bucket =
-                    collect_and_sort(&self.rect_height_buckets);
+                let tri_width_bucket = collect_and_sort(&self.tri_width_buckets);
+                let tri_height_bucket = collect_and_sort(&self.tri_height_buckets);
+                let rect_width_bucket = collect_and_sort(&self.rect_width_buckets);
+                let rect_height_bucket = collect_and_sort(&self.rect_height_buckets);
 
                 let max_rows = tri_width_bucket
                     .len()

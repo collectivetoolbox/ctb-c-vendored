@@ -22,10 +22,7 @@ pub fn draw_egui_mesh<const SUBPIX_BITS: i32>(
     #[cfg(all(feature = "raster_stats", not(feature = "rayon")))]
     stats: &mut crate::stats::RasterStats,
 ) {
-    #[cfg(all(
-        any(target_arch = "x86_64", target_arch = "aarch64"),
-        feature = "std"
-    ))]
+    #[cfg(all(any(target_arch = "x86_64", target_arch = "aarch64"), feature = "std"))]
     if crate::sse41() || crate::neon() {
         draw_egui_mesh_impl::<SUBPIX_BITS, true>(
             textures,
@@ -102,9 +99,7 @@ pub fn draw_egui_mesh_impl<const SUBPIX_BITS: i32, const SIMD: bool>(
         ),
     ];
 
-    if clip_bounds[1].x - clip_bounds[0].x <= 0
-        || clip_bounds[1].y - clip_bounds[0].y <= 0
-    {
+    if clip_bounds[1].x - clip_bounds[0].x <= 0 || clip_bounds[1].y - clip_bounds[0].y <= 0 {
         return;
     }
 
@@ -161,17 +156,13 @@ pub fn draw_egui_mesh_impl<const SUBPIX_BITS: i32, const SIMD: bool>(
         );
 
         if !allow_raster_opt {
-            draw_tri::<SUBPIX_BITS>(
-                buffer, texture, &draw, true, true, true, false,
-            );
+            draw_tri::<SUBPIX_BITS>(buffer, texture, &draw, true, true, true, false);
             i += 3;
             continue;
         }
 
-        let mut vert_uvs_vary =
-            !(draw.uv[0] == draw.uv[1] && draw.uv[0] == draw.uv[2]);
-        let mut vert_col_vary =
-            !(color0_u8x4 == color1_u8x4 && color0_u8x4 == color2_u8x4);
+        let mut vert_uvs_vary = !(draw.uv[0] == draw.uv[1] && draw.uv[0] == draw.uv[2]);
+        let mut vert_col_vary = !(color0_u8x4 == color1_u8x4 && color0_u8x4 == color2_u8x4);
         let mut alpha_blend = true;
 
         if !vert_uvs_vary {
@@ -202,8 +193,7 @@ pub fn draw_egui_mesh_impl<const SUBPIX_BITS: i32, const SIMD: bool>(
             alpha_blend = false;
         }
 
-        let find_rects =
-            convert_tris_to_rects && !vert_col_vary && i + 6 < indices.len();
+        let find_rects = convert_tris_to_rects && !vert_col_vary && i + 6 < indices.len();
         let mut found_rect = false;
 
         if find_rects {
@@ -219,10 +209,8 @@ pub fn draw_egui_mesh_impl<const SUBPIX_BITS: i32, const SIMD: bool>(
             found_rect = tri_verts_match_corners(tri_min, tri_max, tri, tri2);
 
             if found_rect {
-                let tri_area =
-                    egui_orient2df(&tri[0].pos, &tri[1].pos, &tri[2].pos).abs();
-                let rect_area =
-                    (tri_max.x - tri_min.x) * (tri_max.y - tri_min.y);
+                let tri_area = egui_orient2df(&tri[0].pos, &tri[1].pos, &tri[2].pos).abs();
+                let rect_area = (tri_max.x - tri_min.x) * (tri_max.y - tri_min.y);
                 let areas_match = (tri_area - rect_area).abs() < 0.5;
 
                 if areas_match {
