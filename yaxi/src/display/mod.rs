@@ -484,11 +484,7 @@ impl Display {
     /// This request changes the specified dynamic parameters if the pointer is actively grabbed by the
     /// client and the specified time is no earlier than the last-pointer-grab time and no later than the current server time. The interpretation of event-mask and cursor are the same as in GrabPointer.
     /// This request has no effect on the parameters of any passive grabs established with GrabButton.
-    pub fn change_active_pointer_grab(
-        &self,
-        cursor: Cursor,
-        event_mask: Vec<EventMask>,
-    ) -> Result<(), Error> {
+    pub fn change_active_pointer_grab(&self, cursor: Cursor, event_mask: Vec<EventMask>) -> Result<(), Error> {
         self.sequence.skip();
 
         self.stream.send_encode(ChangeActivePointerGrab {
@@ -857,7 +853,7 @@ impl EventListener {
         match sequence.kind {
             ReplyKind::InternAtom => {
                 handle_reply!(self, InternAtomResponse, InternAtom);
-            }
+            },
             ReplyKind::GetWindowAttributes => {
                 handle_reply!(self, GetWindowAttributesResponse, GetWindowAttributes);
             }
@@ -898,9 +894,8 @@ impl EventListener {
             ReplyKind::GrabKeyboard => {
                 let _: GrabKeyboardResponse = self.stream.recv_decode()?;
 
-                self.replies
-                    .push(Reply::GrabKeyboard(GrabKeyboardStatus::from(event.detail)))?;
-            }
+                self.replies.push(Reply::GrabKeyboard(GrabKeyboardStatus::from(event.detail)))?;
+            },
             ReplyKind::QueryTree => {
                 let response: QueryTreeResponse = self.stream.recv_decode()?;
 
@@ -909,15 +904,12 @@ impl EventListener {
                 self.replies.push(Reply::QueryTree(TreeNode {
                     root: response.root,
                     parent: response.parent,
-                    children: bytes
-                        .chunks(4)
+                    children: bytes.chunks(4)
                         .filter(|bytes| bytes.len() == 4)
-                        .map(|bytes| {
-                            u32::from_le_bytes(bytes.try_into().expect("failed to convert"))
-                        })
+                        .map(|bytes| u32::from_le_bytes(bytes.try_into().expect("failed to convert")))
                         .collect::<Vec<u32>>(),
                 }))?;
-            }
+            },
             ReplyKind::GetAtomName => {
                 let response: GetAtomNameResponse = self.stream.recv_decode()?;
 

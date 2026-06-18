@@ -43,10 +43,7 @@ pub fn draw_rect(
         for y in min_y..max_y {
             if alpha_blend {
                 if simd {
-                    #[cfg(any(
-                        target_arch = "x86_64",
-                        target_arch = "aarch64"
-                    ))]
+                    #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
                     {
                         #[cfg(target_arch = "x86_64")]
                         unsafe {
@@ -84,8 +81,7 @@ pub fn draw_rect(
         );
 
         let uv_step = (max_uv - min_uv) / (tri_max - tri_min);
-        min_uv += uv_step
-            * (vec2(min_x as f32, min_y as f32) - tri_min).max(Vec2::ZERO); // Offset to account for clip
+        min_uv += uv_step * (vec2(min_x as f32, min_y as f32) - tri_min).max(Vec2::ZERO); // Offset to account for clip
         min_uv += uv_step * 0.5; // Raster at pixel centers
 
         let ts_min = min_uv * texture.fsize;
@@ -93,20 +89,18 @@ pub fn draw_rect(
 
         let use_nearest_sampling = {
             let ss_step = uv_step * texture.fsize;
-            let dist_from_px_center =
-                (ts_min - ts_min.floor() - vec2(0.5, 0.5)).abs();
+            let dist_from_px_center = (ts_min - ts_min.floor() - vec2(0.5, 0.5)).abs();
             let steps_off_from_1px = (ss_step - Vec2::ONE).abs();
             let eps = 0.01;
-            let steps_are_1px =
-                steps_off_from_1px.x < eps && steps_off_from_1px.y < eps;
+            let steps_are_1px = steps_off_from_1px.x < eps && steps_off_from_1px.y < eps;
             let start_on_texture_px_center =
                 dist_from_px_center.x < eps && dist_from_px_center.y < eps;
 
             steps_are_1px && start_on_texture_px_center
         };
 
-        let no_texture_wrap_or_overflow = (ts_max.x as usize) < texture.width
-            && (ts_max.y as usize) < texture.height;
+        let no_texture_wrap_or_overflow =
+            (ts_max.x as usize) < texture.width && (ts_max.y as usize) < texture.height;
 
         if use_nearest_sampling && no_texture_wrap_or_overflow {
             // Can just directly blend the texture over the dst buffer, no need to sample with uv
@@ -121,10 +115,7 @@ pub fn draw_rect(
                 let src = &texture.data[tex_start..tex_end];
 
                 if simd {
-                    #[cfg(any(
-                        target_arch = "x86_64",
-                        target_arch = "aarch64"
-                    ))]
+                    #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
                     {
                         #[cfg(target_arch = "x86_64")]
                         unsafe {
@@ -144,10 +135,7 @@ pub fn draw_rect(
                 } else {
                     for (pixel, tex_color) in dst.iter_mut().zip(src) {
                         *pixel = egui_blend_u8(
-                            unorm_mult4x4(
-                                draw.const_vert_color_u8x4,
-                                *tex_color,
-                            ),
+                            unorm_mult4x4(draw.const_vert_color_u8x4, *tex_color),
                             *pixel,
                         );
                     }
@@ -167,8 +155,7 @@ pub fn draw_rect(
                 for x in min_x..max_x {
                     let tex_color = texture.sample_bilinear(uv);
                     let pixel = &mut buffer.data[x + buf_y];
-                    let src =
-                        unorm_mult4x4(draw.const_vert_color_u8x4, tex_color);
+                    let src = unorm_mult4x4(draw.const_vert_color_u8x4, tex_color);
                     *pixel = egui_blend_u8(src, *pixel);
                     uv.x += uv_step.x;
                 }
