@@ -175,11 +175,13 @@ impl<'a> Parser<'a> {
     }
 }
 
-/// parse the DISPLAY env or provided string
 pub fn parse<'a>(display: Option<&'a str>) -> Result<DisplayInfo, Error> {
-    let env = env::var("DISPLAY").map_err(|_| Error::InvalidDisplay)?;
-
-    Parser::new(display.unwrap_or(&env)).parse()
+    if let Some(d) = display {
+        Parser::new(d).parse()
+    } else {
+        let env = env::var("DISPLAY").map_err(|_| Error::InvalidDisplay)?;
+        Parser::new(&env).parse()
+    }
 }
 
 #[cfg(test)]
