@@ -10,6 +10,7 @@ packages=(
   "tiny-xlib"
   "TypeScript"
   "types-node"
+  "warcat"
   "winit"
   "x11"
   "x11-dl"
