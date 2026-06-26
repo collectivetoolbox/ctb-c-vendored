@@ -1,0 +1,99 @@
+[workspace]
+members = ["xtask"]
+
+[package]
+name = "warcat"
+version = "0.3.4"
+edition = "2024"
+license = "MPL-2.0"
+authors = ["Christopher Foo", "Warcat-rs contributors"]
+description = "Command-line tool and library for handling Web ARChive (WARC) files"
+repository = "https://github.com/chfoo/warcat-rs"
+categories = ["command-line-utilities", "parser-implementations"]
+keywords = ["archiving", "warc"]
+rust-version = "1.85"
+exclude = [
+    "/.cargo",
+    "/.github/ISSUE_TEMPLATE",
+    "/.github/pull_request_template.md",
+    "/.github/workflows",
+    "/.vscode",
+    "/.readthedocs.yaml",
+    "/misc"
+]
+
+[lints.rust]
+
+[dependencies]
+# Dependencies for the binary, enabled by "bin" feature:
+anyhow = { version = "1.0.86", optional = true }
+clap = { version = "4.5.16", features = ["cargo", "derive"], optional = true }
+clap-markdown = { version = "0.1.4", optional = true }
+indicatif = { version = "0.17.8", optional = true }
+takecrate = { version = "1.0.0", optional = true }
+tempfile = { version = "3.12.0", optional = true }
+tracing-subscriber = { version = "0.3.18", features = ["json"], optional = true }
+# Everything:
+blake2 = "0.10.6"
+blake3 = { version = "1.5.4", features = ["pure", "traits-preview"] }
+brotli = "8.0.1"
+chrono = "0.4.38"
+ciborium = "0.2.2"
+crc32c = "0.6.8"
+crc32fast = "1.4.2"
+csv = "1.3.0"
+data-encoding = "2.6.0"
+digest = "0.10.7"
+flate2 = "1.0.31"
+md-5 = "0.10.6"
+nom = "8.0.0"
+percent-encoding = "2.3.1"
+redb = "2.1.3"
+regex = { version = "1.10.6", default-features = false, features = ["std", "perf"] }
+serde = "1.0.209"
+serde_json = "1.0.127"
+serde_with = { version = "3.11.0", features = ["base64", "hex"] }
+sha1 = "0.10.6"
+sha2 = "0.10.8"
+sha3 = "0.10.8"
+thiserror = "2.0.0"
+tracing = "0.1.40"
+url = "2.5.2"
+uuid = { version = "1.10.0", features = ["v7"] }
+xxhash-rust = { version = "0.8.12", features = ["std", "xxh3"] }
+zstd = { version = "0.13.2", optional = true }
+
+[dev-dependencies]
+anyhow = "1.0.86"
+rand = "0.9.1"
+rand_xoshiro = "0.7.0"
+tracing-test = { version = "0.2.5", features = ["no-env-filter"] }
+
+[features]
+default = ["zstd"]
+
+# Enables support for Zstandard and related APIs.
+# zstd is optional because the crate relies on a C library that might not
+# be fully portable.
+zstd = ["dep:zstd"]
+
+# FIXME: blake3: a way to provide a "blake3-opt" feature to enable
+# compiling native code. The crate misuses the "pure" feature as a
+# subtractive feature and defaults to compiling. This is undesirable as it can
+# only check whether a compiler is supported, not whether it is installed.
+
+# This feature is intended to be used only for building the binary (main.rs)
+bin = [
+    "dep:anyhow",
+    "dep:clap",
+    "dep:clap-markdown",
+    "dep:indicatif",
+    "dep:takecrate",
+    "dep:tempfile",
+    "dep:tracing-subscriber",
+    "serde/derive",
+]
+
+[[bin]]
+name = "warcat"
+required-features = ["bin"]

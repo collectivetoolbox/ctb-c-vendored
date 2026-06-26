@@ -1,0 +1,77 @@
+name: Build and package
+
+on: workflow_dispatch
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        params:
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-musl
+            apt-install: musl-tools
+            use-cross-rs: false
+          - os: ubuntu-22.04
+            target: aarch64-unknown-linux-musl
+            apt-install: musl-tools
+            use-cross-rs: true
+          - os: windows-2022
+            target: x86_64-pc-windows-msvc
+            use-cross-rs: false
+          - os: windows-2022
+            target: aarch64-pc-windows-msvc
+            use-cross-rs: false
+          - os: macos-14
+            target: x86_64-apple-darwin
+            use-cross-rs: false
+          - os: macos-14
+            target: aarch64-apple-darwin
+            use-cross-rs: false
+
+    runs-on: ${{ matrix.params.os }}
+    steps:
+    - uses: kaven-universe/github-action-current-date-time@v1.4.0
+      name: Current date time
+      id: datetime
+      with:
+        format: YYYYMMDD_HHmmss
+    - uses: imesense/gha-echo-action@v0.2
+      name: Debug info
+      with:
+        input-string: |
+          OS: ${{ matrix.params.os }}
+          Target: ${{ matrix.params.target }}
+          Date: ${{ steps.datetime.outputs.time }}
+    - name: Install packages (apt)
+      if: ${{ matrix.params.apt-install }}
+      run: sudo apt-get -y install ${{ matrix.params.apt-install }}
+    - uses: actions/checkout@v4
+    - uses: Swatinem/rust-cache@v2
+      with:
+        key: ${{ matrix.params.os }}.${{ matrix.params.target }}
+    - name: Install target
+      run: rustup target add ${{ matrix.params.target }}
+    - name: Run release build
+      if: ${{ !matrix.params.use-cross-rs }}
+      run: cargo build --features=bin --release --verbose --target ${{ matrix.params.target }}
+    - name: Run cross release build
+      if: ${{ matrix.params.use-cross-rs }}
+      uses: houseabsolute/actions-rust-cross@v1.0.4
+      with:
+        command: build
+        args: "--features=bin --release --verbose"
+        target: ${{ matrix.params.target }}
+        cross-version: 51f46f296253d8122c927c5bb933e3c4f27cc317
+    - name: Package binary
+      run: cargo xtask package-bin ${{ matrix.params.target }}
+    - uses: actions/upload-artifact@v4
+      name: Save artifact
+      with:
+        name: artifact.${{ matrix.params.target }}.${{ steps.datetime.outputs.time }}
+        if-no-files-found: error
+        path: |
+          target/xtask-package-bin-output/*

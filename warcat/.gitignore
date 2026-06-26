@@ -1,0 +1,8 @@
+# Rust output
+/target/
+
+# Sphinx output
+/doc/_build/
+
+# Python output
+__pycache__
