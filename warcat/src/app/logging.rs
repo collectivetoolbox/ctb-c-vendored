@@ -98,8 +98,7 @@ pub fn set_up_logging(level: Level, file: Option<&Path>, json: bool) -> std::io:
     let sub = sub.with(file_sub.with_filter(level.as_level_filter()));
     let sub = sub.with(stderr_sub.with_filter(level.as_level_filter()));
     let sub = sub.with(json_sub);
-    tracing::subscriber::set_global_default(sub).unwrap();
-
+    let _ = tracing::subscriber::set_global_default(sub);
     tracing::debug!("logging configured");
 
     Ok(())
