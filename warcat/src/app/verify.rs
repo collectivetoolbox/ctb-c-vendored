@@ -1,4 +1,4 @@
-use std::{cell::RefCell, process::ExitCode, rc::Rc};
+use std::{cell::RefCell, rc::Rc};
 
 use crate::{
     app::common::{ReaderEvent, ReaderPipeline},
@@ -10,7 +10,7 @@ use super::arg::VerifyCommand;
 
 const VERIFY_FAILED_EXIT_CODE: u8 = 8;
 
-pub fn verify(args: &VerifyCommand) -> anyhow::Result<ExitCode> {
+pub fn verify(args: &VerifyCommand) -> anyhow::Result<u8> {
     let output_path = &args.output;
     let output = super::common::open_output(output_path)?;
     let seq_format = args.format.into();
@@ -100,9 +100,9 @@ pub fn verify(args: &VerifyCommand) -> anyhow::Result<ExitCode> {
     }
 
     let exit_code = if problem_count == 0 {
-        ExitCode::SUCCESS
+        0
     } else {
-        ExitCode::from(VERIFY_FAILED_EXIT_CODE)
+        VERIFY_FAILED_EXIT_CODE
     };
 
     Ok(exit_code)

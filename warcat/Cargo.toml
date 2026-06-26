@@ -1,5 +1,5 @@
-[workspace]
-members = ["xtask"]
+# [workspace]
+# members = ["xtask"]
 
 [package]
 name = "warcat"
