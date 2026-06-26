@@ -218,7 +218,9 @@ impl HasherImpl {
             Self::Sha3_512(digest) => digest.update(data),
             Self::Blake2s(digest) => digest.update(data),
             Self::Blake2b(digest) => digest.update(data),
-            Self::Blake3(digest) => digest::Digest::update(digest, data),
+            Self::Blake3(digest) => {
+                digest.update(data);
+            }
         }
     }
 
@@ -235,7 +237,7 @@ impl HasherImpl {
             Self::Sha3_512(digest) => digest.finalize().to_vec(),
             Self::Blake2s(digest) => digest.finalize().to_vec(),
             Self::Blake2b(digest) => digest.finalize().to_vec(),
-            Self::Blake3(digest) => digest.finalize().to_vec(),
+            Self::Blake3(digest) => digest.finalize().as_bytes().to_vec(),
         }
     }
 
