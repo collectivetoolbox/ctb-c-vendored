@@ -164,20 +164,6 @@ impl Extractor {
 
             let file = self.file.take().unwrap();
 
-            // Check if the file to be extracted is 0 bytes
-            let is_empty_file = file.as_file().metadata()?.len() == 0;
-            if is_empty_file {
-                let expected_path = self.expected_target_path();
-                if expected_path.is_file() {
-                    if let Ok(meta) = std::fs::metadata(&expected_path) {
-                        if meta.len() > 0 {
-                            tracing::info!(path = ?expected_path, "skipping extraction of 0-byte record because non-empty file exists");
-                            return Ok(());
-                        }
-                    }
-                }
-            }
-
             let target_path = self.create_target_path(digest);
 
             if !target_path.exists() {
@@ -191,31 +177,6 @@ impl Extractor {
         }
 
         Ok(())
-    }
-
-    fn expected_target_path(&self) -> PathBuf {
-        let mut target_path = self.output_dir.clone();
-        let components = self.extractor.file_path_components();
-        let mut iter = components.iter().peekable();
-
-        while let Some(component) = iter.next() {
-            let is_last_component = iter.peek().is_none();
-
-            if is_last_component {
-                let mut base_filename = component.to_string();
-
-                if self.extractor.is_truncated() {
-                    base_filename.push(FILENAME_CONFLICT_MARKER);
-                    base_filename.push_str("truncated");
-                }
-
-                target_path.push(&base_filename);
-            } else {
-                target_path.push(component);
-            }
-        }
-
-        target_path
     }
 
     fn create_target_path(&self, conflict_id: u64) -> PathBuf {
