@@ -20,7 +20,7 @@ packages=(
   "x11rb"
   "xkbcommon-rs"
   "yaxi"
-  "zbus-xml"
+  "zbus_xml"
 )
 
 find diff-tmp -exec chmod u+w {} \;
