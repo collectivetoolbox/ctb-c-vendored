@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 packages=(
+  "DefinitelyTyped-partial"
   "egui"
   "egui_software_backend"
   "egui-winit"
@@ -8,15 +9,18 @@ packages=(
   "smithay-clipboard"
   "softbuffer"
   "tiny-xlib"
+  "turso_sdk_kit"
   "TypeScript"
-  "types-node"
+  "undici"
   "warcat"
+  "wayland-scanner"
   "winit"
   "x11"
   "x11-dl"
   "x11rb"
   "xkbcommon-rs"
   "yaxi"
+  "zbus-xml"
 )
 
 find diff-tmp -exec chmod u+w {} \;
