@@ -4,5 +4,6 @@ x11/tmp
 icecat-bin.tar.gz
 diff-tmp
 v86_images
+v86_images.rsrc
 
 !x11/tmp/.keep
