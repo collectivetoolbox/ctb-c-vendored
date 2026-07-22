@@ -3,5 +3,6 @@ vendor.tar
 x11/tmp
 icecat-bin.tar.gz
 diff-tmp
+v86_images
 
 !x11/tmp/.keep
