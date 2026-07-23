@@ -6,6 +6,7 @@ packages=(
   "egui_software_backend"
   "egui-winit"
   "matchbox_socket"
+  "seabios"
   "smithay-clipboard"
   "softbuffer"
   "tiny-xlib"
