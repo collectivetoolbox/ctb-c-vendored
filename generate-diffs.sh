@@ -13,6 +13,7 @@ packages=(
   "turso_sdk_kit"
   "TypeScript"
   "undici"
+  "v86"
   "warcat"
   "wayland-scanner"
   "winit"
