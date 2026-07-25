@@ -2546,11 +2546,17 @@ VGAScreen.prototype.screen_fill_buffer = function()
             max_y = (((this.cpu.svga_dirty_bitmap_max_offset[0] / bytes_per_pixel | 0) - this.svga_offset) / this.svga_width | 0) + 1;
         }
 
-        if(min_y < max_y)
+        if(min_y >= max_y)
         {
-            min_y = Math.max(min_y, 0);
-            max_y = Math.min(max_y, this.svga_height);
+            min_y = 0;
+            max_y = this.svga_height;
+        }
 
+        min_y = Math.max(min_y, 0);
+        max_y = Math.min(max_y, this.svga_height);
+
+        if(max_y > min_y)
+        {
             this.screen.update_buffer([{
                 image_data: this.image_data,
                 screen_x: 0, screen_y: min_y,

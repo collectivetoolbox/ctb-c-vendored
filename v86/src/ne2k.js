@@ -1091,6 +1091,7 @@ Ne2k.prototype.get_state = function()
 
 Ne2k.prototype.set_state = function(state)
 {
+    if(!state) return;
     this.isr = state[0];
     this.imr = state[1];
     this.cr = state[2];

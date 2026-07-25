@@ -192,19 +192,19 @@ build/libv86-debug.mjs: $(CLOSURE) src/*.js lib/*.js src/browser/*.js
 	ls -lh build/libv86-debug.mjs
 
 src/rust/gen/jit.rs: $(JIT_DEPENDENCIES)
-	./gen/generate_jit.js --output-dir build/ --table jit
+	./gen/generate_jit.js --output-dir src/rust/gen/ --table jit
 src/rust/gen/jit0f.rs: $(JIT_DEPENDENCIES)
-	./gen/generate_jit.js --output-dir build/ --table jit0f
+	./gen/generate_jit.js --output-dir src/rust/gen/ --table jit0f
 
 src/rust/gen/interpreter.rs: $(INTERPRETER_DEPENDENCIES)
-	./gen/generate_interpreter.js --output-dir build/ --table interpreter
+	./gen/generate_interpreter.js --output-dir src/rust/gen/ --table interpreter
 src/rust/gen/interpreter0f.rs: $(INTERPRETER_DEPENDENCIES)
-	./gen/generate_interpreter.js --output-dir build/ --table interpreter0f
+	./gen/generate_interpreter.js --output-dir src/rust/gen/ --table interpreter0f
 
 src/rust/gen/analyzer.rs: $(ANALYZER_DEPENDENCIES)
-	./gen/generate_analyzer.js --output-dir build/ --table analyzer
+	./gen/generate_analyzer.js --output-dir src/rust/gen/ --table analyzer
 src/rust/gen/analyzer0f.rs: $(ANALYZER_DEPENDENCIES)
-	./gen/generate_analyzer.js --output-dir build/ --table analyzer0f
+	./gen/generate_analyzer.js --output-dir src/rust/gen/ --table analyzer0f
 
 build/v86.wasm: $(RUST_FILES) build/softfloat.o build/zstddeclib.o Cargo.toml
 	mkdir -p build/
