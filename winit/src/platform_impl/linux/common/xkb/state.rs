@@ -106,7 +106,11 @@ impl XkbState {
             return state.key_get_one_sym(keycode).map(|sym| sym.raw()).unwrap_or(0);
         }
 
+        #[cfg(x11_platform)]
         unsafe { (XKBH.xkb_state_key_get_one_sym)(self.state.expect("X11 state missing").as_ptr(), keycode) }
+
+        #[cfg(not(x11_platform))]
+        0
     }
 
     pub fn layout(&mut self, key: xkb_keycode_t) -> xkb_layout_index_t {
@@ -115,7 +119,11 @@ impl XkbState {
             return state.key_get_layout(key).and_then(|layout| layout.try_into().ok()).unwrap_or(0);
         }
 
+        #[cfg(x11_platform)]
         unsafe { (XKBH.xkb_state_key_get_layout)(self.state.expect("X11 state missing").as_ptr(), key) }
+
+        #[cfg(not(x11_platform))]
+        0
     }
 
     #[cfg(x11_platform)]
@@ -159,9 +167,13 @@ impl XkbState {
             return super::byte_slice_to_smol_str(&utf8);
         }
 
-        make_string_with(scratch_buffer, |ptr, len| unsafe {
+        #[cfg(x11_platform)]
+        return make_string_with(scratch_buffer, |ptr, len| unsafe {
             (XKBH.xkb_state_key_get_utf8)(self.state.expect("X11 state missing").as_ptr(), keycode, ptr, len)
-        })
+        });
+
+        #[cfg(not(x11_platform))]
+        None
     }
 
     pub fn modifiers(&self) -> ModifiersState {
@@ -194,21 +206,24 @@ impl XkbState {
             return;
         }
 
-        let mask = unsafe {
-            (XKBH.xkb_state_update_mask)(
-                self.state.expect("X11 state missing").as_ptr(),
-                mods_depressed,
-                mods_latched,
-                mods_locked,
-                depressed_group,
-                latched_group,
-                locked_group,
-            )
-        };
+        #[cfg(x11_platform)]
+        {
+            let mask = unsafe {
+                (XKBH.xkb_state_update_mask)(
+                    self.state.expect("X11 state missing").as_ptr(),
+                    mods_depressed,
+                    mods_latched,
+                    mods_locked,
+                    depressed_group,
+                    latched_group,
+                    locked_group,
+                )
+            };
 
-        if mask.contains(xkb_state_component::XKB_STATE_MODS_EFFECTIVE) {
-            // Effective value of mods have changed, we need to update our state.
-            self.reload_modifiers();
+            if mask.contains(xkb_state_component::XKB_STATE_MODS_EFFECTIVE) {
+                // Effective value of mods have changed, we need to update our state.
+                self.reload_modifiers();
+            }
         }
     }
 
@@ -234,6 +249,7 @@ impl XkbState {
                 .unwrap_or(false);
         }
 
+        #[cfg(x11_platform)]
         unsafe {
             (XKBH.xkb_state_mod_name_is_active)(
                 self.state.expect("X11 state missing").as_ptr(),
@@ -241,6 +257,9 @@ impl XkbState {
                 xkb_state_component::XKB_STATE_MODS_EFFECTIVE,
             ) > 0
         }
+
+        #[cfg(not(x11_platform))]
+        false
     }
 }
 

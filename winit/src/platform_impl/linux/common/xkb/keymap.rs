@@ -1034,6 +1034,7 @@ impl XkbKeymap {
                 .unwrap_or(0);
         }
 
+        #[cfg(x11_platform)]
         unsafe {
             let mut keysyms = ptr::null();
             let count = (XKBH.xkb_keymap_key_get_syms_by_level)(
@@ -1051,6 +1052,9 @@ impl XkbKeymap {
                 0
             }
         }
+
+        #[cfg(not(x11_platform))]
+        0
     }
 
     /// Check whether the given key repeats.
@@ -1060,7 +1064,11 @@ impl XkbKeymap {
             return keymap.key_repeats(keycode);
         }
 
+        #[cfg(x11_platform)]
         unsafe { (XKBH.xkb_keymap_key_repeats)(self.keymap.expect("X11 keymap missing").as_ptr(), keycode) == 1 }
+
+        #[cfg(not(x11_platform))]
+        false
     }
 }
 
@@ -1075,6 +1083,7 @@ impl Drop for XkbKeymap {
     }
 }
 
+#[cfg(x11_platform)]
 impl Deref for XkbKeymap {
     type Target = NonNull<xkb_keymap>;
 
