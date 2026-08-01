@@ -60,7 +60,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 # Features are documented in either `lib.rs` or under `winit::platform`.
 # I can't figure out how to make the `wayland-csd-adwaita` feature turn off so I just deleted it. Also turned off wayland-dlopen.
 [features]
-default = ["rwh_06", "x11", "wayland"]
+default = ["rwh_06", "wayland"]
 x11 = ["x11-dl", "bytemuck", "percent-encoding", "xkbcommon-dl/x11", "x11rb"]
 wayland = [
     "wayland-client",

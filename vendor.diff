@@ -1,6 +1,6 @@
 diff -uraN original-egui/Cargo.toml ./egui/Cargo.toml
---- original-egui/Cargo.toml	2026-07-04 02:39:53.169240063 -0400
-+++ ./egui/Cargo.toml	2026-07-04 02:39:53.173240129 -0400
+--- original-egui/Cargo.toml	2026-08-01 12:17:16.157106637 -0400
++++ ./egui/Cargo.toml	2026-08-01 12:17:16.161106729 -0400
 @@ -1,17 +1,18 @@
  [package]
  name = "egui"
@@ -67,8 +67,8 @@ diff -uraN original-egui/Cargo.toml ./egui/Cargo.toml
 +serde = { optional = true, version = "1.0.228", features = ["derive", "rc"] }
 \ No newline at end of file
 diff -uraN original-egui/src/lib.rs ./egui/src/lib.rs
---- original-egui/src/lib.rs	2026-07-04 02:39:53.169240063 -0400
-+++ ./egui/src/lib.rs	2026-07-04 02:39:53.173240129 -0400
+--- original-egui/src/lib.rs	2026-08-01 12:17:16.157106637 -0400
++++ ./egui/src/lib.rs	2026-08-01 12:17:16.161106729 -0400
 @@ -488,8 +488,8 @@
          Key, UserData,
          input::*,
@@ -81,8 +81,8 @@ diff -uraN original-egui/src/lib.rs ./egui/src/lib.rs
      },
      drag_and_drop::DragAndDrop,
 diff -uraN original-egui/src/memory/mod.rs ./egui/src/memory/mod.rs
---- original-egui/src/memory/mod.rs	2026-07-04 02:39:53.169240063 -0400
-+++ ./egui/src/memory/mod.rs	2026-07-04 02:39:53.173240129 -0400
+--- original-egui/src/memory/mod.rs	2026-08-01 12:17:16.157106637 -0400
++++ ./egui/src/memory/mod.rs	2026-08-01 12:17:16.161106729 -0400
 @@ -481,7 +481,16 @@
      last_interested: Option<Id>,
  
@@ -301,8 +301,8 @@ diff -uraN original-egui/src/memory/mod.rs ./egui/src/memory/mod.rs
  
      /// Returns true if
 diff -uraN original-egui/src/response.rs ./egui/src/response.rs
---- original-egui/src/response.rs	2026-07-04 02:39:53.169240063 -0400
-+++ ./egui/src/response.rs	2026-07-04 02:39:53.173240129 -0400
+--- original-egui/src/response.rs	2026-08-01 12:17:16.157106637 -0400
++++ ./egui/src/response.rs	2026-08-01 12:17:16.161106729 -0400
 @@ -6,6 +6,7 @@
      emath::{Align, Pos2, Rect, Vec2},
      pass_state,
@@ -328,8 +328,8 @@ diff -uraN original-egui/src/response.rs ./egui/src/response.rs
      ///
      /// This is only true if the widget sense drags.
 diff -uraN original-egui_software_backend/Cargo.toml ./egui_software_backend/Cargo.toml
---- original-egui_software_backend/Cargo.toml	2026-07-04 02:39:54.013254137 -0400
-+++ ./egui_software_backend/Cargo.toml	2026-07-04 02:39:54.017254204 -0400
+--- original-egui_software_backend/Cargo.toml	2026-08-01 12:17:17.277132410 -0400
++++ ./egui_software_backend/Cargo.toml	2026-08-01 12:17:17.277132410 -0400
 @@ -8,6 +8,12 @@
  readme = "README.md"
  license = "MIT OR Apache-2.0"
@@ -354,7 +354,7 @@ diff -uraN original-egui_software_backend/Cargo.toml ./egui_software_backend/Car
  egui-winit = { version = "0.33", default-features = false, optional = true}
  bytemuck = { version = "1.23", optional = true }
  
-+accesskit_winit = { version = "0.29.2", optional = true }
++accesskit_winit = { version = "0.29.2", optional = true, default-features = false, features = ["accesskit_unix", "async-io", "rwh_06"] }
 +
  # Optional dependencies for automated testing:
  egui_kittest = { version = "0.33", optional = true }
@@ -431,8 +431,8 @@ diff -uraN original-egui_software_backend/Cargo.toml ./egui_software_backend/Car
  
  allow_attributes = "warn"
 diff -uraN original-egui_software_backend/src/lib.rs ./egui_software_backend/src/lib.rs
---- original-egui_software_backend/src/lib.rs	2026-07-04 02:39:54.013254137 -0400
-+++ ./egui_software_backend/src/lib.rs	2026-07-04 02:39:54.017254204 -0400
+--- original-egui_software_backend/src/lib.rs	2026-08-01 12:17:17.277132410 -0400
++++ ./egui_software_backend/src/lib.rs	2026-08-01 12:17:17.277132410 -0400
 @@ -231,6 +231,17 @@
          }
      }
@@ -452,8 +452,8 @@ diff -uraN original-egui_software_backend/src/lib.rs ./egui_software_backend/src
      ///
      /// # Arguments
 diff -uraN original-egui_software_backend/src/render.rs ./egui_software_backend/src/render.rs
---- original-egui_software_backend/src/render.rs	2026-07-04 02:39:54.013254137 -0400
-+++ ./egui_software_backend/src/render.rs	2026-07-04 02:39:54.017254204 -0400
+--- original-egui_software_backend/src/render.rs	2026-08-01 12:17:17.277132410 -0400
++++ ./egui_software_backend/src/render.rs	2026-08-01 12:17:17.277132410 -0400
 @@ -49,7 +49,10 @@
          )
      }
@@ -467,8 +467,8 @@ diff -uraN original-egui_software_backend/src/render.rs ./egui_software_backend/
          textures,
          buffer,
 diff -uraN original-egui_software_backend/src/winit.rs ./egui_software_backend/src/winit.rs
---- original-egui_software_backend/src/winit.rs	2026-07-04 02:39:54.013254137 -0400
-+++ ./egui_software_backend/src/winit.rs	2026-07-04 02:39:54.017254204 -0400
+--- original-egui_software_backend/src/winit.rs	2026-08-01 12:17:17.277132410 -0400
++++ ./egui_software_backend/src/winit.rs	2026-08-01 12:17:17.277132410 -0400
 @@ -7,7 +7,7 @@
  use std::boxed::Box;
  use std::error::Error;
@@ -897,8 +897,8 @@ diff -uraN original-egui_software_backend/src/winit.rs ./egui_software_backend/s
 +    Some(text.chars().skip(start).take(end - start).collect())
 +}
 diff -uraN original-egui-winit/Cargo.toml ./egui-winit/Cargo.toml
---- original-egui-winit/Cargo.toml	2026-07-04 02:39:54.885268678 -0400
-+++ ./egui-winit/Cargo.toml	2026-07-04 02:39:54.885268678 -0400
+--- original-egui-winit/Cargo.toml	2026-08-01 12:17:18.549161682 -0400
++++ ./egui-winit/Cargo.toml	2026-08-01 12:17:18.549161682 -0400
 @@ -1,17 +1,18 @@
  [package]
  name = "egui-winit"
@@ -922,6 +922,15 @@ diff -uraN original-egui-winit/Cargo.toml ./egui-winit/Cargo.toml
  
  [lints]
  workspace = true
+@@ -21,7 +22,7 @@
+ rustdoc-args = ["--generate-link-to-definition"]
+ 
+ [features]
+-default = ["clipboard", "links", "wayland", "winit/default", "x11"]
++default = ["clipboard", "links", "wayland"]
+ 
+ ## Enable platform accessibility API implementations through [AccessKit](https://accesskit.dev/).
+ accesskit = ["dep:accesskit_winit", "egui/accesskit"]
 @@ -55,31 +56,31 @@
  x11 = ["winit/x11", "bytemuck"]
  
@@ -944,7 +953,7 @@ diff -uraN original-egui-winit/Cargo.toml ./egui-winit/Cargo.toml
  
  # feature accesskit
 -accesskit_winit = { workspace = true, optional = true }
-+accesskit_winit = { version = "0.29.1", optional = true }
++accesskit_winit = { version = "0.29.1", optional = true, default-features = false, features = ["accesskit_unix", "async-io", "rwh_06"] }
  
 -bytemuck = { workspace = true, optional = true }
 +bytemuck = { version = "1.24.0", optional = true }
@@ -986,8 +995,8 @@ diff -uraN original-egui-winit/Cargo.toml ./egui-winit/Cargo.toml
 +arboard = { version = "3.6.1", optional = true, features = ["image-data"] }
 \ No newline at end of file
 diff -uraN original-egui-winit/src/clipboard.rs ./egui-winit/src/clipboard.rs
---- original-egui-winit/src/clipboard.rs	2026-07-04 02:39:54.885268678 -0400
-+++ ./egui-winit/src/clipboard.rs	2026-07-04 02:39:54.885268678 -0400
+--- original-egui-winit/src/clipboard.rs	2026-08-01 12:17:18.549161682 -0400
++++ ./egui-winit/src/clipboard.rs	2026-08-01 12:17:18.549161682 -0400
 @@ -179,10 +179,15 @@
  
      profiling::function_scope!();
@@ -1008,8 +1017,8 @@ diff -uraN original-egui-winit/src/clipboard.rs ./egui-winit/src/clipboard.rs
          #[cfg(feature = "wayland")]
          log::debug!("Cannot init smithay clipboard without a Wayland display handle");
 diff -uraN original-matchbox_socket/Cargo.toml ./matchbox_socket/Cargo.toml
---- original-matchbox_socket/Cargo.toml	2026-07-04 02:39:55.753283154 -0400
-+++ ./matchbox_socket/Cargo.toml	2026-07-04 02:39:55.753283154 -0400
+--- original-matchbox_socket/Cargo.toml	2026-08-01 12:17:19.793190311 -0400
++++ ./matchbox_socket/Cargo.toml	2026-08-01 12:17:19.793190311 -0400
 @@ -148,8 +148,8 @@
  [target.'cfg(not(target_arch = "wasm32"))'.dependencies.async-tungstenite]
  version = "0.32"
@@ -1022,8 +1031,8 @@ diff -uraN original-matchbox_socket/Cargo.toml ./matchbox_socket/Cargo.toml
  default-features = false
  
 diff -uraN original-matchbox_socket/src/webrtc_socket/native.rs ./matchbox_socket/src/webrtc_socket/native.rs
---- original-matchbox_socket/src/webrtc_socket/native.rs	2026-07-04 02:39:55.753283154 -0400
-+++ ./matchbox_socket/src/webrtc_socket/native.rs	2026-07-04 02:39:55.753283154 -0400
+--- original-matchbox_socket/src/webrtc_socket/native.rs	2026-08-01 12:17:19.793190311 -0400
++++ ./matchbox_socket/src/webrtc_socket/native.rs	2026-08-01 12:17:19.793190311 -0400
 @@ -13,7 +13,7 @@
  use async_trait::async_trait;
  use async_tungstenite::{
@@ -1034,8 +1043,8 @@ diff -uraN original-matchbox_socket/src/webrtc_socket/native.rs ./matchbox_socke
  };
  use bytes::Bytes;
 diff -uraN original-smithay-clipboard/Cargo.toml ./smithay-clipboard/Cargo.toml
---- original-smithay-clipboard/Cargo.toml	2026-07-04 02:39:56.677298564 -0400
-+++ ./smithay-clipboard/Cargo.toml	2026-07-04 02:39:56.677298564 -0400
+--- original-smithay-clipboard/Cargo.toml	2026-08-01 12:17:22.769258803 -0400
++++ ./smithay-clipboard/Cargo.toml	2026-08-01 12:17:22.769258803 -0400
 @@ -9,11 +9,12 @@
  license = "MIT"
  keywords = ["clipboard", "wayland"]
@@ -1051,8 +1060,8 @@ diff -uraN original-smithay-clipboard/Cargo.toml ./smithay-clipboard/Cargo.toml
  [dev-dependencies]
  sctk = { package = "smithay-client-toolkit", version = "0.20.0", default-features = false, features = ["calloop", "xkbcommon"] }
 diff -uraN original-smithay-clipboard/src/lib.rs ./smithay-clipboard/src/lib.rs
---- original-smithay-clipboard/src/lib.rs	2026-07-04 02:39:56.677298564 -0400
-+++ ./smithay-clipboard/src/lib.rs	2026-07-04 02:39:56.677298564 -0400
+--- original-smithay-clipboard/src/lib.rs	2026-08-01 12:17:22.769258803 -0400
++++ ./smithay-clipboard/src/lib.rs	2026-08-01 12:17:22.769258803 -0400
 @@ -10,7 +10,6 @@
  
  use sctk::reexports::calloop::channel::{self, Sender};
@@ -1096,8 +1105,8 @@ diff -uraN original-smithay-clipboard/src/lib.rs ./smithay-clipboard/src/lib.rs
          let (request_sender, rx_chan) = channel::channel();
          // Create channel to get data from the clipboard thread.
 diff -uraN original-softbuffer/Cargo.toml ./softbuffer/Cargo.toml
---- original-softbuffer/Cargo.toml	2026-07-04 02:39:57.621314307 -0400
-+++ ./softbuffer/Cargo.toml	2026-07-04 02:39:57.625314373 -0400
+--- original-softbuffer/Cargo.toml	2026-08-01 12:17:24.405296460 -0400
++++ ./softbuffer/Cargo.toml	2026-08-01 12:17:24.405296460 -0400
 @@ -11,23 +11,23 @@
  categories = ["game-development", "graphics", "gui", "multimedia", "rendering"]
  exclude = ["examples"]
@@ -1157,8 +1166,8 @@ diff -uraN original-softbuffer/Cargo.toml ./softbuffer/Cargo.toml
  # Run with `cargo apk r --example winit_android`
  name = "winit_android"
 diff -uraN original-softbuffer/src/backends/wayland/mod.rs ./softbuffer/src/backends/wayland/mod.rs
---- original-softbuffer/src/backends/wayland/mod.rs	2026-07-04 02:39:57.621314307 -0400
-+++ ./softbuffer/src/backends/wayland/mod.rs	2026-07-04 02:39:57.621314307 -0400
+--- original-softbuffer/src/backends/wayland/mod.rs	2026-08-01 12:17:24.405296460 -0400
++++ ./softbuffer/src/backends/wayland/mod.rs	2026-08-01 12:17:24.405296460 -0400
 @@ -9,7 +9,6 @@
      sync::{Arc, Mutex},
  };
@@ -1256,8 +1265,8 @@ diff -uraN original-softbuffer/src/backends/wayland/mod.rs ./softbuffer/src/back
  
              // Resize, if buffer isn't large enough
 diff -uraN original-tiny-xlib/Cargo.toml ./tiny-xlib/Cargo.toml
---- original-tiny-xlib/Cargo.toml	2026-07-04 02:39:58.601330651 -0400
-+++ ./tiny-xlib/Cargo.toml	2026-07-04 02:39:58.601330651 -0400
+--- original-tiny-xlib/Cargo.toml	2026-08-01 12:17:26.133336234 -0400
++++ ./tiny-xlib/Cargo.toml	2026-08-01 12:17:26.137336326 -0400
 @@ -31,6 +31,7 @@
  [features]
  default = ["tracing"]
@@ -1280,8 +1289,8 @@ diff -uraN original-tiny-xlib/Cargo.toml ./tiny-xlib/Cargo.toml
  [dependencies.as-raw-xcb-connection]
  version = "1.0.0"
 diff -uraN original-tiny-xlib/src/lib.rs ./tiny-xlib/src/lib.rs
---- original-tiny-xlib/src/lib.rs	2026-07-04 02:39:58.601330651 -0400
-+++ ./tiny-xlib/src/lib.rs	2026-07-04 02:39:58.601330651 -0400
+--- original-tiny-xlib/src/lib.rs	2026-08-01 12:17:26.133336234 -0400
++++ ./tiny-xlib/src/lib.rs	2026-08-01 12:17:26.137336326 -0400
 @@ -130,7 +130,7 @@
  use std::mem::{self, ManuallyDrop};
  use std::os::raw::{c_int, c_void};
@@ -1439,8 +1448,8 @@ diff -uraN original-tiny-xlib/src/lib.rs ./tiny-xlib/src/lib.rs
      // Insert the handler into the list.
      let mut handlers = lock!(ERROR_HANDLERS);
 diff -uraN original-turso_sdk_kit/Cargo.toml ./turso_sdk_kit/Cargo.toml
---- original-turso_sdk_kit/Cargo.toml	2026-07-04 02:39:59.649348130 -0400
-+++ ./turso_sdk_kit/Cargo.toml	2026-07-04 02:39:59.649348130 -0400
+--- original-turso_sdk_kit/Cargo.toml	2026-08-01 12:17:27.893376749 -0400
++++ ./turso_sdk_kit/Cargo.toml	2026-08-01 12:17:27.893376749 -0400
 @@ -33,6 +33,7 @@
  encryption = ["turso_core/encryption"]
  fts = ["turso_core/fts"]
@@ -1458,8 +1467,8 @@ diff -uraN original-turso_sdk_kit/Cargo.toml ./turso_sdk_kit/Cargo.toml
  ]
  
 diff -uraN original-turso_sdk_kit/src/rsapi.rs ./turso_sdk_kit/src/rsapi.rs
---- original-turso_sdk_kit/src/rsapi.rs	2026-07-04 02:39:59.649348130 -0400
-+++ ./turso_sdk_kit/src/rsapi.rs	2026-07-04 02:39:59.649348130 -0400
+--- original-turso_sdk_kit/src/rsapi.rs	2026-08-01 12:17:27.893376749 -0400
++++ ./turso_sdk_kit/src/rsapi.rs	2026-08-01 12:17:27.893376749 -0400
 @@ -584,7 +584,7 @@
                          })?)
                      }
@@ -1483,7 +1492,7 @@ diff -uraN original-turso_sdk_kit/src/rsapi.rs ./turso_sdk_kit/src/rsapi.rs
                  }
                  #[cfg(any(not(target_os = "windows"), miri))]
 diff -uraN original-undici/lib/llhttp/constants.d.ts ./undici/lib/llhttp/constants.d.ts
---- original-undici/lib/llhttp/constants.d.ts	2026-07-04 02:42:39.024012489 -0400
+--- original-undici/lib/llhttp/constants.d.ts	2026-08-01 12:17:29.677417818 -0400
 +++ ./undici/lib/llhttp/constants.d.ts	1969-12-31 19:00:00.000000000 -0500
 @@ -1,195 +0,0 @@
 -export type IntDict = Record<string, number>;
@@ -1682,7 +1691,7 @@ diff -uraN original-undici/lib/llhttp/constants.d.ts ./undici/lib/llhttp/constan
 -};
 -export default _default;
 diff -uraN original-undici/lib/llhttp/constants.js ./undici/lib/llhttp/constants.js
---- original-undici/lib/llhttp/constants.js	2026-07-04 02:42:39.024012489 -0400
+--- original-undici/lib/llhttp/constants.js	2026-08-01 12:17:29.681417910 -0400
 +++ ./undici/lib/llhttp/constants.js	1969-12-31 19:00:00.000000000 -0500
 @@ -1,531 +0,0 @@
 -"use strict";
@@ -2217,7 +2226,7 @@ diff -uraN original-undici/lib/llhttp/constants.js ./undici/lib/llhttp/constants
 -    STATUSES_HTTP: exports.STATUSES_HTTP,
 -};
 diff -uraN original-undici/lib/llhttp/llhttp_simd.wasm ./undici/lib/llhttp/llhttp_simd.wasm
---- original-undici/lib/llhttp/llhttp_simd.wasm	2026-07-04 02:42:39.024012489 -0400
+--- original-undici/lib/llhttp/llhttp_simd.wasm	2026-08-01 12:17:29.677417818 -0400
 +++ ./undici/lib/llhttp/llhttp_simd.wasm	1969-12-31 19:00:00.000000000 -0500
 @@ -1,139 +0,0 @@
 - asm   '``` ` ``  ` Ëenvwasm_on_headers_complete envwasm_on_message_begin  envwasm_on_url envwasm_on_status envwasm_on_header_field envwasm_on_header_value envwasm_on_body envwasm_on_message_complete  54                    p AÀÙÅ(memory _initialize __indirect_function_table llhttp_init 	llhttp_should_keep_alive 7llhttp_alloc malloc 9llhttp_free free llhttp_get_type llhttp_get_http_major llhttp_get_http_minor llhttp_get_method llhttp_get_status_code llhttp_get_upgrade llhttp_reset llhttp_execute llhttp_settings_init llhttp_finish llhttp_pause llhttp_resume llhttp_resume_after_upgrade llhttp_get_errno llhttp_get_error_reason llhttp_set_error_reason llhttp_get_error_pos llhttp_errno_name llhttp_method_name llhttp_status_name  llhttp_set_lenient_headers !!llhttp_set_lenient_chunked_length "llhttp_set_lenient_keep_alive #$llhttp_set_lenient_transfer_encoding $llhttp_set_lenient_version %#llhttp_set_lenient_data_after_close &'llhttp_set_lenient_optional_lf_after_cr ',llhttp_set_lenient_optional_crlf_after_chunk ((llhttp_set_lenient_optional_cr_before_lf )*llhttp_set_lenient_spaces_after_chunk_size *llhttp_message_needs_eof 6	 A
@@ -2361,7 +2370,7 @@ diff -uraN original-undici/lib/llhttp/llhttp_simd.wasm ./undici/lib/llhttp/llhtt
 - A©È   AÀÈ _ A©Ê   AÀÊ _ A©Ì    AÁÌ ^   A©Î   AÀÎ _           A©Ð   AÀÐ  AÚÐ A             A©Ò   AÀÒ  AÊÒ      AáÒ :       A Ô NOUNCEECKOUTNECTETECRIBELUSHETEADSEARCHRGECTIVITYLENDARVEOTIFYPTIONSCHSEAYSTATCHGEUERYORDIRECTORTRCHPARAMETERURCEBSCRIBEARDOWNACEINDNKCKUBSCRIBETTPCETSPADTP/
 \ No newline at end of file
 diff -uraN original-undici/lib/llhttp/llhttp_simd-wasm.js ./undici/lib/llhttp/llhttp_simd-wasm.js
---- original-undici/lib/llhttp/llhttp_simd-wasm.js	2026-07-04 02:42:39.024012489 -0400
+--- original-undici/lib/llhttp/llhttp_simd-wasm.js	2026-08-01 12:17:29.681417910 -0400
 +++ ./undici/lib/llhttp/llhttp_simd-wasm.js	1969-12-31 19:00:00.000000000 -0500
 @@ -1,15 +0,0 @@
 -'use strict'
@@ -2380,7 +2389,7 @@ diff -uraN original-undici/lib/llhttp/llhttp_simd-wasm.js ./undici/lib/llhttp/ll
 -  }
 -})
 diff -uraN original-undici/lib/llhttp/llhttp.wasm ./undici/lib/llhttp/llhttp.wasm
---- original-undici/lib/llhttp/llhttp.wasm	2026-07-04 02:42:39.024012489 -0400
+--- original-undici/lib/llhttp/llhttp.wasm	2026-08-01 12:17:29.677417818 -0400
 +++ ./undici/lib/llhttp/llhttp.wasm	1969-12-31 19:00:00.000000000 -0500
 @@ -1,139 +0,0 @@
 - asm   '``` ` ``  ` Ëenvwasm_on_headers_complete envwasm_on_message_begin  envwasm_on_url envwasm_on_status envwasm_on_header_field envwasm_on_header_value envwasm_on_body envwasm_on_message_complete  54                    p AÀÙÅ(memory _initialize __indirect_function_table llhttp_init 	llhttp_should_keep_alive 7llhttp_alloc malloc 9llhttp_free free llhttp_get_type llhttp_get_http_major llhttp_get_http_minor llhttp_get_method llhttp_get_status_code llhttp_get_upgrade llhttp_reset llhttp_execute llhttp_settings_init llhttp_finish llhttp_pause llhttp_resume llhttp_resume_after_upgrade llhttp_get_errno llhttp_get_error_reason llhttp_set_error_reason llhttp_get_error_pos llhttp_errno_name llhttp_method_name llhttp_status_name  llhttp_set_lenient_headers !!llhttp_set_lenient_chunked_length "llhttp_set_lenient_keep_alive #$llhttp_set_lenient_transfer_encoding $llhttp_set_lenient_version %#llhttp_set_lenient_data_after_close &'llhttp_set_lenient_optional_lf_after_cr ',llhttp_set_lenient_optional_crlf_after_chunk ((llhttp_set_lenient_optional_cr_before_lf )*llhttp_set_lenient_spaces_after_chunk_size *llhttp_message_needs_eof 6	 A
@@ -2524,7 +2533,7 @@ diff -uraN original-undici/lib/llhttp/llhttp.wasm ./undici/lib/llhttp/llhttp.was
 - A©È   AÀÈ _ A©Ê   AÀÊ _ A©Ì    AÁÌ ^   A©Î   AÀÎ _           A©Ð   AÀÐ  AÚÐ A             A©Ò   AÀÒ  AÊÒ      AáÒ :       A Ô NOUNCEECKOUTNECTETECRIBELUSHETEADSEARCHRGECTIVITYLENDARVEOTIFYPTIONSCHSEAYSTATCHGEUERYORDIRECTORTRCHPARAMETERURCEBSCRIBEARDOWNACEINDNKCKUBSCRIBETTPCETSPADTP/
 \ No newline at end of file
 diff -uraN original-undici/lib/llhttp/llhttp-wasm.js ./undici/lib/llhttp/llhttp-wasm.js
---- original-undici/lib/llhttp/llhttp-wasm.js	2026-07-04 02:42:39.024012489 -0400
+--- original-undici/lib/llhttp/llhttp-wasm.js	2026-08-01 12:17:29.681417910 -0400
 +++ ./undici/lib/llhttp/llhttp-wasm.js	1969-12-31 19:00:00.000000000 -0500
 @@ -1,15 +0,0 @@
 -'use strict'
@@ -2543,13 +2552,13 @@ diff -uraN original-undici/lib/llhttp/llhttp-wasm.js ./undici/lib/llhttp/llhttp-
 -  }
 -})
 diff -uraN original-undici/lib/llhttp/utils.d.ts ./undici/lib/llhttp/utils.d.ts
---- original-undici/lib/llhttp/utils.d.ts	2026-07-04 02:42:39.024012489 -0400
+--- original-undici/lib/llhttp/utils.d.ts	2026-08-01 12:17:29.681417910 -0400
 +++ ./undici/lib/llhttp/utils.d.ts	1969-12-31 19:00:00.000000000 -0500
 @@ -1,2 +0,0 @@
 -import type { IntDict } from './constants';
 -export declare function enumToMap(obj: IntDict, filter?: readonly number[], exceptions?: readonly number[]): IntDict;
 diff -uraN original-undici/lib/llhttp/utils.js ./undici/lib/llhttp/utils.js
---- original-undici/lib/llhttp/utils.js	2026-07-04 02:42:39.024012489 -0400
+--- original-undici/lib/llhttp/utils.js	2026-08-01 12:17:29.681417910 -0400
 +++ ./undici/lib/llhttp/utils.js	1969-12-31 19:00:00.000000000 -0500
 @@ -1,12 +0,0 @@
 -"use strict";
@@ -2564,9 +2573,412 @@ diff -uraN original-undici/lib/llhttp/utils.js ./undici/lib/llhttp/utils.js
 -            (emptyExceptions || !exceptions.includes(value)));
 -    }));
 -}
+diff -uraN original-v86/bios/fetch-and-build-seabios.sh ./v86/bios/fetch-and-build-seabios.sh
+--- original-v86/bios/fetch-and-build-seabios.sh	2026-08-01 12:17:32.705487531 -0400
++++ ./v86/bios/fetch-and-build-seabios.sh	2026-08-01 12:17:32.737488267 -0400
+@@ -1,13 +1,48 @@
+-set -e
+-git clone https://git.seabios.org/seabios.git || true
+-(cd seabios && git checkout rel-1.16.2)
+-
+-cp seabios.config seabios/.config
+-make -C seabios
+-cp seabios/out/bios.bin seabios.bin
+-cp seabios/out/vgabios.bin vgabios.bin
+-
+-cp seabios-debug.config seabios/.config
+-make -C seabios
+-cp seabios/out/bios.bin seabios-debug.bin
+-cp seabios/out/vgabios.bin vgabios-debug.bin
++#!/usr/bin/env bash
++set -euo pipefail
++
++SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
++REPO_ROOT="$(cd "$SCRIPT_DIR/../../../../" && pwd)"
++SEABIOS_SRC="$REPO_ROOT/vendor/seabios"
++
++if [[ ! -d "$SEABIOS_SRC" ]]; then
++    echo "Error: Offline SeaBIOS source directory not found at $SEABIOS_SRC" >&2
++    exit 1
++fi
++
++OUT_DIR="${V86_BIOS_OUT_DIR:-${1:-$REPO_ROOT/built/v86_out/bios}}"
++mkdir -p "$OUT_DIR"
++
++# If precompiled binaries exist in vendor/seabios/out_bin or SCRIPT_DIR, copy them
++if [[ -f "$SEABIOS_SRC/out_bin/seabios.bin" ]]; then
++    echo "=== Copying offline SeaBIOS binaries from vendor/seabios/out_bin ==="
++    cp "$SEABIOS_SRC/out_bin"/*.bin "$OUT_DIR/"
++    exit 0
++fi
++
++# Otherwise, if python3 and make are present, build from offline vendor/seabios copy in a temporary directory
++if command -v python3 >/dev/null 2>&1 && command -v make >/dev/null 2>&1; then
++    BUILD_DIR="$REPO_ROOT/built/v86_build_tmp/seabios"
++    rm -rf "$BUILD_DIR"
++    mkdir -p "$BUILD_DIR"
++    echo "=== Building SeaBIOS from offline source vendor/seabios ==="
++    cp -r "$SEABIOS_SRC" "$BUILD_DIR/seabios"
++
++    cp "$SCRIPT_DIR/seabios.config" "$BUILD_DIR/seabios/.config"
++    make PYTHON=python3 -C "$BUILD_DIR/seabios" -j$(nproc)
++    cp "$BUILD_DIR/seabios/out/bios.bin" "$OUT_DIR/seabios.bin"
++    cp "$BUILD_DIR/seabios/out/vgabios.bin" "$OUT_DIR/vgabios.bin"
++
++    cp "$SCRIPT_DIR/seabios-debug.config" "$BUILD_DIR/seabios/.config"
++    make PYTHON=python3 -C "$BUILD_DIR/seabios" -j$(nproc)
++    cp "$BUILD_DIR/seabios/out/bios.bin" "$OUT_DIR/seabios-debug.bin"
++    cp "$BUILD_DIR/seabios/out/vgabios.bin" "$OUT_DIR/vgabios-debug.bin"
++
++    rm -rf "$BUILD_DIR"
++    exit 0
++fi
++
++echo "Warning: Python3 or make not available; copying existing bios files if available"
++if ls "$SCRIPT_DIR"/*.bin >/dev/null 2>&1; then
++    cp "$SCRIPT_DIR"/*.bin "$OUT_DIR/"
++fi
+diff -uraN original-v86/Cargo.lock ./v86/Cargo.lock
+--- original-v86/Cargo.lock	1969-12-31 19:00:00.000000000 -0500
++++ ./v86/Cargo.lock	2026-08-01 12:17:32.737488267 -0400
+@@ -0,0 +1,7 @@
++# This file is automatically @generated by Cargo.
++# It is not intended for manual editing.
++version = 4
++
++[[package]]
++name = "v86"
++version = "0.1.0"
+diff -uraN original-v86/.gitignore ./v86/.gitignore
+--- original-v86/.gitignore	2026-08-01 12:17:32.721487899 -0400
++++ ./v86/.gitignore	1969-12-31 19:00:00.000000000 -0500
+@@ -1,29 +0,0 @@
+-*.swp
+-*.swo
+-tests/qemu/test-i386
+-tests/jit-paging/test-jit
+-*.map
+-build/
+-closure-compiler/
+-images/
+-*.bak
+-*.orig
+-*.wasm
+-*.o
+-*.bin
+-*.img
+-*.fixture
+-*.fuse_hidden*
+-*.DS_Store
+-node_modules/
+-Cargo.lock
+-build-head
+-src/rust/gen/interpreter.rs
+-src/rust/gen/interpreter0f.rs
+-src/rust/gen/analyzer.rs
+-src/rust/gen/analyzer0f.rs
+-src/rust/gen/jit.rs
+-src/rust/gen/jit0f.rs
+-bios/seabios
+-bench-results
+-.devcontainer/devcontainer-lock.json
+diff -uraN original-v86/lib/filesystem.js ./v86/lib/filesystem.js
+--- original-v86/lib/filesystem.js	2026-08-01 12:17:32.705487531 -0400
++++ ./v86/lib/filesystem.js	2026-08-01 12:17:32.733488175 -0400
+@@ -1154,7 +1154,9 @@
+ };
+ 
+ FS.prototype.SearchPath = function(path) {
+-    //path = path.replace(/\/\//g, "/");
++    if(typeof path !== "string") {
++        return { id: -1, parentid: -1, name: "", forward_path: null };
++    }
+     path = path.replace("//", "/");
+     var walk = path.split("/");
+     if(walk.length > 0 && walk[walk.length - 1].length === 0) walk.pop();
+diff -uraN original-v86/Makefile ./v86/Makefile
+--- original-v86/Makefile	2026-08-01 12:17:32.721487899 -0400
++++ ./v86/Makefile	2026-08-01 12:17:32.737488267 -0400
+@@ -192,19 +192,19 @@
+ 	ls -lh build/libv86-debug.mjs
+ 
+ src/rust/gen/jit.rs: $(JIT_DEPENDENCIES)
+-	./gen/generate_jit.js --output-dir build/ --table jit
++	./gen/generate_jit.js --output-dir src/rust/gen/ --table jit
+ src/rust/gen/jit0f.rs: $(JIT_DEPENDENCIES)
+-	./gen/generate_jit.js --output-dir build/ --table jit0f
++	./gen/generate_jit.js --output-dir src/rust/gen/ --table jit0f
+ 
+ src/rust/gen/interpreter.rs: $(INTERPRETER_DEPENDENCIES)
+-	./gen/generate_interpreter.js --output-dir build/ --table interpreter
++	./gen/generate_interpreter.js --output-dir src/rust/gen/ --table interpreter
+ src/rust/gen/interpreter0f.rs: $(INTERPRETER_DEPENDENCIES)
+-	./gen/generate_interpreter.js --output-dir build/ --table interpreter0f
++	./gen/generate_interpreter.js --output-dir src/rust/gen/ --table interpreter0f
+ 
+ src/rust/gen/analyzer.rs: $(ANALYZER_DEPENDENCIES)
+-	./gen/generate_analyzer.js --output-dir build/ --table analyzer
++	./gen/generate_analyzer.js --output-dir src/rust/gen/ --table analyzer
+ src/rust/gen/analyzer0f.rs: $(ANALYZER_DEPENDENCIES)
+-	./gen/generate_analyzer.js --output-dir build/ --table analyzer0f
++	./gen/generate_analyzer.js --output-dir src/rust/gen/ --table analyzer0f
+ 
+ build/v86.wasm: $(RUST_FILES) build/softfloat.o build/zstddeclib.o Cargo.toml
+ 	mkdir -p build/
+diff -uraN original-v86/.no-gitignore ./v86/.no-gitignore
+--- original-v86/.no-gitignore	1969-12-31 19:00:00.000000000 -0500
++++ ./v86/.no-gitignore	2026-08-01 12:17:32.737488267 -0400
+@@ -0,0 +1,29 @@
++*.swp
++*.swo
++tests/qemu/test-i386
++tests/jit-paging/test-jit
++*.map
++build/
++closure-compiler/
++images/
++*.bak
++*.orig
++*.wasm
++*.o
++*.bin
++*.img
++*.fixture
++*.fuse_hidden*
++*.DS_Store
++node_modules/
++Cargo.lock
++build-head
++src/rust/gen/interpreter.rs
++src/rust/gen/interpreter0f.rs
++src/rust/gen/analyzer.rs
++src/rust/gen/analyzer0f.rs
++src/rust/gen/jit.rs
++src/rust/gen/jit0f.rs
++bios/seabios
++bench-results
++.devcontainer/devcontainer-lock.json
+diff -uraN original-v86/src/browser/filestorage.js ./v86/src/browser/filestorage.js
+--- original-v86/src/browser/filestorage.js	2026-08-01 12:17:32.705487531 -0400
++++ ./v86/src/browser/filestorage.js	2026-08-01 12:17:32.733488175 -0400
+@@ -107,10 +107,12 @@
+  */
+ ServerFileStorageWrapper.prototype.load_from_server = function(sha256sum, file_size)
+ {
++    console.log("Downloading chunk from server: " + sha256sum + " (size: " + file_size + ")");
+     return new Promise((resolve, reject) =>
+     {
+         load_file(this.baseurl + sha256sum, { done: async buffer =>
+         {
++            console.log("Downloaded chunk: " + sha256sum);
+             let data = new Uint8Array(buffer);
+             if(sha256sum.endsWith(".zst"))
+             {
+diff -uraN original-v86/src/browser/starter.js ./v86/src/browser/starter.js
+--- original-v86/src/browser/starter.js	2026-08-01 12:17:32.705487531 -0400
++++ ./v86/src/browser/starter.js	2026-08-01 12:17:32.733488175 -0400
+@@ -534,6 +534,7 @@
+         }
+ 
+         var f = files_to_load[index];
++        console.log("Loading file " + (index + 1) + "/" + total + ": " + f.name + " (" + f.url + ")");
+ 
+         if(f.loadable)
+         {
+@@ -590,12 +591,7 @@
+ 
+     async function done()
+     {
+-        //if(settings.initial_state)
+-        //{
+-        //    // avoid large allocation now, memory will be restored later anyway
+-        //    settings.memory_size = 0;
+-        //}
+-
++        console.log("V86Starter done() called. fs9p:", !!settings.fs9p, "fs9p_json:", !!settings.fs9p_json);
+         if(settings.fs9p && settings.fs9p_json)
+         {
+             if(!settings.initial_state)
+@@ -606,14 +602,14 @@
+                 {
+                     const { bzimage_path, initrd_path } = this.get_bzimage_initrd_from_filesystem(settings.fs9p);
+ 
+-                    dbg_log("Found bzimage: " + bzimage_path + " and initrd: " + initrd_path);
++                    console.log("Found bzimage: " + bzimage_path + " and initrd: " + initrd_path);
+ 
+                     const [initrd, bzimage] = await Promise.all([
+-                        settings.fs9p.read_file(initrd_path),
+-                        settings.fs9p.read_file(bzimage_path),
++                        (initrd_path && !settings.initrd && !options.disable_initrd) ? settings.fs9p.read_file(initrd_path) : Promise.resolve(null),
++                        (bzimage_path && !settings.bzimage) ? settings.fs9p.read_file(bzimage_path) : Promise.resolve(null),
+                     ]);
+-                    put_on_settings.call(this, "initrd", new SyncBuffer(initrd.buffer));
+-                    put_on_settings.call(this, "bzimage", new SyncBuffer(bzimage.buffer));
++                    if(initrd && !settings.initrd) put_on_settings.call(this, "initrd", new SyncBuffer(initrd.buffer));
++                    if(bzimage && !settings.bzimage) put_on_settings.call(this, "bzimage", new SyncBuffer(bzimage.buffer));
+                 }
+             }
+             else
+@@ -766,8 +762,9 @@
+     for(const f of [].concat(root, boot))
+     {
+         const old = /old/i.test(f) || /fallback/i.test(f);
+-        const is_bzimage = /vmlinuz/i.test(f) || /bzimage/i.test(f);
+-        const is_initrd = /initrd/i.test(f) || /initramfs/i.test(f);
++        const name = f.split("/").pop();
++        const is_bzimage = name === "bzImage" || /^vmlinuz(-.*)?$/i.test(name);
++        const is_initrd = name === "initrd" || /^initrd(\.img)?(\.cpio\.gz)?$/i.test(name) || /^initramfs(-.*)?$/i.test(name) || name.endsWith("-initrd");
+ 
+         if(is_bzimage && (!bzimage_path || !old))
+         {
+@@ -782,9 +779,63 @@
+ 
+     if(!initrd_path || !bzimage_path)
+     {
+-        console.log("Failed to find bzimage or initrd in filesystem. Files:");
+-        console.log(root.join(" "));
+-        console.log(boot.join(" "));
++        const search_stack = ["/", "/var/guix/profiles/system", "/boot", "/gnu/store"];
++        const visited = new Set();
++        let limit = 2000;
++        while(search_stack.length > 0 && limit-- > 0 && (!initrd_path || !bzimage_path))
++        {
++            const dir = search_stack.pop();
++            if(visited.has(dir)) continue;
++            visited.add(dir);
++
++            const entries = filesystem.read_dir(dir);
++            if(!entries) continue;
++
++            const sorted_entries = Array.from(entries).sort((a, b) => {
++                const aKey = /linux-libre|initrd|system|boot/i.test(a) ? 1 : 0;
++                const bKey = /linux-libre|initrd|system|boot/i.test(b) ? 1 : 0;
++                return aKey - bKey;
++            });
++
++            for(const item of sorted_entries)
++            {
++                const full = (dir === "/" ? "" : dir) + "/" + item;
++                const p = filesystem.SearchPath(full);
++                if(p.id !== -1)
++                {
++                    if(filesystem.IsDirectory(p.id))
++                    {
++                        search_stack.push(full);
++                    }
++                    else
++                    {
++                        const inode = filesystem.GetInode(p.id);
++                        const is_reg = inode && (inode.mode & 0xF000) === 0x8000;
++                        if(is_reg)
++                        {
++                            const is_bzimage = item === "bzImage" || /^vmlinuz(-.*)?$/i.test(item);
++                            const is_initrd = item === "initrd" || /^initrd(\.img)?(\.cpio\.gz)?$/i.test(item) || /^initramfs(-.*)?$/i.test(item);
++
++                            if(is_bzimage && !bzimage_path)
++                            {
++                                bzimage_path = full;
++                                console.log("Found bzimage path: " + bzimage_path);
++                            }
++                            if(is_initrd && !initrd_path)
++                            {
++                                initrd_path = full;
++                                console.log("Found initrd path: " + initrd_path);
++                            }
++                        }
++                    }
++                }
++            }
++        }
++    }
++
++    if(!initrd_path || !bzimage_path)
++    {
++        console.log("Failed to find bzimage or initrd in filesystem.");
+     }
+ 
+     return { initrd_path, bzimage_path };
+diff -uraN original-v86/src/lib.js ./v86/src/lib.js
+--- original-v86/src/lib.js	2026-08-01 12:17:32.709487622 -0400
++++ ./v86/src/lib.js	2026-08-01 12:17:32.733488175 -0400
+@@ -672,8 +672,9 @@
+                         retry();
+                     }
+                 }
+-                else if(http.response)
++                else
+                 {
++                    console.log("load_file completed: " + filename + " (status: " + http.status + ")");
+                     if(options.range)
+                     {
+                         const enc = http.getResponseHeader("Content-Encoding");
+diff -uraN original-v86/src/ne2k.js ./v86/src/ne2k.js
+--- original-v86/src/ne2k.js	2026-08-01 12:17:32.709487622 -0400
++++ ./v86/src/ne2k.js	2026-08-01 12:17:32.733488175 -0400
+@@ -1091,6 +1091,7 @@
+ 
+ Ne2k.prototype.set_state = function(state)
+ {
++    if(!state) return;
+     this.isr = state[0];
+     this.imr = state[1];
+     this.cr = state[2];
+diff -uraN original-v86/src/rust/gen/mod.rs ./v86/src/rust/gen/mod.rs
+--- original-v86/src/rust/gen/mod.rs	2026-08-01 12:17:32.709487622 -0400
++++ ./v86/src/rust/gen/mod.rs	1969-12-31 19:00:00.000000000 -0500
+@@ -1,14 +0,0 @@
+-#[rustfmt::skip]
+-pub mod interpreter;
+-#[rustfmt::skip]
+-pub mod interpreter0f;
+-
+-#[rustfmt::skip]
+-pub mod jit;
+-#[rustfmt::skip]
+-pub mod jit0f;
+-
+-#[rustfmt::skip]
+-pub mod analyzer;
+-#[rustfmt::skip]
+-pub mod analyzer0f;
+diff -uraN original-v86/src/vga.js ./v86/src/vga.js
+--- original-v86/src/vga.js	2026-08-01 12:17:32.709487622 -0400
++++ ./v86/src/vga.js	2026-08-01 12:17:32.733488175 -0400
+@@ -2546,11 +2546,17 @@
+             max_y = (((this.cpu.svga_dirty_bitmap_max_offset[0] / bytes_per_pixel | 0) - this.svga_offset) / this.svga_width | 0) + 1;
+         }
+ 
+-        if(min_y < max_y)
++        if(min_y >= max_y)
+         {
+-            min_y = Math.max(min_y, 0);
+-            max_y = Math.min(max_y, this.svga_height);
++            min_y = 0;
++            max_y = this.svga_height;
++        }
++
++        min_y = Math.max(min_y, 0);
++        max_y = Math.min(max_y, this.svga_height);
+ 
++        if(max_y > min_y)
++        {
+             this.screen.update_buffer([{
+                 image_data: this.image_data,
+                 screen_x: 0, screen_y: min_y,
+diff -uraN original-v86/src/virtio_net.js ./v86/src/virtio_net.js
+--- original-v86/src/virtio_net.js	2026-08-01 12:17:32.709487622 -0400
++++ ./v86/src/virtio_net.js	2026-08-01 12:17:32.733488175 -0400
+@@ -219,6 +219,7 @@
+ 
+ VirtioNet.prototype.set_state = function(state)
+ {
++    if(!state) return;
+     this.virtio.set_state(state[0]);
+     this.id = state[1];
+     if(this.preserve_mac_from_state_image)
 diff -uraN original-warcat/Cargo.toml ./warcat/Cargo.toml
---- original-warcat/Cargo.toml	2026-07-04 02:44:45.494134131 -0400
-+++ ./warcat/Cargo.toml	2026-07-04 02:44:45.498134198 -0400
+--- original-warcat/Cargo.toml	2026-08-01 12:17:40.413665020 -0400
++++ ./warcat/Cargo.toml	2026-08-01 12:17:40.417665111 -0400
 @@ -1,5 +1,5 @@
 -[workspace]
 -members = ["xtask"]
@@ -2576,8 +2988,8 @@ diff -uraN original-warcat/Cargo.toml ./warcat/Cargo.toml
  [package]
  name = "warcat"
 diff -uraN original-warcat/src/app/logging.rs ./warcat/src/app/logging.rs
---- original-warcat/src/app/logging.rs	2026-07-04 02:44:45.494134131 -0400
-+++ ./warcat/src/app/logging.rs	2026-07-04 02:44:45.498134198 -0400
+--- original-warcat/src/app/logging.rs	2026-08-01 12:17:40.413665020 -0400
++++ ./warcat/src/app/logging.rs	2026-08-01 12:17:40.417665111 -0400
 @@ -98,8 +98,7 @@
      let sub = sub.with(file_sub.with_filter(level.as_level_filter()));
      let sub = sub.with(stderr_sub.with_filter(level.as_level_filter()));
@@ -2589,8 +3001,8 @@ diff -uraN original-warcat/src/app/logging.rs ./warcat/src/app/logging.rs
  
      Ok(())
 diff -uraN original-warcat/src/app/verify.rs ./warcat/src/app/verify.rs
---- original-warcat/src/app/verify.rs	2026-07-04 02:44:45.494134131 -0400
-+++ ./warcat/src/app/verify.rs	2026-07-04 02:44:45.498134198 -0400
+--- original-warcat/src/app/verify.rs	2026-08-01 12:17:40.413665020 -0400
++++ ./warcat/src/app/verify.rs	2026-08-01 12:17:40.417665111 -0400
 @@ -1,4 +1,4 @@
 -use std::{cell::RefCell, process::ExitCode, rc::Rc};
 +use std::{cell::RefCell, rc::Rc};
@@ -2619,8 +3031,8 @@ diff -uraN original-warcat/src/app/verify.rs ./warcat/src/app/verify.rs
  
      Ok(exit_code)
 diff -uraN original-warcat/src/app.rs ./warcat/src/app.rs
---- original-warcat/src/app.rs	2026-07-04 02:44:45.494134131 -0400
-+++ ./warcat/src/app.rs	2026-07-04 02:44:45.498134198 -0400
+--- original-warcat/src/app.rs	2026-08-01 12:17:40.413665020 -0400
++++ ./warcat/src/app.rs	2026-08-01 12:17:40.417665111 -0400
 @@ -23,23 +23,40 @@
  mod verify;
  
@@ -2709,8 +3121,8 @@ diff -uraN original-warcat/src/app.rs ./warcat/src/app.rs
      };
  
 diff -uraN original-warcat/src/digest.rs ./warcat/src/digest.rs
---- original-warcat/src/digest.rs	2026-07-04 02:44:45.494134131 -0400
-+++ ./warcat/src/digest.rs	2026-07-04 02:44:45.498134198 -0400
+--- original-warcat/src/digest.rs	2026-08-01 12:17:40.413665020 -0400
++++ ./warcat/src/digest.rs	2026-08-01 12:17:40.417665111 -0400
 @@ -218,7 +218,9 @@
              Self::Sha3_512(digest) => digest.update(data),
              Self::Blake2s(digest) => digest.update(data),
@@ -2732,8 +3144,8 @@ diff -uraN original-warcat/src/digest.rs ./warcat/src/digest.rs
      }
  
 diff -uraN original-wayland-scanner/Cargo.toml ./wayland-scanner/Cargo.toml
---- original-wayland-scanner/Cargo.toml	2026-07-04 02:47:10.024564780 -0400
-+++ ./wayland-scanner/Cargo.toml	2026-07-04 02:47:10.024564780 -0400
+--- original-wayland-scanner/Cargo.toml	2026-08-01 12:17:44.825766633 -0400
++++ ./wayland-scanner/Cargo.toml	2026-08-01 12:17:44.825766633 -0400
 @@ -51,7 +51,7 @@
  version = "1.0.11"
  
@@ -2744,8 +3156,8 @@ diff -uraN original-wayland-scanner/Cargo.toml ./wayland-scanner/Cargo.toml
  [dependencies.quote]
  version = "1.0"
 diff -uraN original-wayland-scanner/src/parse.rs ./wayland-scanner/src/parse.rs
---- original-wayland-scanner/src/parse.rs	2026-07-04 02:47:10.024564780 -0400
-+++ ./wayland-scanner/src/parse.rs	2026-07-04 02:47:10.024564780 -0400
+--- original-wayland-scanner/src/parse.rs	2026-08-01 12:17:44.825766633 -0400
++++ ./wayland-scanner/src/parse.rs	2026-08-01 12:17:44.825766633 -0400
 @@ -86,7 +86,7 @@
                                  Ok(Event::GeneralRef(byte_ref)) => {
                                      if let Ok(Some(c)) = byte_ref.resolve_char_ref() {
@@ -2756,8 +3168,8 @@ diff -uraN original-wayland-scanner/src/parse.rs ./wayland-scanner/src/parse.rs
                                              quick_xml::escape::resolve_xml_entity(&content)
                                          {
 diff -uraN original-winit/Cargo.toml ./winit/Cargo.toml
---- original-winit/Cargo.toml	2026-07-04 02:49:49.411250913 -0400
-+++ ./winit/Cargo.toml	2026-07-04 02:49:49.415250981 -0400
+--- original-winit/Cargo.toml	2026-08-01 12:17:49.245868445 -0400
++++ ./winit/Cargo.toml	2026-08-01 12:17:49.253868629 -0400
 @@ -10,10 +10,12 @@
  readme = "README.md"
  documentation = "https://docs.rs/winit"
@@ -2782,7 +3194,7 @@ diff -uraN original-winit/Cargo.toml ./winit/Cargo.toml
 +# I can't figure out how to make the `wayland-csd-adwaita` feature turn off so I just deleted it. Also turned off wayland-dlopen.
  [features]
 -default = ["rwh_06", "x11", "wayland", "wayland-dlopen", "wayland-csd-adwaita"]
-+default = ["rwh_06", "x11", "wayland"]
++default = ["rwh_06", "wayland"]
  x11 = ["x11-dl", "bytemuck", "percent-encoding", "xkbcommon-dl/x11", "x11rb"]
  wayland = [
      "wayland-client",
@@ -2859,8 +3271,8 @@ diff -uraN original-winit/Cargo.toml ./winit/Cargo.toml
 +# serde = { version = "1", features = ["serde_derive"] }
 +# mint = "0.5.6"
 diff -uraN original-winit/src/platform_impl/linux/common/xkb/compose.rs ./winit/src/platform_impl/linux/common/xkb/compose.rs
---- original-winit/src/platform_impl/linux/common/xkb/compose.rs	2026-07-04 02:49:49.403250778 -0400
-+++ ./winit/src/platform_impl/linux/common/xkb/compose.rs	2026-07-04 02:49:49.411250913 -0400
+--- original-winit/src/platform_impl/linux/common/xkb/compose.rs	2026-08-01 12:17:49.241868352 -0400
++++ ./winit/src/platform_impl/linux/common/xkb/compose.rs	2026-08-01 12:17:49.249868537 -0400
 @@ -6,20 +6,36 @@
  use std::os::unix::ffi::OsStringExt;
  use std::ptr::NonNull;
@@ -3085,8 +3497,8 @@ diff -uraN original-winit/src/platform_impl/linux/common/xkb/compose.rs ./winit/
      None,
  }
 diff -uraN original-winit/src/platform_impl/linux/common/xkb/keymap.rs ./winit/src/platform_impl/linux/common/xkb/keymap.rs
---- original-winit/src/platform_impl/linux/common/xkb/keymap.rs	2026-07-04 02:49:49.407250846 -0400
-+++ ./winit/src/platform_impl/linux/common/xkb/keymap.rs	2026-07-04 02:49:49.415250981 -0400
+--- original-winit/src/platform_impl/linux/common/xkb/keymap.rs	2026-08-01 12:17:49.241868352 -0400
++++ ./winit/src/platform_impl/linux/common/xkb/keymap.rs	2026-08-01 12:17:49.249868537 -0400
 @@ -8,6 +8,8 @@
  use x11_dl::xlib_xcb::xcb_connection_t;
  #[cfg(wayland_platform)]
@@ -3261,8 +3673,8 @@ diff -uraN original-winit/src/platform_impl/linux/common/xkb/keymap.rs ./winit/s
  }
  
 diff -uraN original-winit/src/platform_impl/linux/common/xkb/mod.rs ./winit/src/platform_impl/linux/common/xkb/mod.rs
---- original-winit/src/platform_impl/linux/common/xkb/mod.rs	2026-07-04 02:49:49.407250846 -0400
-+++ ./winit/src/platform_impl/linux/common/xkb/mod.rs	2026-07-04 02:49:49.415250981 -0400
+--- original-winit/src/platform_impl/linux/common/xkb/mod.rs	2026-08-01 12:17:49.241868352 -0400
++++ ./winit/src/platform_impl/linux/common/xkb/mod.rs	2026-08-01 12:17:49.249868537 -0400
 @@ -8,9 +8,11 @@
  #[cfg(wayland_platform)]
  use std::os::unix::io::OwnedFd;
@@ -3482,8 +3894,8 @@ diff -uraN original-winit/src/platform_impl/linux/common/xkb/mod.rs ./winit/src/
  }
  
 diff -uraN original-winit/src/platform_impl/linux/common/xkb/state.rs ./winit/src/platform_impl/linux/common/xkb/state.rs
---- original-winit/src/platform_impl/linux/common/xkb/state.rs	2026-07-04 02:49:49.407250846 -0400
-+++ ./winit/src/platform_impl/linux/common/xkb/state.rs	2026-07-04 02:49:49.415250981 -0400
+--- original-winit/src/platform_impl/linux/common/xkb/state.rs	2026-08-01 12:17:49.241868352 -0400
++++ ./winit/src/platform_impl/linux/common/xkb/state.rs	2026-08-01 12:17:49.249868537 -0400
 @@ -6,6 +6,8 @@
  use smol_str::SmolStr;
  #[cfg(x11_platform)]
@@ -3708,8 +4120,8 @@ diff -uraN original-winit/src/platform_impl/linux/common/xkb/state.rs ./winit/sr
      }
  }
 diff -uraN original-winit/src/platform_impl/linux/mod.rs ./winit/src/platform_impl/linux/mod.rs
---- original-winit/src/platform_impl/linux/mod.rs	2026-07-04 02:49:49.407250846 -0400
-+++ ./winit/src/platform_impl/linux/mod.rs	2026-07-04 02:49:49.415250981 -0400
+--- original-winit/src/platform_impl/linux/mod.rs	2026-08-01 12:17:49.245868445 -0400
++++ ./winit/src/platform_impl/linux/mod.rs	2026-08-01 12:17:49.253868629 -0400
 @@ -982,10 +982,8 @@
  
              #[cfg(wayland_platform)]
@@ -3737,8 +4149,8 @@ diff -uraN original-winit/src/platform_impl/linux/mod.rs ./winit/src/platform_im
          }
      }
 diff -uraN original-winit/src/platform_impl/linux/wayland/event_loop/mod.rs ./winit/src/platform_impl/linux/wayland/event_loop/mod.rs
---- original-winit/src/platform_impl/linux/wayland/event_loop/mod.rs	2026-07-04 02:49:49.407250846 -0400
-+++ ./winit/src/platform_impl/linux/wayland/event_loop/mod.rs	2026-07-04 02:49:49.415250981 -0400
+--- original-winit/src/platform_impl/linux/wayland/event_loop/mod.rs	2026-08-01 12:17:49.241868352 -0400
++++ ./winit/src/platform_impl/linux/wayland/event_loop/mod.rs	2026-08-01 12:17:49.249868537 -0400
 @@ -696,10 +696,8 @@
      #[cfg(feature = "rwh_05")]
      #[inline]
@@ -3779,8 +4191,8 @@ diff -uraN original-winit/src/platform_impl/linux/wayland/event_loop/mod.rs ./wi
  
                      awakener.ping();
 diff -uraN original-winit/src/platform_impl/linux/wayland/mod.rs ./winit/src/platform_impl/linux/wayland/mod.rs
---- original-winit/src/platform_impl/linux/wayland/mod.rs	2026-07-04 02:49:49.407250846 -0400
-+++ ./winit/src/platform_impl/linux/wayland/mod.rs	2026-07-04 02:49:49.415250981 -0400
+--- original-winit/src/platform_impl/linux/wayland/mod.rs	2026-08-01 12:17:49.245868445 -0400
++++ ./winit/src/platform_impl/linux/wayland/mod.rs	2026-08-01 12:17:49.249868537 -0400
 @@ -1,6 +1,7 @@
  //! Winit's Wayland backend.
  
@@ -3801,8 +4213,8 @@ diff -uraN original-winit/src/platform_impl/linux/wayland/mod.rs ./winit/src/pla
  
  /// The default routine does floor, but we need round on Wayland.
 diff -uraN original-winit/src/platform_impl/linux/wayland/seat/keyboard/mod.rs ./winit/src/platform_impl/linux/wayland/seat/keyboard/mod.rs
---- original-winit/src/platform_impl/linux/wayland/seat/keyboard/mod.rs	2026-07-04 02:49:49.407250846 -0400
-+++ ./winit/src/platform_impl/linux/wayland/seat/keyboard/mod.rs	2026-07-04 02:49:49.415250981 -0400
+--- original-winit/src/platform_impl/linux/wayland/seat/keyboard/mod.rs	2026-08-01 12:17:49.241868352 -0400
++++ ./winit/src/platform_impl/linux/wayland/seat/keyboard/mod.rs	2026-08-01 12:17:49.249868537 -0400
 @@ -16,7 +16,7 @@
  use crate::event::{ElementState, WindowEvent};
  use crate::keyboard::ModifiersState;
@@ -3836,8 +4248,8 @@ diff -uraN original-winit/src/platform_impl/linux/wayland/seat/keyboard/mod.rs .
  }
  
 diff -uraN original-winit/src/platform_impl/linux/wayland/seat/mod.rs ./winit/src/platform_impl/linux/wayland/seat/mod.rs
---- original-winit/src/platform_impl/linux/wayland/seat/mod.rs	2026-07-04 02:49:49.407250846 -0400
-+++ ./winit/src/platform_impl/linux/wayland/seat/mod.rs	2026-07-04 02:49:49.415250981 -0400
+--- original-winit/src/platform_impl/linux/wayland/seat/mod.rs	2026-08-01 12:17:49.245868445 -0400
++++ ./winit/src/platform_impl/linux/wayland/seat/mod.rs	2026-08-01 12:17:49.249868537 -0400
 @@ -91,8 +91,16 @@
              },
              SeatCapability::Keyboard if seat_state.keyboard_state.is_none() => {
@@ -3858,8 +4270,8 @@ diff -uraN original-winit/src/platform_impl/linux/wayland/seat/mod.rs ./winit/sr
              SeatCapability::Pointer if seat_state.pointer.is_none() => {
                  let surface = self.compositor_state.create_surface(queue_handle);
 diff -uraN original-winit/src/platform_impl/linux/wayland/window/mod.rs ./winit/src/platform_impl/linux/wayland/window/mod.rs
---- original-winit/src/platform_impl/linux/wayland/window/mod.rs	2026-07-04 02:49:49.407250846 -0400
-+++ ./winit/src/platform_impl/linux/wayland/window/mod.rs	2026-07-04 02:49:49.415250981 -0400
+--- original-winit/src/platform_impl/linux/wayland/window/mod.rs	2026-08-01 12:17:49.245868445 -0400
++++ ./winit/src/platform_impl/linux/wayland/window/mod.rs	2026-08-01 12:17:49.249868537 -0400
 @@ -5,7 +5,6 @@
  use std::sync::atomic::{AtomicBool, Ordering};
  use std::sync::{Arc, Mutex};
@@ -3969,98 +4381,9 @@ diff -uraN original-winit/src/platform_impl/linux/wayland/window/mod.rs ./winit/
      }
  
      #[inline]
-diff -uraN original-x11/Cargo.toml ./x11/Cargo.toml
---- original-x11/Cargo.toml	2026-07-04 02:52:15.261712789 -0400
-+++ ./x11/Cargo.toml	2026-07-04 02:52:15.325713870 -0400
-@@ -1,16 +1,4 @@
--# THIS FILE IS AUTOMATICALLY GENERATED BY CARGO
--#
--# When uploading crates to the registry Cargo will automatically
--# "normalize" Cargo.toml files for maximal compatibility
--# with all versions of Cargo and also rewrite `path` dependencies
--# to registry (e.g., crates.io) dependencies.
--#
--# If you are reading this file be aware that the original Cargo.toml
--# will likely look very different (and much more reasonable).
--# See Cargo.toml.orig for the original contents.
--
- [package]
--edition = "2021"
- name = "x11"
- version = "2.21.0"
- authors = [
-@@ -18,12 +6,14 @@
-     "Erle Pereira <erle@erlepereira.com>",
-     "AltF02 <contact@altf2.dev>",
- ]
-+description = "X11 library bindings for Rust (patched for ctoolbox)"
-+# Freetype: GPL-2+ and compatible licenses
-+license = "MIT AND GPL-3+ AND GPL-2+ AND BSD-1-clause AND MIT AND public-domain AND Apache-2.0 AND X11 AND zlib"
-+repository = "https://github.com/AltF02/x11-rs.git"
- build = "build.rs"
--description = "X11 library bindings for Rust"
- documentation = "https://docs.rs/x11"
--license = "MIT"
--repository = "https://github.com/AltF02/x11-rs.git"
--resolver = "1"
-+workspace = "../.."
-+edition = "2021"
- 
- [dependencies.libc]
- version = "0.2"
-@@ -31,6 +21,12 @@
- [build-dependencies.pkg-config]
- version = "0.3.24"
- 
-+[build-dependencies.anyhow]
-+version = "1"
-+
-+[build-dependencies.cc]
-+version = "1"
-+
- [features]
- all = [
-     "dpms",
-diff -uraN original-x11/examples/hello-world.rs ./x11/examples/hello-world.rs
---- original-x11/examples/hello-world.rs	2026-07-04 02:52:15.261712789 -0400
-+++ ./x11/examples/hello-world.rs	2026-07-04 02:52:15.321713804 -0400
-@@ -33,7 +33,8 @@
-         let screen = xlib::XDefaultScreen(display);
-         let root = xlib::XRootWindow(display, screen);
- 
--        let mut attributes: xlib::XSetWindowAttributes = mem::MaybeUninit::uninit().assume_init();
-+        let mut attributes: xlib::XSetWindowAttributes =
-+            mem::MaybeUninit::zeroed().assume_init();
-         attributes.background_pixel = xlib::XWhitePixel(display, screen);
- 
-         let window = xlib::XCreateWindow(
-@@ -76,14 +77,15 @@
-         xlib::XMapWindow(display, window);
- 
-         // Main loop.
--        let mut event: xlib::XEvent = mem::MaybeUninit::uninit().assume_init();
-+        let mut event = mem::MaybeUninit::<xlib::XEvent>::uninit();
- 
-         loop {
--            xlib::XNextEvent(display, &mut event);
-+            xlib::XNextEvent(display, event.as_mut_ptr());
-+            let event = event.assume_init_ref();
- 
-             match event.get_type() {
-                 xlib::ClientMessage => {
--                    let xclient = xlib::XClientMessageEvent::from(event);
-+                    let xclient = xlib::XClientMessageEvent::from(*event);
- 
-                     if xclient.message_type == wm_protocols && xclient.format == 32 {
-                         let protocol = xclient.data.get_long(0) as xlib::Atom;
-diff -uraN original-x11/.gitignore ./x11/.gitignore
---- original-x11/.gitignore	1969-12-31 19:00:00.000000000 -0500
-+++ ./x11/.gitignore	2026-07-04 02:52:15.325713870 -0400
-@@ -0,0 +1 @@
-+/target
 diff -uraN original-xkbcommon-rs/src/compose.rs ./xkbcommon-rs/src/compose.rs
 --- original-xkbcommon-rs/src/compose.rs	1969-12-31 19:00:00.000000000 -0500
-+++ ./xkbcommon-rs/src/compose.rs	2026-07-04 02:59:29.857062331 -0400
++++ ./xkbcommon-rs/src/compose.rs	2026-08-01 12:17:59.094095338 -0400
 @@ -0,0 +1,769 @@
 +// SPDX-License-Identifier for parts derived from libxkbcommon: X11
 +use std::collections::{BTreeMap, BTreeSet};
@@ -4833,8 +5156,8 @@ diff -uraN original-xkbcommon-rs/src/compose.rs ./xkbcommon-rs/src/compose.rs
 +*/
 \ No newline at end of file
 diff -uraN original-xkbcommon-rs/src/lib.rs ./xkbcommon-rs/src/lib.rs
---- original-xkbcommon-rs/src/lib.rs	2026-07-04 02:59:29.853062263 -0400
-+++ ./xkbcommon-rs/src/lib.rs	2026-07-04 02:59:29.857062331 -0400
+--- original-xkbcommon-rs/src/lib.rs	2026-08-01 12:17:59.090095246 -0400
++++ ./xkbcommon-rs/src/lib.rs	2026-08-01 12:17:59.094095338 -0400
 @@ -161,6 +161,7 @@
  mod keysyms;
  
@@ -4899,8 +5222,8 @@ diff -uraN original-xkbcommon-rs/src/lib.rs ./xkbcommon-rs/src/lib.rs
      pub use super::rust_xkbcommon::KeysymFlags;
  
 diff -uraN original-yaxi/src/clipboard/mod.rs ./yaxi/src/clipboard/mod.rs
---- original-yaxi/src/clipboard/mod.rs	2026-07-04 03:01:45.511359069 -0400
-+++ ./yaxi/src/clipboard/mod.rs	2026-07-04 03:01:45.515359137 -0400
+--- original-yaxi/src/clipboard/mod.rs	2026-08-01 12:18:04.086210378 -0400
++++ ./yaxi/src/clipboard/mod.rs	2026-08-01 12:18:04.090210470 -0400
 @@ -262,6 +262,20 @@
          Ok(())
      }
@@ -4949,8 +5272,8 @@ diff -uraN original-yaxi/src/clipboard/mod.rs ./yaxi/src/clipboard/mod.rs
              }
          }
 diff -uraN original-yaxi/src/display/mod.rs ./yaxi/src/display/mod.rs
---- original-yaxi/src/display/mod.rs	2026-07-04 03:01:45.515359137 -0400
-+++ ./yaxi/src/display/mod.rs	2026-07-04 03:01:45.515359137 -0400
+--- original-yaxi/src/display/mod.rs	2026-08-01 12:18:04.086210378 -0400
++++ ./yaxi/src/display/mod.rs	2026-08-01 12:18:04.090210470 -0400
 @@ -381,6 +381,18 @@
          Ok(display)
      }
@@ -5030,8 +5353,8 @@ diff -uraN original-yaxi/src/display/mod.rs ./yaxi/src/display/mod.rs
              }
              Response::MAPPING_NOTIFY => {
 diff -uraN original-yaxi/src/display/parse.rs ./yaxi/src/display/parse.rs
---- original-yaxi/src/display/parse.rs	2026-07-04 03:01:45.515359137 -0400
-+++ ./yaxi/src/display/parse.rs	2026-07-04 03:01:45.515359137 -0400
+--- original-yaxi/src/display/parse.rs	2026-08-01 12:18:04.086210378 -0400
++++ ./yaxi/src/display/parse.rs	2026-08-01 12:18:04.090210470 -0400
 @@ -175,11 +175,13 @@
      }
  }
@@ -5051,8 +5374,8 @@ diff -uraN original-yaxi/src/display/parse.rs ./yaxi/src/display/parse.rs
  
  #[cfg(test)]
 diff -uraN original-yaxi/src/display/request.rs ./yaxi/src/display/request.rs
---- original-yaxi/src/display/request.rs	2026-07-04 03:01:45.515359137 -0400
-+++ ./yaxi/src/display/request.rs	2026-07-04 03:01:45.515359137 -0400
+--- original-yaxi/src/display/request.rs	2026-08-01 12:18:04.086210378 -0400
++++ ./yaxi/src/display/request.rs	2026-08-01 12:18:04.090210470 -0400
 @@ -619,6 +619,43 @@
  
  #[repr(packed, C)]
@@ -5098,8 +5421,8 @@ diff -uraN original-yaxi/src/display/request.rs ./yaxi/src/display/request.rs
      pub opcode: u8,
      pub pad0: u8,
 diff -uraN original-yaxi/src/display/xid.rs ./yaxi/src/display/xid.rs
---- original-yaxi/src/display/xid.rs	2026-07-04 03:01:45.515359137 -0400
-+++ ./yaxi/src/display/xid.rs	2026-07-04 03:01:45.515359137 -0400
+--- original-yaxi/src/display/xid.rs	2026-08-01 12:18:04.086210378 -0400
++++ ./yaxi/src/display/xid.rs	2026-08-01 12:18:04.090210470 -0400
 @@ -14,37 +14,72 @@
      base: u32,
      mask: u32,
@@ -5182,8 +5505,8 @@ diff -uraN original-yaxi/src/display/xid.rs ./yaxi/src/display/xid.rs
      lock!(XID)?.next()
  }
 diff -uraN original-yaxi/src/keyboard/mod.rs ./yaxi/src/keyboard/mod.rs
---- original-yaxi/src/keyboard/mod.rs	2026-07-04 03:01:45.515359137 -0400
-+++ ./yaxi/src/keyboard/mod.rs	2026-07-04 03:01:45.515359137 -0400
+--- original-yaxi/src/keyboard/mod.rs	2026-08-01 12:18:04.086210378 -0400
++++ ./yaxi/src/keyboard/mod.rs	2026-08-01 12:18:04.090210470 -0400
 @@ -42,6 +42,10 @@
          Keysym { value }
      }
@@ -5196,8 +5519,8 @@ diff -uraN original-yaxi/src/keyboard/mod.rs ./yaxi/src/keyboard/mod.rs
      pub fn character(&self) -> Result<char, Error> {
          match ((self.value & 0xff00) >> 8) as u8 {
 diff -uraN original-yaxi/src/proto/mod.rs ./yaxi/src/proto/mod.rs
---- original-yaxi/src/proto/mod.rs	2026-07-04 03:01:45.515359137 -0400
-+++ ./yaxi/src/proto/mod.rs	2026-07-04 03:01:45.515359137 -0400
+--- original-yaxi/src/proto/mod.rs	2026-08-01 12:18:04.086210378 -0400
++++ ./yaxi/src/proto/mod.rs	2026-08-01 12:18:04.090210470 -0400
 @@ -29,6 +29,7 @@
      pub const ENTER_NOTIFY: u8 = 7;
      pub const FOCUS_IN: u8 = 9;
@@ -5207,8 +5530,8 @@ diff -uraN original-yaxi/src/proto/mod.rs ./yaxi/src/proto/mod.rs
      pub const DESTROY_NOTIFY: u8 = 17;
      pub const UNMAP_NOTIFY: u8 = 18;
 diff -uraN original-yaxi/src/window/mod.rs ./yaxi/src/window/mod.rs
---- original-yaxi/src/window/mod.rs	2026-07-04 03:01:45.515359137 -0400
-+++ ./yaxi/src/window/mod.rs	2026-07-04 03:01:45.515359137 -0400
+--- original-yaxi/src/window/mod.rs	2026-08-01 12:18:04.086210378 -0400
++++ ./yaxi/src/window/mod.rs	2026-08-01 12:18:04.090210470 -0400
 @@ -221,6 +221,13 @@
      Append = 2,
  }
@@ -5319,8 +5642,8 @@ diff -uraN original-yaxi/src/window/mod.rs ./yaxi/src/window/mod.rs
      /// delete a property from a window
      pub fn delete_property(&self, property: Atom) -> Result<(), Error> {
 diff -uraN original-yaxi/tests/test_clipboard.rs ./yaxi/tests/test_clipboard.rs
---- original-yaxi/tests/test_clipboard.rs	2026-07-04 03:01:45.515359137 -0400
-+++ ./yaxi/tests/test_clipboard.rs	2026-07-04 03:01:45.515359137 -0400
+--- original-yaxi/tests/test_clipboard.rs	2026-08-01 12:18:04.086210378 -0400
++++ ./yaxi/tests/test_clipboard.rs	2026-08-01 12:18:04.090210470 -0400
 @@ -9,12 +9,26 @@
      use serial_test::serial;
      use yaxi::clipboard::*;
@@ -5519,8 +5842,8 @@ diff -uraN original-yaxi/tests/test_clipboard.rs ./yaxi/tests/test_clipboard.rs
      }
  
 diff -uraN original-zbus_xml/Cargo.toml ./zbus_xml/Cargo.toml
---- original-zbus_xml/Cargo.toml	2026-07-04 03:04:16.309913117 -0400
-+++ ./zbus_xml/Cargo.toml	2026-07-04 03:04:16.309913117 -0400
+--- original-zbus_xml/Cargo.toml	2026-08-01 12:18:09.050324790 -0400
++++ ./zbus_xml/Cargo.toml	2026-08-01 12:18:09.050324790 -0400
 @@ -53,7 +53,7 @@
  path = "tests/tests.rs"
  
