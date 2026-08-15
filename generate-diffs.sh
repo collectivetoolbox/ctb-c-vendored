@@ -9,6 +9,7 @@ packages=(
   "seabios"
   "smithay-clipboard"
   "softbuffer"
+  "tantivy"
   "tiny-xlib"
   "turso_sdk_kit"
 #  "TypeScript" - see generate-typescript-diff.sh - separate file due to long time to generate
