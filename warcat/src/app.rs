@@ -5,7 +5,7 @@ use clap::Parser;
 use self::arg::Args;
 use self::arg::Command;
 
-mod arg;
+pub mod arg;
 mod common;
 mod dump_help;
 mod export;
