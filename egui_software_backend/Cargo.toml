@@ -43,12 +43,12 @@ dify = "0.7"
 argh = "0.1"
 
 # Enable optimization in debug mode
-[profile.dev]
-opt-level = 3
+#[profile.dev]
+#opt-level = 3
 
 # Enable high optimizations for dependencies
-[profile.dev.package."*"]
-opt-level = 3
+#[profile.dev.package."*"]
+#opt-level = 3
 
 [features]
 default = ["std", "winit"]
