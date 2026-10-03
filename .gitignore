@@ -5,5 +5,9 @@ icecat-bin.tar.gz
 diff-tmp
 v86_images
 v86_images.rsrc
+**/freebsd-sysroot/**/*.o
+**/freebsd-sysroot/**/*.a
+**/freebsd-sysroot/**/*.so
+**/freebsd-sysroot/**/*.so.*
 
 !x11/tmp/.keep
