@@ -10150,6 +10150,15 @@
 #include <time.h>
 #include <sched.h>
 #include <sys/_pthreadtypes.h>
+#include <sys/_cpuset.h>
+#include <sys/_sigset.h>
+#ifndef _SIGSET_T_DECLARED
+#define _SIGSET_T_DECLARED
+typedef __sigset_t sigset_t;
+#endif
+#include <llvm-libc-types/pthread_id_np_t.h>
+#include <llvm-libc-types/__pthread_once_func_t.h>
+#include <llvm-libc-types/__pthread_tss_dtor_t.h>
 
 #define PTHREAD_NULL {0}
 #define PTHREAD_CREATE_JOINABLE 0
@@ -10168,10 +10177,9 @@
 #define PTHREAD_SCOPE_PROCESS 1
 #define PTHREAD_INHERIT_SCHED 0
 #define PTHREAD_EXPLICIT_SCHED 1
-#define PTHREAD_MUTEX_INITIALIZER                                              \
-#define PTHREAD_MUTEX_INITIALIZER                                              \
-#define PTHREAD_COND_INITIALIZER                                               \
-#define PTHREAD_RWLOCK_INITIALIZER                                             \
+#define PTHREAD_MUTEX_INITIALIZER NULL
+#define PTHREAD_COND_INITIALIZER NULL
+#define PTHREAD_RWLOCK_INITIALIZER NULL
 #define PTHREAD_STACK_MIN (1 << 14) // 16KB
 #define PTHREAD_RWLOCK_PREFER_READER_NP 0
 #define PTHREAD_RWLOCK_PREFER_WRITER_NP 1
@@ -10180,7 +10188,7 @@
 
 __BEGIN_DECLS
 _Noreturn void	pthread_exit(void *);
-int	pthread_atfork(__atfork_callback_t, __atfork_callback_t, __atfork_callback_t);
+int	pthread_atfork(void (*)(void), void (*)(void), void (*)(void));
 int	pthread_attr_destroy(pthread_attr_t *);
 int	pthread_attr_getdetachstate(const pthread_attr_t *, int *);
 int	pthread_attr_getguardsize(const pthread_attr_t *__restrict, size_t *__restrict);
@@ -10202,7 +10210,6 @@ int	pthread_attr_setstacksize(pthread_attr_t *, size_t);
 int	pthread_barrier_destroy(pthread_barrier_t *);
 int	pthread_barrier_destroy(pthread_barrier_t *barrier);
 int	pthread_barrier_init(pthread_barrier_t * __restrict barrier, const pthread_barrierattr_t * __restrict attr, unsigned count);
-int	pthread_barrier_init(pthread_barrier_t *__restrict, const pthread_barrierattr_t *__restrict, int);
 int	pthread_barrier_wait(pthread_barrier_t *);
 int	pthread_barrier_wait(pthread_barrier_t *barrier);
 int	pthread_barrierattr_destroy(pthread_barrierattr_t *attr);
@@ -10229,7 +10236,6 @@ int	pthread_condattr_setclock(pthread_condattr_t *attr, clockid_t clock_id);
 int	pthread_condattr_setpshared(pthread_condattr_t *, int);
 int	pthread_condattr_setpshared(pthread_condattr_t *attr, int pshared);
 int	pthread_create(pthread_t * __restrict thread, const pthread_attr_t * __restrict attr, void *(*start_routine) (void *), void * __restrict arg);
-int	pthread_create(pthread_t *__restrict, const pthread_attr_t *__restrict, __pthread_start_t, void *);
 int	pthread_detach(pthread_t);
 int	pthread_equal(pthread_t, pthread_t);
 int	pthread_getaffinity_np(pthread_t td, size_t cpusetsize, cpuset_t *cpusetp);
