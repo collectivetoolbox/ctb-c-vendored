@@ -533,6 +533,7 @@ struct sched_param {
 #include <sys/cdefs.h>
 #include <sys/_types.h>
 #include <sys/_timespec.h>
+#include <llvm-libc-types/cpu_set_t.h>
 
 __BEGIN_DECLS
 cpu_set_t *	__sched_cpualloc(size_t);

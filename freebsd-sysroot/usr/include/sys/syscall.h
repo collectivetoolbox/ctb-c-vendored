@@ -2390,6 +2390,8 @@
 
 #pragma once
 
+#if defined(__linux__)
+
 #define SYS_FAST_atomic_update __NR_FAST_atomic_update
 #define SYS_FAST_cmpxchg __NR_FAST_cmpxchg
 #define SYS_FAST_cmpxchg64 __NR_FAST_cmpxchg64
@@ -2982,3 +2984,5 @@
 #define SYS_waitpid __NR_waitpid
 #define SYS_write __NR_write
 #define SYS_writev __NR_writev
+
+#endif // __linux__
