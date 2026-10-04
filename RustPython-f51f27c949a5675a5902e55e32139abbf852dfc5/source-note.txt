@@ -1,0 +1,8 @@
+From https://github.com/RustPython/RustPython/archive/f51f27c949a5675a5902e55e32139abbf852dfc5.zip
+
+logo.png and logo.ico removed due to incompatible license.
+
+.gitattributes renamed to .gitattributes.moved.
+.vscode moved to .vscode.moved.
+
+One directory removed to protest the use of destructive book scanning by Anthropic.
