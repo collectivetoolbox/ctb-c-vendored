@@ -304,8 +304,14 @@ mod _codecs {
         delegate_pycodecs!(charmap_decode, args, vm)
     }
     #[pyfunction]
-    fn charmap_build(args: FuncArgs, vm: &VirtualMachine) -> PyResult {
-        delegate_pycodecs!(charmap_build, args, vm)
+    fn charmap_build(s: PyUtf8StrRef, vm: &VirtualMachine) -> PyResult<crate::builtins::PyDictRef> {
+        let dict = vm.ctx.new_dict();
+        for (i, c) in s.as_str().chars().enumerate() {
+            let key = vm.ctx.new_int(u32::from(c));
+            let val = vm.ctx.new_int(i);
+            dict.set_item(key.as_object(), val.into(), vm)?;
+        }
+        Ok(dict)
     }
     #[pyfunction]
     fn utf_16_le_encode(args: FuncArgs, vm: &VirtualMachine) -> PyResult {
