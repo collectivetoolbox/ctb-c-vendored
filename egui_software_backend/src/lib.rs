@@ -6,11 +6,12 @@
 //!let buffer = &mut vec![[0u8; 4]; 512 * 512];
 //!let mut buffer_ref = BufferMutRef::new(buffer, 512, 512);
 //!let ctx = egui::Context::default();
-//!let mut demo = egui_demo_lib::DemoWindows::default();
 //!let mut sw_render = EguiSoftwareRender::new(ColorFieldOrder::Bgra);
 //!
 //!let out = ctx.run(egui::RawInput::default(), |ctx| {
-//!    demo.ui(ctx);
+//!    egui::CentralPanel::default().show(ctx, |ui| {
+//!        ui.label("Hello World!");
+//!    });
 //!});
 //!
 //!let primitives = ctx.tessellate(out.shapes, out.pixels_per_point);
@@ -24,15 +25,14 @@
 //!```
 //!
 //! ## Usage with optional winit backend:
-//! ```rust
+//! ```rust,standalone_crate
 //!use egui::vec2;
 //!use egui_software_backend::{SoftwareBackend, SoftwareBackendAppConfiguration};
 //!
 //!struct EguiApp {}
 //!
 //!impl EguiApp {
-//!    fn new(context: egui::Context) -> Self {
-//!        egui_extras::install_image_loaders(&context);
+//!    fn new(_context: egui::Context) -> Self {
 //!        EguiApp {}
 //!    }
 //!}
@@ -42,6 +42,7 @@
 //!        egui::CentralPanel::default().show(ctx, |ui| {
 //!            ui.label("Hello World!");
 //!        });
+//!        # ctx.send_viewport_cmd(egui::ViewportCommand::Close);
 //!    }
 //!}
 //!
@@ -204,7 +205,7 @@ impl EguiSoftwareRender {
     /// Renders the given paint jobs to buffer_ref. Alternatively, when using caching
     /// EguiSoftwareRender::render_to_canvas() and subsequently EguiSoftwareRender::blit_canvas_to_buffer() can be run
     /// separately so that the primary rendering in render_to_canvas() can happen without a lock on the frame buffer.
-    ///  
+    ///
     ///
     /// # Arguments
     /// * `paint_jobs` - List of `egui::ClippedPrimitive` from egui to be rendered.
