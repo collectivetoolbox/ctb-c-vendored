@@ -370,6 +370,7 @@ mod _lzma {
         }
         if let Some(v) = get_dict_opt_u32(spec, "mf", vm)? {
             match v as i32 {
+                // Change these to the values supported by lzma_rust2 as they are unimplemented.
                 MF_HC3 | MF_HC4 => opts.mf = lzma_rust2::MfType::Hc4,
                 MF_BT2 | MF_BT3 | MF_BT4 => opts.mf = lzma_rust2::MfType::Bt4,
                 _ => return Err(vm.new_value_error("Invalid filter specifier for LZMA filter")),
