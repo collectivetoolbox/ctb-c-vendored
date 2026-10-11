@@ -5,66 +5,73 @@ pub(crate) use _lzma::module_def;
 #[pymodule]
 mod _lzma {
     use crate::compression::{
-        CompressFlushKind, CompressState, CompressStatusKind, Compressor, DecompressArgs,
-        DecompressError, DecompressState, DecompressStatus, Decompressor,
+        DecompressArgs, DecompressError, DecompressState, DecompressStatus, Decompressor,
     };
     use alloc::fmt;
-    use liblzma::stream::{
-        Action, Check, Error, Filters, LzmaOptions, MatchFinder, Mode, Status, Stream,
-        TELL_ANY_CHECK, TELL_NO_CHECK,
-    };
-    // lzma_check, lzma_mode, lzma_match_finder have platform-dependent signedness
-    // (i32 on Windows, u32 elsewhere). Define as fixed-type const to avoid mismatch.
-    #[pyattr]
-    use liblzma_sys::{
-        LZMA_FILTER_ARM as FILTER_ARM, LZMA_FILTER_ARMTHUMB as FILTER_ARMTHUMB,
-        LZMA_FILTER_DELTA as FILTER_DELTA, LZMA_FILTER_IA64 as FILTER_IA64,
-        LZMA_FILTER_LZMA1 as FILTER_LZMA1, LZMA_FILTER_LZMA2 as FILTER_LZMA2,
-        LZMA_FILTER_POWERPC as FILTER_POWERPC, LZMA_FILTER_SPARC as FILTER_SPARC,
-        LZMA_FILTER_X86 as FILTER_X86,
-    };
-    #[pyattr]
-    use liblzma_sys::{
-        LZMA_PRESET_DEFAULT as PRESET_DEFAULT, LZMA_PRESET_EXTREME as PRESET_EXTREME,
-    };
+    use lzma_rust2::{Action, CheckType, FilterType, Status, StreamResult};
     use rustpython_common::lock::PyMutex;
     use rustpython_vm::builtins::{PyBaseExceptionRef, PyBytesRef, PyDict, PyType, PyTypeRef};
     use rustpython_vm::convert::ToPyException;
     use rustpython_vm::function::ArgBytesLike;
     use rustpython_vm::types::Constructor;
     use rustpython_vm::{Py, PyObjectRef, PyPayload, PyResult, VirtualMachine};
+    use std::io::{Read, Write};
+    use std::sync::{Arc, Mutex};
 
     const BUFSIZ: usize = 8192;
 
-    // liblzma_sys enum types have platform-dependent signedness; `as _` normalizes to i32
     #[pyattr]
-    const CHECK_NONE: i32 = liblzma_sys::LZMA_CHECK_NONE as _;
+    const FILTER_ARM: u64 = 0x07;
     #[pyattr]
-    const CHECK_CRC32: i32 = liblzma_sys::LZMA_CHECK_CRC32 as _;
+    const FILTER_ARMTHUMB: u64 = 0x08;
     #[pyattr]
-    const CHECK_CRC64: i32 = liblzma_sys::LZMA_CHECK_CRC64 as _;
+    const FILTER_DELTA: u64 = 0x03;
     #[pyattr]
-    const CHECK_SHA256: i32 = liblzma_sys::LZMA_CHECK_SHA256 as _;
+    const FILTER_IA64: u64 = 0x06;
+    #[pyattr]
+    const FILTER_LZMA1: u64 = 0x4000_0000_0000_0001;
+    #[pyattr]
+    const FILTER_LZMA2: u64 = 0x21;
+    #[pyattr]
+    const FILTER_POWERPC: u64 = 0x05;
+    #[pyattr]
+    const FILTER_SPARC: u64 = 0x09;
+    #[pyattr]
+    const FILTER_X86: u64 = 0x04;
+
+    #[pyattr]
+    const PRESET_DEFAULT: u32 = 6;
+    #[pyattr]
+    const PRESET_EXTREME: u32 = 1 << 31;
+
+    #[pyattr]
+    const CHECK_NONE: i32 = 0;
+    #[pyattr]
+    const CHECK_CRC32: i32 = 1;
+    #[pyattr]
+    const CHECK_CRC64: i32 = 4;
+    #[pyattr]
+    const CHECK_SHA256: i32 = 10;
     #[pyattr]
     const CHECK_ID_MAX: i32 = 15;
     #[pyattr]
     const CHECK_UNKNOWN: i32 = CHECK_ID_MAX + 1;
 
     #[pyattr]
-    const MF_HC3: i32 = liblzma_sys::LZMA_MF_HC3 as _;
+    const MF_HC3: i32 = 0x03;
     #[pyattr]
-    const MF_HC4: i32 = liblzma_sys::LZMA_MF_HC4 as _;
+    const MF_HC4: i32 = 0x04;
     #[pyattr]
-    const MF_BT2: i32 = liblzma_sys::LZMA_MF_BT2 as _;
+    const MF_BT2: i32 = 0x12;
     #[pyattr]
-    const MF_BT3: i32 = liblzma_sys::LZMA_MF_BT3 as _;
+    const MF_BT3: i32 = 0x13;
     #[pyattr]
-    const MF_BT4: i32 = liblzma_sys::LZMA_MF_BT4 as _;
+    const MF_BT4: i32 = 0x14;
 
     #[pyattr]
-    const MODE_FAST: i32 = liblzma_sys::LZMA_MODE_FAST as _;
+    const MODE_FAST: i32 = 1;
     #[pyattr]
-    const MODE_NORMAL: i32 = liblzma_sys::LZMA_MODE_NORMAL as _;
+    const MODE_NORMAL: i32 = 2;
 
     enum Format {
         Auto = 0,
@@ -82,6 +89,23 @@ mod _lzma {
     #[pyattr]
     const FORMAT_RAW: i32 = Format::Raw as i32;
 
+    const DEFAULT_LC: u32 = 3;
+    const DEFAULT_LP: u32 = 0;
+    const DEFAULT_PB: u32 = 2;
+
+    const PRESET_DICT_SIZES: [u32; 10] = [
+        1 << 18, // 0: 256 KiB
+        1 << 20, // 1: 1 MiB
+        1 << 21, // 2: 2 MiB
+        1 << 22, // 3: 4 MiB
+        1 << 22, // 4: 4 MiB
+        1 << 23, // 5: 8 MiB
+        1 << 23, // 6: 8 MiB
+        1 << 24, // 7: 16 MiB
+        1 << 25, // 8: 32 MiB
+        1 << 26, // 9: 64 MiB
+    ];
+
     #[pyattr(once, name = "LZMAError")]
     fn error(vm: &VirtualMachine) -> PyTypeRef {
         vm.ctx.new_exception_type(
@@ -96,113 +120,85 @@ mod _lzma {
         vm.new_exception_msg(vm.class("lzma", "LZMAError"), msg.into())
     }
 
-    fn catch_lzma_error(err: Error, vm: &VirtualMachine) -> PyBaseExceptionRef {
-        match err {
-            Error::UnsupportedCheck => new_lzma_error("Unsupported integrity check", vm),
-            Error::Mem => vm.new_memory_error(""),
-            Error::MemLimit => new_lzma_error("Memory usage limit exceeded", vm),
-            Error::Format => new_lzma_error("Input format not supported by decoder", vm),
-            Error::Options => new_lzma_error("Invalid or unsupported options", vm),
-            Error::Data => new_lzma_error("Corrupt input data", vm),
-            Error::Program => new_lzma_error("Internal error", vm),
-            Error::NoCheck => new_lzma_error("Corrupt input data", vm),
-        }
-    }
-
-    fn int_to_check(check: i32) -> Option<Check> {
+    fn int_to_check(check: i32) -> Option<CheckType> {
         if check == -1 {
-            return Some(Check::Crc64);
+            return Some(CheckType::Crc64);
         }
         match check {
-            CHECK_NONE => Some(Check::None),
-            CHECK_CRC32 => Some(Check::Crc32),
-            CHECK_CRC64 => Some(Check::Crc64),
-            CHECK_SHA256 => Some(Check::Sha256),
+            CHECK_NONE => Some(CheckType::None),
+            CHECK_CRC32 => Some(CheckType::Crc32),
+            CHECK_CRC64 => Some(CheckType::Crc64),
+            CHECK_SHA256 => Some(CheckType::Sha256),
             _ => None,
         }
     }
 
-    fn u32_to_mode(val: u32) -> Option<Mode> {
-        match val as i32 {
-            MODE_FAST => Some(Mode::Fast),
-            MODE_NORMAL => Some(Mode::Normal),
-            _ => None,
+    fn check_to_int(check: Option<CheckType>) -> i32 {
+        match check {
+            Some(CheckType::None) => CHECK_NONE,
+            Some(CheckType::Crc32) => CHECK_CRC32,
+            Some(CheckType::Crc64) => CHECK_CRC64,
+            Some(CheckType::Sha256) => CHECK_SHA256,
+            None => CHECK_UNKNOWN,
         }
     }
 
-    fn u32_to_mf(val: u32) -> Option<MatchFinder> {
-        match val as i32 {
-            MF_HC3 => Some(MatchFinder::HashChain3),
-            MF_HC4 => Some(MatchFinder::HashChain4),
-            MF_BT2 => Some(MatchFinder::BinaryTree2),
-            MF_BT3 => Some(MatchFinder::BinaryTree3),
-            MF_BT4 => Some(MatchFinder::BinaryTree4),
-            _ => None,
+    #[pyfunction]
+    fn is_check_supported(check_id: i32) -> bool {
+        matches!(
+            check_id,
+            CHECK_NONE | CHECK_CRC32 | CHECK_CRC64 | CHECK_SHA256
+        )
+    }
+
+    fn preset_dict_size(preset: u32) -> u32 {
+        let level = (preset & 0x1F) as usize;
+        if level < PRESET_DICT_SIZES.len() {
+            PRESET_DICT_SIZES[level]
+        } else {
+            1 << 23
         }
     }
 
-    struct LzmaStream {
-        stream: Stream,
-        check: i32,
-        header_buf: [u8; 8],
-        header_collected: u8,
-        track_header: bool,
+    fn lzma2_dict_size_from_prop(prop: u8) -> u32 {
+        if prop == 40 {
+            u32::MAX
+        } else {
+            let base = 2 | (prop as u32 & 1);
+            base << (prop as u32 / 2 + 11)
+        }
     }
 
-    impl LzmaStream {
-        fn new(stream: Stream, check: i32, track_header: bool) -> Self {
-            Self {
-                stream,
-                check,
-                header_buf: [0u8; 8],
-                header_collected: 0,
-                track_header,
+    fn lzma2_prop_from_dict_size(dict_size: u32) -> u8 {
+        for i in 0..=40 {
+            if lzma2_dict_size_from_prop(i) >= dict_size {
+                return i;
             }
         }
+        40
     }
 
-    impl Decompressor for LzmaStream {
-        type Flush = ();
-        type Status = Status;
-        type Error = Error;
-
-        fn total_in(&self) -> u64 {
-            self.stream.total_in()
-        }
-
-        fn decompress_vec(
-            &mut self,
-            input: &[u8],
-            output: &mut Vec<u8>,
-            (): Self::Flush,
-        ) -> Result<Self::Status, Self::Error> {
-            if self.track_header && self.header_collected < 8 {
-                let need = (8 - self.header_collected) as usize;
-                let n = need.min(input.len());
-                self.header_buf[self.header_collected as usize..][..n].copy_from_slice(&input[..n]);
-                self.header_collected += n as u8;
-            }
-
-            match self.stream.process_vec(input, output, Action::Run) {
-                Ok(Status::GetCheck) => {
-                    if self.header_collected >= 8 {
-                        self.check = (self.header_buf[7] & 0x0F) as i32;
-                    }
-                    Ok(Status::Ok)
-                }
-                Err(Error::NoCheck) => {
-                    self.check = CHECK_NONE;
-                    Ok(Status::Ok)
-                }
-                other => other,
-            }
-        }
+    fn encode_lzma1_properties(lc: u32, lp: u32, pb: u32, dict_size: u32) -> Vec<u8> {
+        let mut props = Vec::with_capacity(5);
+        props.push(((pb * 5 + lp) * 9 + lc) as u8);
+        props.extend_from_slice(&dict_size.to_le_bytes());
+        props
     }
 
-    impl DecompressStatus for Status {
-        fn is_stream_end(&self) -> bool {
-            *self == Status::StreamEnd
+    fn decode_lzma1_properties(props: &[u8]) -> Option<(u32, u32, u32, u32)> {
+        if props.len() != 5 {
+            return None;
         }
+        let prop = props[0] as u32;
+        if prop >= 9 * 5 * 5 {
+            return None;
+        }
+        let lc = prop % 9;
+        let remainder = prop / 9;
+        let lp = remainder % 5;
+        let pb = remainder / 5;
+        let dict_size = u32::from_le_bytes([props[1], props[2], props[3], props[4]]);
+        Some((lc, lp, pb, dict_size))
     }
 
     fn get_dict_opt_u32(
@@ -231,214 +227,6 @@ mod _lzma {
             Some(obj) => Ok(Some(obj.try_into_value::<u64>(vm)?)),
             None => Ok(None),
         }
-    }
-
-    fn parse_filter_spec_lzma(spec: &PyObjectRef, vm: &VirtualMachine) -> PyResult<LzmaOptions> {
-        let preset = get_dict_opt_u32(spec, "preset", vm)?.unwrap_or(PRESET_DEFAULT);
-
-        let mut opts = LzmaOptions::new_preset(preset)
-            .map_err(|_| new_lzma_error(format!("Invalid compression preset: {preset}"), vm))?;
-
-        if let Some(v) = get_dict_opt_u32(spec, "dict_size", vm)? {
-            opts.dict_size(v);
-        }
-        if let Some(v) = get_dict_opt_u32(spec, "lc", vm)? {
-            opts.literal_context_bits(v);
-        }
-        if let Some(v) = get_dict_opt_u32(spec, "lp", vm)? {
-            opts.literal_position_bits(v);
-        }
-        if let Some(v) = get_dict_opt_u32(spec, "pb", vm)? {
-            opts.position_bits(v);
-        }
-        if let Some(v) = get_dict_opt_u32(spec, "mode", vm)? {
-            let mode = u32_to_mode(v)
-                .ok_or_else(|| vm.new_value_error("Invalid filter specifier for LZMA filter"))?;
-            opts.mode(mode);
-        }
-        if let Some(v) = get_dict_opt_u32(spec, "nice_len", vm)? {
-            opts.nice_len(v);
-        }
-        if let Some(v) = get_dict_opt_u32(spec, "mf", vm)? {
-            let mf = u32_to_mf(v)
-                .ok_or_else(|| vm.new_value_error("Invalid filter specifier for LZMA filter"))?;
-            opts.match_finder(mf);
-        }
-        if let Some(v) = get_dict_opt_u32(spec, "depth", vm)? {
-            opts.depth(v);
-        }
-
-        Ok(opts)
-    }
-
-    fn parse_filter_spec_delta(spec: &PyObjectRef, vm: &VirtualMachine) -> PyResult<u32> {
-        let dist = get_dict_opt_u32(spec, "dist", vm)?.unwrap_or(1);
-        if dist == 0 || dist > 256 {
-            return Err(vm.new_value_error("Invalid filter specifier for delta filter"));
-        }
-        Ok(dist)
-    }
-
-    fn parse_filter_spec_bcj(spec: &PyObjectRef, vm: &VirtualMachine) -> PyResult<u32> {
-        Ok(get_dict_opt_u32(spec, "start_offset", vm)?.unwrap_or(0))
-    }
-
-    fn add_bcj_filter(
-        filters: &mut Filters,
-        filter_id: u64,
-        start_offset: u32,
-    ) -> Result<(), Error> {
-        if start_offset == 0 {
-            match filter_id {
-                FILTER_X86 => {
-                    filters.x86();
-                }
-                FILTER_POWERPC => {
-                    filters.powerpc();
-                }
-                FILTER_IA64 => {
-                    filters.ia64();
-                }
-                FILTER_ARM => {
-                    filters.arm();
-                }
-                FILTER_ARMTHUMB => {
-                    filters.arm_thumb();
-                }
-                FILTER_SPARC => {
-                    filters.sparc();
-                }
-                _ => unreachable!(),
-            }
-            Ok(())
-        } else {
-            let props = start_offset.to_le_bytes();
-            match filter_id {
-                FILTER_X86 => {
-                    filters.x86_properties(&props)?;
-                }
-                FILTER_POWERPC => {
-                    filters.powerpc_properties(&props)?;
-                }
-                FILTER_IA64 => {
-                    filters.ia64_properties(&props)?;
-                }
-                FILTER_ARM => {
-                    filters.arm_properties(&props)?;
-                }
-                FILTER_ARMTHUMB => {
-                    filters.arm_thumb_properties(&props)?;
-                }
-                FILTER_SPARC => {
-                    filters.sparc_properties(&props)?;
-                }
-                _ => unreachable!(),
-            }
-            Ok(())
-        }
-    }
-
-    fn parse_filter_chain_spec(
-        filter_specs: Vec<PyObjectRef>,
-        vm: &VirtualMachine,
-    ) -> PyResult<Filters> {
-        const LZMA_FILTERS_MAX: usize = 4;
-        if filter_specs.len() > LZMA_FILTERS_MAX {
-            return Err(new_lzma_error(
-                format!("Too many filters - liblzma supports a maximum of {LZMA_FILTERS_MAX}"),
-                vm,
-            ));
-        }
-
-        let mut filters = Filters::new();
-        for spec in &filter_specs {
-            let filter_id = get_dict_opt_u64(spec, "id", vm)?
-                .ok_or_else(|| vm.new_value_error("Filter specifier must have an \"id\" entry"))?;
-
-            match filter_id {
-                FILTER_LZMA1 => {
-                    let opts = parse_filter_spec_lzma(spec, vm)?;
-                    filters.lzma1(&opts);
-                }
-                FILTER_LZMA2 => {
-                    let opts = parse_filter_spec_lzma(spec, vm)?;
-                    filters.lzma2(&opts);
-                }
-                FILTER_DELTA => {
-                    let dist = parse_filter_spec_delta(spec, vm)?;
-                    filters
-                        .delta_properties(&[(dist - 1) as u8])
-                        .map_err(|e| catch_lzma_error(e, vm))?;
-                }
-                FILTER_X86 | FILTER_POWERPC | FILTER_IA64 | FILTER_ARM | FILTER_ARMTHUMB
-                | FILTER_SPARC => {
-                    let start_offset = parse_filter_spec_bcj(spec, vm)?;
-                    add_bcj_filter(&mut filters, filter_id, start_offset)
-                        .map_err(|e| catch_lzma_error(e, vm))?;
-                }
-                _ => {
-                    return Err(vm.new_value_error(format!("Invalid filter ID: {filter_id}")));
-                }
-            }
-        }
-
-        Ok(filters)
-    }
-
-    const DEFAULT_LC: u32 = liblzma_sys::LZMA_LC_DEFAULT;
-    const DEFAULT_LP: u32 = liblzma_sys::LZMA_LP_DEFAULT;
-    const DEFAULT_PB: u32 = liblzma_sys::LZMA_PB_DEFAULT;
-    const DICT_POW2: [u8; 10] = [18, 20, 21, 22, 22, 23, 23, 24, 25, 26];
-
-    fn preset_dict_size(preset: u32) -> u32 {
-        let level = (preset & liblzma_sys::LZMA_PRESET_LEVEL_MASK) as usize;
-        if level > 9 {
-            return 0;
-        }
-        1u32 << DICT_POW2[level]
-    }
-
-    fn lzma2_dict_size_from_prop(prop: u8) -> u32 {
-        if prop > 40 {
-            return u32::MAX;
-        }
-        if prop == 40 {
-            return u32::MAX;
-        }
-        let prop = prop as u32;
-        (2 | (prop & 1)) << (prop / 2 + 11)
-    }
-
-    fn lzma2_prop_from_dict_size(dict_size: u32) -> u8 {
-        if dict_size == u32::MAX {
-            return 40;
-        }
-        for i in 0u8..40 {
-            if lzma2_dict_size_from_prop(i) >= dict_size {
-                return i;
-            }
-        }
-        40
-    }
-
-    fn encode_lzma1_properties(lc: u32, lp: u32, pb: u32, dict_size: u32) -> Vec<u8> {
-        let mut result = vec![0u8; 5];
-        result[0] = ((pb * 5 + lp) * 9 + lc) as u8;
-        result[1..5].copy_from_slice(&dict_size.to_le_bytes());
-        result
-    }
-
-    fn decode_lzma1_properties(props: &[u8]) -> Option<(u32, u32, u32, u32)> {
-        if props.len() < 5 {
-            return None;
-        }
-        let mut d = props[0] as u32;
-        let lc = d % 9;
-        d /= 9;
-        let lp = d % 5;
-        let pb = d / 5;
-        let dict_size = u32::from_le_bytes([props[1], props[2], props[3], props[4]]);
-        Some((lc, lp, pb, dict_size))
     }
 
     fn build_filter_spec(
@@ -477,7 +265,8 @@ mod _lzma {
                 if props.is_empty() {
                     // default: no start_offset
                 } else if props.len() == 4 {
-                    let start_offset = u32::from_le_bytes([props[0], props[1], props[2], props[3]]);
+                    let start_offset =
+                        u32::from_le_bytes([props[0], props[1], props[2], props[3]]);
                     dict.set_item("start_offset", vm.new_pyobj(start_offset), vm)?;
                 } else {
                     return Err(new_lzma_error("Invalid or unsupported options", vm));
@@ -489,11 +278,6 @@ mod _lzma {
         }
 
         Ok(dict.into())
-    }
-
-    #[pyfunction]
-    fn is_check_supported(check_id: i32) -> bool {
-        unsafe { liblzma_sys::lzma_check_is_supported(check_id as _) != 0 }
     }
 
     #[pyfunction]
@@ -531,7 +315,8 @@ mod _lzma {
             }
             FILTER_X86 | FILTER_POWERPC | FILTER_IA64 | FILTER_ARM | FILTER_ARMTHUMB
             | FILTER_SPARC => {
-                let start_offset = get_dict_opt_u32(&filter_spec, "start_offset", vm)?.unwrap_or(0);
+                let start_offset =
+                    get_dict_opt_u32(&filter_spec, "start_offset", vm)?.unwrap_or(0);
                 if start_offset == 0 {
                     Ok(vec![])
                 } else {
@@ -552,11 +337,345 @@ mod _lzma {
         build_filter_spec(filter_id, &props, vm)
     }
 
+    fn parse_filter_spec_lzma(
+        spec: &PyObjectRef,
+        vm: &VirtualMachine,
+    ) -> PyResult<lzma_rust2::LzmaOptions> {
+        let preset = get_dict_opt_u32(spec, "preset", vm)?.unwrap_or(PRESET_DEFAULT);
+        let mut opts = lzma_rust2::LzmaOptions::with_preset(preset & 0x1F);
+        if let Some(v) = get_dict_opt_u32(spec, "dict_size", vm)? {
+            opts.dict_size = v;
+        }
+        if let Some(v) = get_dict_opt_u32(spec, "lc", vm)? {
+            opts.lc = v;
+        }
+        if let Some(v) = get_dict_opt_u32(spec, "lp", vm)? {
+            opts.lp = v;
+        }
+        if let Some(v) = get_dict_opt_u32(spec, "pb", vm)? {
+            opts.pb = v;
+        }
+        if let Some(v) = get_dict_opt_u32(spec, "nice_len", vm)? {
+            opts.nice_len = v;
+        }
+        if let Some(v) = get_dict_opt_u32(spec, "depth", vm)? {
+            opts.depth_limit = v as i32;
+        }
+        if let Some(v) = get_dict_opt_u32(spec, "mode", vm)? {
+            match v as i32 {
+                MODE_FAST => opts.mode = lzma_rust2::EncodeMode::Fast,
+                MODE_NORMAL => opts.mode = lzma_rust2::EncodeMode::Normal,
+                _ => return Err(vm.new_value_error("Invalid filter specifier for LZMA filter")),
+            }
+        }
+        if let Some(v) = get_dict_opt_u32(spec, "mf", vm)? {
+            match v as i32 {
+                MF_HC3 | MF_HC4 => opts.mf = lzma_rust2::MfType::Hc4,
+                MF_BT2 | MF_BT3 | MF_BT4 => opts.mf = lzma_rust2::MfType::Bt4,
+                _ => return Err(vm.new_value_error("Invalid filter specifier for LZMA filter")),
+            }
+        }
+        Ok(opts)
+    }
+
+    fn apply_filter_specs_to_xz(
+        options: &mut lzma_rust2::XzOptions,
+        filter_specs: Vec<PyObjectRef>,
+        vm: &VirtualMachine,
+    ) -> PyResult<()> {
+        const LZMA_FILTERS_MAX: usize = 4;
+        if filter_specs.len() > LZMA_FILTERS_MAX {
+            return Err(new_lzma_error(
+                format!("Too many filters - maximum of {LZMA_FILTERS_MAX}"),
+                vm,
+            ));
+        }
+        for (i, spec) in filter_specs.iter().enumerate() {
+            let filter_id = get_dict_opt_u64(spec, "id", vm)?
+                .ok_or_else(|| vm.new_value_error("Filter specifier must have an \"id\" entry"))?;
+            let is_last = i == filter_specs.len() - 1;
+            if is_last {
+                if filter_id != FILTER_LZMA2 {
+                    return Err(new_lzma_error("Last filter must be LZMA2", vm));
+                }
+                options.lzma_options = parse_filter_spec_lzma(spec, vm)?;
+            } else {
+                match filter_id {
+                    FILTER_DELTA => {
+                        let dist = get_dict_opt_u32(spec, "dist", vm)?.unwrap_or(1);
+                        options.prepend_pre_filter(FilterType::Delta, dist);
+                    }
+                    FILTER_X86 => {
+                        let offset = get_dict_opt_u32(spec, "start_offset", vm)?.unwrap_or(0);
+                        options.prepend_pre_filter(FilterType::BcjX86, offset);
+                    }
+                    FILTER_POWERPC => {
+                        let offset = get_dict_opt_u32(spec, "start_offset", vm)?.unwrap_or(0);
+                        options.prepend_pre_filter(FilterType::BcjPpc, offset);
+                    }
+                    FILTER_IA64 => {
+                        let offset = get_dict_opt_u32(spec, "start_offset", vm)?.unwrap_or(0);
+                        options.prepend_pre_filter(FilterType::BcjIa64, offset);
+                    }
+                    FILTER_ARM => {
+                        let offset = get_dict_opt_u32(spec, "start_offset", vm)?.unwrap_or(0);
+                        options.prepend_pre_filter(FilterType::BcjArm, offset);
+                    }
+                    FILTER_ARMTHUMB => {
+                        let offset = get_dict_opt_u32(spec, "start_offset", vm)?.unwrap_or(0);
+                        options.prepend_pre_filter(FilterType::BcjArmThumb, offset);
+                    }
+                    FILTER_SPARC => {
+                        let offset = get_dict_opt_u32(spec, "start_offset", vm)?.unwrap_or(0);
+                        options.prepend_pre_filter(FilterType::BcjSparc, offset);
+                    }
+                    _ => {
+                        return Err(new_lzma_error(
+                            format!("Unsupported filter ID: {filter_id}"),
+                            vm,
+                        ));
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn apply_filter_specs_to_lzma(
+        options: &mut lzma_rust2::LzmaOptions,
+        filter_specs: Vec<PyObjectRef>,
+        vm: &VirtualMachine,
+    ) -> PyResult<()> {
+        if filter_specs.len() != 1 {
+            return Err(new_lzma_error(
+                "Only one filter can be specified for LZMA format",
+                vm,
+            ));
+        }
+        let filter_id = get_dict_opt_u64(&filter_specs[0], "id", vm)?
+            .ok_or_else(|| vm.new_value_error("Filter specifier must have an \"id\" entry"))?;
+        if filter_id != FILTER_LZMA1 {
+            return Err(new_lzma_error("Filter must be LZMA1 for LZMA format", vm));
+        }
+        *options = parse_filter_spec_lzma(&filter_specs[0], vm)?;
+        Ok(())
+    }
+
+    fn apply_filter_specs_to_lzma2(
+        options: &mut lzma_rust2::Lzma2Options,
+        filter_specs: Vec<PyObjectRef>,
+        vm: &VirtualMachine,
+    ) -> PyResult<()> {
+        if filter_specs.len() != 1 {
+            return Err(new_lzma_error(
+                "Only one filter can be specified for raw LZMA2 format",
+                vm,
+            ));
+        }
+        let filter_id = get_dict_opt_u64(&filter_specs[0], "id", vm)?
+            .ok_or_else(|| vm.new_value_error("Filter specifier must have an \"id\" entry"))?;
+        if filter_id != FILTER_LZMA2 {
+            return Err(new_lzma_error("Filter must be LZMA2 for raw format", vm));
+        }
+        options.lzma_options = parse_filter_spec_lzma(&filter_specs[0], vm)?;
+        Ok(())
+    }
+
+    enum DecompressEngine {
+        Xz(lzma_rust2::XzStream),
+        Raw(lzma_rust2::Lzma2Stream),
+        Alone {
+            input_buf: Vec<u8>,
+            last_pos: usize,
+            reader: Option<lzma_rust2::LzmaReader<std::io::Cursor<Vec<u8>>>>,
+            end_reached: bool,
+            memlimit: u32,
+        },
+        Auto {
+            engine: Option<Box<DecompressEngine>>,
+            header_buf: Vec<u8>,
+            memlimit: u32,
+        },
+    }
+
+    impl DecompressEngine {
+        fn process(
+            &mut self,
+            input: &[u8],
+            output: &mut [u8],
+            check_out: &mut i32,
+        ) -> Result<StreamResult, String> {
+            match self {
+                Self::Xz(s) => {
+                    let res = s
+                        .process(input, output, Action::Run)
+                        .map_err(|e| e.to_string())?;
+                    if *check_out == CHECK_UNKNOWN {
+                        *check_out = check_to_int(s.check_type());
+                    }
+                    Ok(res)
+                }
+                Self::Raw(s) => s
+                    .process(input, output, Action::Run)
+                    .map_err(|e| e.to_string()),
+                Self::Alone {
+                    input_buf,
+                    last_pos,
+                    reader,
+                    end_reached,
+                    memlimit,
+                } => {
+                    if *end_reached {
+                        return Ok(StreamResult {
+                            bytes_consumed: 0,
+                            bytes_produced: 0,
+                            status: Status::StreamEnd,
+                        });
+                    }
+                    input_buf.extend_from_slice(input);
+                    if reader.is_none() {
+                        if input_buf.len() < 13 {
+                            return Ok(StreamResult {
+                                bytes_consumed: input.len(),
+                                bytes_produced: 0,
+                                status: Status::Ok,
+                            });
+                        }
+                        let cursor = std::io::Cursor::new(core::mem::take(input_buf));
+                        let r = lzma_rust2::LzmaReader::new_mem_limit(cursor, *memlimit, None)
+                            .map_err(|e| e.to_string())?;
+                        *reader = Some(r);
+                    }
+                    let r = reader.as_mut().unwrap();
+                    if !input_buf.is_empty() {
+                        let to_append = core::mem::take(input_buf);
+                        r.inner_mut().get_mut().extend_from_slice(&to_append);
+                    }
+                    let mut total_produced = 0;
+                    while total_produced < output.len() {
+                        match r.read(&mut output[total_produced..]) {
+                            Ok(0) => {
+                                *end_reached = true;
+                                break;
+                            }
+                            Ok(n) => {
+                                total_produced += n;
+                            }
+                            Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof => {
+                                break;
+                            }
+                            Err(e) => return Err(e.to_string()),
+                        }
+                    }
+                    let new_pos = r.inner().position() as usize;
+                    let consumed = new_pos.saturating_sub(*last_pos).min(input.len());
+                    *last_pos = new_pos;
+                    let status = if *end_reached {
+                        Status::StreamEnd
+                    } else {
+                        Status::Ok
+                    };
+                    Ok(StreamResult {
+                        bytes_consumed: consumed,
+                        bytes_produced: total_produced,
+                        status,
+                    })
+                }
+                Self::Auto {
+                    engine,
+                    header_buf,
+                    memlimit,
+                } => {
+                    if engine.is_none() {
+                        let needed = 6usize.saturating_sub(header_buf.len());
+                        let take = needed.min(input.len());
+                        header_buf.extend_from_slice(&input[..take]);
+                        if header_buf.len() < 6 {
+                            return Ok(StreamResult {
+                                bytes_consumed: take,
+                                bytes_produced: 0,
+                                status: Status::Ok,
+                            });
+                        }
+                        const XZ_MAGIC: [u8; 6] = [0xFD, b'7', b'z', b'X', b'Z', 0x00];
+                        let new_eng = if header_buf.starts_with(&XZ_MAGIC) {
+                            DecompressEngine::Xz(lzma_rust2::XzStream::new(false))
+                        } else {
+                            DecompressEngine::Alone {
+                                input_buf: Vec::new(),
+                                last_pos: 0,
+                                reader: None,
+                                end_reached: false,
+                                memlimit: *memlimit,
+                            }
+                        };
+                        *engine = Some(Box::new(new_eng));
+                        let buffered = core::mem::take(header_buf);
+                        let prev_buffered_len = buffered.len().saturating_sub(take);
+                        let mut combined = buffered;
+                        combined.extend_from_slice(&input[take..]);
+                        let eng = engine.as_mut().unwrap();
+                        let res = eng.process(&combined, output, check_out)?;
+                        let consumed_from_input = res
+                            .bytes_consumed
+                            .saturating_sub(prev_buffered_len)
+                            .min(input.len());
+                        return Ok(StreamResult {
+                            bytes_consumed: consumed_from_input,
+                            bytes_produced: res.bytes_produced,
+                            status: res.status,
+                        });
+                    }
+                    let eng = engine.as_mut().unwrap();
+                    eng.process(input, output, check_out)
+                }
+            }
+        }
+    }
+
+    struct LzmaDecompressorStream {
+        engine: DecompressEngine,
+        total_in: u64,
+        check: i32,
+    }
+
+    impl Decompressor for LzmaDecompressorStream {
+        type Flush = ();
+        type Status = Status;
+        type Error = String;
+
+        fn total_in(&self) -> u64 {
+            self.total_in
+        }
+
+        fn decompress_vec(
+            &mut self,
+            input: &[u8],
+            output: &mut Vec<u8>,
+            (): Self::Flush,
+        ) -> Result<Self::Status, Self::Error> {
+            let old_len = output.len();
+            output.resize(old_len + 8192, 0);
+            let res = self
+                .engine
+                .process(input, &mut output[old_len..], &mut self.check)?;
+            output.truncate(old_len + res.bytes_produced);
+            self.total_in += res.bytes_consumed as u64;
+            Ok(res.status)
+        }
+    }
+
+    impl DecompressStatus for Status {
+        fn is_stream_end(&self) -> bool {
+            *self == Status::StreamEnd
+        }
+    }
+
     #[pyattr]
     #[pyclass(name = "LZMADecompressor")]
     #[derive(PyPayload)]
     struct LZMADecompressor {
-        state: PyMutex<DecompressState<LzmaStream>>,
+        state: PyMutex<DecompressState<LzmaDecompressorStream>>,
     }
 
     impl fmt::Debug for LZMADecompressor {
@@ -590,31 +709,44 @@ mod _lzma {
                 return Err(vm.new_value_error("Cannot specify filters except with FORMAT_RAW"));
             }
 
-            let memlimit = args.memlimit.unwrap_or(u64::MAX);
-            let decoder_flags = TELL_ANY_CHECK | TELL_NO_CHECK;
+            let memlimit = args
+                .memlimit
+                .map(|m| m.min(u32::MAX as u64) as u32)
+                .unwrap_or(u32::MAX);
 
-            let lzma_stream = match args.format {
-                FORMAT_AUTO => {
-                    let stream = Stream::new_auto_decoder(memlimit, decoder_flags)
-                        .map_err(|e| catch_lzma_error(e, vm))?;
-                    LzmaStream::new(stream, CHECK_UNKNOWN, true)
-                }
-                FORMAT_XZ => {
-                    let stream = Stream::new_stream_decoder(memlimit, decoder_flags)
-                        .map_err(|e| catch_lzma_error(e, vm))?;
-                    LzmaStream::new(stream, CHECK_UNKNOWN, true)
-                }
-                FORMAT_ALONE => {
-                    let stream =
-                        Stream::new_lzma_decoder(memlimit).map_err(|e| catch_lzma_error(e, vm))?;
-                    LzmaStream::new(stream, CHECK_NONE, false)
-                }
+            let (engine, check) = match args.format {
+                FORMAT_AUTO => (
+                    DecompressEngine::Auto {
+                        engine: None,
+                        header_buf: Vec::new(),
+                        memlimit,
+                    },
+                    CHECK_UNKNOWN,
+                ),
+                FORMAT_XZ => (
+                    DecompressEngine::Xz(lzma_rust2::XzStream::new(false)),
+                    CHECK_UNKNOWN,
+                ),
+                FORMAT_ALONE => (
+                    DecompressEngine::Alone {
+                        input_buf: Vec::new(),
+                        last_pos: 0,
+                        reader: None,
+                        end_reached: false,
+                        memlimit,
+                    },
+                    CHECK_NONE,
+                ),
                 FORMAT_RAW => {
-                    let filter_specs = args.filters.unwrap(); // safe: checked above
-                    let filters = parse_filter_chain_spec(filter_specs, vm)?;
-                    let stream =
-                        Stream::new_raw_decoder(&filters).map_err(|e| catch_lzma_error(e, vm))?;
-                    LzmaStream::new(stream, CHECK_NONE, false)
+                    let filter_specs = args.filters.unwrap();
+                    let mut opts = lzma_rust2::Lzma2Options::default();
+                    apply_filter_specs_to_lzma2(&mut opts, filter_specs, vm)?;
+                    (
+                        DecompressEngine::Raw(lzma_rust2::Lzma2Stream::new(
+                            opts.lzma_options.dict_size,
+                        )),
+                        CHECK_NONE,
+                    )
                 }
                 _ => {
                     return Err(
@@ -623,8 +755,14 @@ mod _lzma {
                 }
             };
 
+            let stream = LzmaDecompressorStream {
+                engine,
+                total_in: 0,
+                check,
+            };
+
             Ok(Self {
-                state: PyMutex::new(DecompressState::new(lzma_stream, vm)),
+                state: PyMutex::new(DecompressState::new(stream, vm)),
             })
         }
     }
@@ -640,7 +778,7 @@ mod _lzma {
             state
                 .decompress(data, max_length, BUFSIZ, vm)
                 .map_err(|e| match e {
-                    DecompressError::Decompress(err) => catch_lzma_error(err, vm),
+                    DecompressError::Decompress(err) => new_lzma_error(err, vm),
                     DecompressError::Eof(err) => err.to_pyexception(vm),
                 })
         }
@@ -666,118 +804,41 @@ mod _lzma {
         }
     }
 
-    struct CompressorInner {
-        stream: Stream,
-    }
+    #[derive(Default, Clone)]
+    struct SharedBuffer(Arc<Mutex<Vec<u8>>>);
 
-    impl CompressStatusKind for Status {
-        const EOF: Self = Status::StreamEnd;
-
-        fn to_usize(self) -> usize {
-            self as usize
+    impl Write for SharedBuffer {
+        fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+            self.0.lock().unwrap().extend_from_slice(buf);
+            Ok(buf.len())
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
         }
     }
 
-    impl CompressFlushKind for Action {
-        const NONE: Self = Action::Run;
-        const FINISH: Self = Action::Finish;
-
-        fn to_usize(self) -> usize {
-            self as usize
-        }
+    enum CompressorEngine {
+        Xz(lzma_rust2::XzWriter<SharedBuffer>),
+        Alone(lzma_rust2::LzmaWriter<SharedBuffer>),
+        Raw(lzma_rust2::Lzma2Writer<SharedBuffer>),
     }
 
-    impl Compressor for CompressorInner {
-        type Status = Status;
-        type Flush = Action;
-        const CHUNKSIZE: usize = u32::MAX as usize;
-        const DEF_BUF_SIZE: usize = 16 * 1024;
-
-        fn compress_vec(
-            &mut self,
-            input: &[u8],
-            output: &mut Vec<u8>,
-            flush: Self::Flush,
-            vm: &VirtualMachine,
-        ) -> PyResult<Self::Status> {
-            self.stream
-                .process_vec(input, output, flush)
-                .map_err(|e| catch_lzma_error(e, vm))
-        }
-
-        fn total_in(&mut self) -> usize {
-            self.stream.total_in() as usize
-        }
-
-        fn new_error(message: impl Into<String>, vm: &VirtualMachine) -> PyBaseExceptionRef {
-            new_lzma_error(message, vm)
-        }
-    }
-
-    impl CompressorInner {
-        fn new(stream: Stream) -> Self {
-            Self { stream }
-        }
+    struct CompressorState {
+        inner: Option<CompressorEngine>,
+        out_buf: SharedBuffer,
+        flushed: bool,
     }
 
     #[pyattr]
     #[pyclass(name = "LZMACompressor")]
     #[derive(PyPayload)]
     struct LZMACompressor {
-        state: PyMutex<CompressState<CompressorInner>>,
+        state: PyMutex<CompressorState>,
     }
 
     impl fmt::Debug for LZMACompressor {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             write!(f, "_lzma.LZMACompressor")
-        }
-    }
-
-    impl LZMACompressor {
-        fn init_xz(
-            check: i32,
-            preset: u32,
-            filters: Option<Vec<PyObjectRef>>,
-            vm: &VirtualMachine,
-        ) -> PyResult<Stream> {
-            let real_check =
-                int_to_check(check).ok_or_else(|| vm.new_value_error("Invalid check value"))?;
-            if let Some(filter_specs) = filters {
-                let filters = parse_filter_chain_spec(filter_specs, vm)?;
-                Stream::new_stream_encoder(&filters, real_check)
-                    .map_err(|e| catch_lzma_error(e, vm))
-            } else {
-                Stream::new_easy_encoder(preset, real_check).map_err(|e| catch_lzma_error(e, vm))
-            }
-        }
-
-        fn init_alone(
-            preset: u32,
-            filter_specs: Option<Vec<PyObjectRef>>,
-            vm: &VirtualMachine,
-        ) -> PyResult<Stream> {
-            if let Some(_filter_specs) = filter_specs {
-                // TODO: validate single LZMA1 filter and use its options
-                let options = LzmaOptions::new_preset(preset).map_err(|_| {
-                    new_lzma_error(format!("Invalid compression preset: {preset}"), vm)
-                })?;
-                Stream::new_lzma_encoder(&options).map_err(|e| catch_lzma_error(e, vm))
-            } else {
-                let options = LzmaOptions::new_preset(preset).map_err(|_| {
-                    new_lzma_error(format!("Invalid compression preset: {preset}"), vm)
-                })?;
-                Stream::new_lzma_encoder(&options).map_err(|e| catch_lzma_error(e, vm))
-            }
-        }
-
-        fn init_raw(
-            filter_specs: Option<Vec<PyObjectRef>>,
-            vm: &VirtualMachine,
-        ) -> PyResult<Stream> {
-            let filter_specs = filter_specs
-                .ok_or_else(|| vm.new_value_error("Must specify filters for FORMAT_RAW"))?;
-            let filters = parse_filter_chain_spec(filter_specs, vm)?;
-            Stream::new_raw_encoder(&filters).map_err(|e| catch_lzma_error(e, vm))
         }
     }
 
@@ -816,10 +877,42 @@ mod _lzma {
                 None => PRESET_DEFAULT,
             };
 
-            let stream = match args.format {
-                FORMAT_XZ => Self::init_xz(args.check, preset, args.filters, vm)?,
-                FORMAT_ALONE => Self::init_alone(preset, args.filters, vm)?,
-                FORMAT_RAW => Self::init_raw(args.filters, vm)?,
+            let shared_buf = SharedBuffer::default();
+
+            let inner = match args.format {
+                FORMAT_XZ => {
+                    let mut opts = lzma_rust2::XzOptions::with_preset(preset & 0x1F);
+                    if args.check != -1 {
+                        let check_type = int_to_check(args.check)
+                            .ok_or_else(|| vm.new_value_error("Invalid check value"))?;
+                        opts.set_check_sum_type(check_type);
+                    }
+                    if let Some(filter_specs) = args.filters {
+                        apply_filter_specs_to_xz(&mut opts, filter_specs, vm)?;
+                    }
+                    CompressorEngine::Xz(
+                        lzma_rust2::XzWriter::new(shared_buf.clone(), opts)
+                            .map_err(|e| new_lzma_error(e.to_string(), vm))?,
+                    )
+                }
+                FORMAT_ALONE => {
+                    let mut opts = lzma_rust2::LzmaOptions::with_preset(preset & 0x1F);
+                    if let Some(filter_specs) = args.filters {
+                        apply_filter_specs_to_lzma(&mut opts, filter_specs, vm)?;
+                    }
+                    CompressorEngine::Alone(
+                        lzma_rust2::LzmaWriter::new(shared_buf.clone(), &opts, true, true, None)
+                            .map_err(|e| new_lzma_error(e.to_string(), vm))?,
+                    )
+                }
+                FORMAT_RAW => {
+                    let filter_specs = args
+                        .filters
+                        .ok_or_else(|| vm.new_value_error("Must specify filters for FORMAT_RAW"))?;
+                    let mut opts = lzma_rust2::Lzma2Options::with_preset(preset & 0x1F);
+                    apply_filter_specs_to_lzma2(&mut opts, filter_specs, vm)?;
+                    CompressorEngine::Raw(lzma_rust2::Lzma2Writer::new(shared_buf.clone(), opts))
+                }
                 _ => {
                     return Err(
                         vm.new_value_error(format!("Invalid container format: {}", args.format))
@@ -828,7 +921,11 @@ mod _lzma {
             };
 
             Ok(Self {
-                state: PyMutex::new(CompressState::new(CompressorInner::new(stream))),
+                state: PyMutex::new(CompressorState {
+                    inner: Some(inner),
+                    out_buf: shared_buf,
+                    flushed: false,
+                }),
             })
         }
     }
@@ -838,13 +935,56 @@ mod _lzma {
         #[pymethod]
         fn compress(&self, data: ArgBytesLike, vm: &VirtualMachine) -> PyResult<Vec<u8>> {
             let mut state = self.state.lock();
-            state.compress(&data.borrow_buf(), vm)
+            if state.flushed {
+                return Err(vm.new_value_error("Compressor has been flushed"));
+            }
+            let inner = state
+                .inner
+                .as_mut()
+                .ok_or_else(|| new_lzma_error("Compressor is closed", vm))?;
+            data.with_ref(|buf| -> PyResult<()> {
+                match inner {
+                    CompressorEngine::Xz(w) => {
+                        w.write_all(buf)
+                            .map_err(|e| new_lzma_error(e.to_string(), vm))?;
+                    }
+                    CompressorEngine::Alone(w) => {
+                        w.write_all(buf)
+                            .map_err(|e| new_lzma_error(e.to_string(), vm))?;
+                    }
+                    CompressorEngine::Raw(w) => {
+                        w.write_all(buf)
+                            .map_err(|e| new_lzma_error(e.to_string(), vm))?;
+                    }
+                }
+                Ok(())
+            })?;
+            let mut guard = state.out_buf.0.lock().unwrap();
+            Ok(core::mem::take(&mut *guard))
         }
 
         #[pymethod]
         fn flush(&self, vm: &VirtualMachine) -> PyResult<Vec<u8>> {
             let mut state = self.state.lock();
-            state.flush(Action::Finish, vm)
+            if state.flushed {
+                return Err(vm.new_value_error("Repeated call to flush()"));
+            }
+            state.flushed = true;
+            if let Some(inner) = state.inner.take() {
+                match inner {
+                    CompressorEngine::Xz(w) => {
+                        w.finish().map_err(|e| new_lzma_error(e.to_string(), vm))?;
+                    }
+                    CompressorEngine::Alone(w) => {
+                        w.finish().map_err(|e| new_lzma_error(e.to_string(), vm))?;
+                    }
+                    CompressorEngine::Raw(w) => {
+                        w.finish().map_err(|e| new_lzma_error(e.to_string(), vm))?;
+                    }
+                }
+            }
+            let mut guard = state.out_buf.0.lock().unwrap();
+            Ok(core::mem::take(&mut *guard))
         }
     }
 }
