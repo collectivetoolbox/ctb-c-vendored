@@ -101,9 +101,11 @@ handle_static_init(int argc, char **argv, char **env)
 	void (*fn)(int, char **, char **);
 	size_t array_size, n;
 
-	if (&_DYNAMIC != NULL)
-		return;
-
+	/*
+	 * Because crt1.o / Scrt1.o in the minimal sysroot are compiled without
+	 * ignore_init_note.S (NT_FREEBSD_NOINIT_TAG), rtld-elf delegates main
+	 * executable .preinit_array / _init / .init_array execution to crt1.
+	 */
 	atexit(finalizer);
 
 	array_size = __preinit_array_end - __preinit_array_start;
