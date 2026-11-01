@@ -8,7 +8,10 @@
 
 //! Defines the Group trait to specify the underlying prime order group
 
+#[cfg(feature = "elliptic-curve")]
 mod elliptic_curve;
+#[cfg(feature = "ristretto255")]
+pub(crate) mod expand_msg_xmd;
 #[cfg(feature = "ristretto255")]
 mod ristretto;
 

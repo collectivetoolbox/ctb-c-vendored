@@ -61,6 +61,7 @@ features = [
     "sec1",
     "voprf",
 ]
+optional = true
 
 [dependencies.generic-array]
 version = "0.14"
@@ -95,30 +96,6 @@ features = ["more_lengths"]
 [dev-dependencies.hex]
 version = "0.4"
 
-[dev-dependencies.p256]
-version = "0.13"
-features = [
-    "hash2curve",
-    "voprf",
-]
-default-features = false
-
-[dev-dependencies.p384]
-version = "0.13"
-features = [
-    "hash2curve",
-    "voprf",
-]
-default-features = false
-
-[dev-dependencies.p521]
-version = "0.13.3"
-features = [
-    "hash2curve",
-    "voprf",
-]
-default-features = false
-
 [dev-dependencies.proptest]
 version = "1"
 
@@ -141,6 +118,7 @@ default = [
     "ristretto255-ciphersuite",
     "dep:serde",
 ]
+elliptic-curve = ["dep:elliptic-curve"]
 ristretto255 = [
     "dep:curve25519-dalek",
     "generic-array/more_lengths",

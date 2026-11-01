@@ -425,10 +425,6 @@ mod tests {
 
     #[test]
     fn test_functionality() -> Result<()> {
-        use p256::NistP256;
-        use p384::NistP384;
-        use p521::NistP521;
-
         #[cfg(feature = "ristretto255")]
         {
             use crate::Ristretto255;
@@ -441,26 +437,33 @@ mod tests {
             zeroize_oprf_server::<Ristretto255>();
         }
 
-        base_retrieval::<NistP256>();
-        base_inversion_unsalted::<NistP256>();
-        server_evaluate::<NistP256>();
+        #[cfg(feature = "elliptic-curve")]
+        {
+            use p256::NistP256;
+            use p384::NistP384;
+            use p521::NistP521;
 
-        zeroize_oprf_client::<NistP256>();
-        zeroize_oprf_server::<NistP256>();
+            base_retrieval::<NistP256>();
+            base_inversion_unsalted::<NistP256>();
+            server_evaluate::<NistP256>();
 
-        base_retrieval::<NistP384>();
-        base_inversion_unsalted::<NistP384>();
-        server_evaluate::<NistP384>();
+            zeroize_oprf_client::<NistP256>();
+            zeroize_oprf_server::<NistP256>();
 
-        zeroize_oprf_client::<NistP384>();
-        zeroize_oprf_server::<NistP384>();
+            base_retrieval::<NistP384>();
+            base_inversion_unsalted::<NistP384>();
+            server_evaluate::<NistP384>();
 
-        base_retrieval::<NistP521>();
-        base_inversion_unsalted::<NistP521>();
-        server_evaluate::<NistP521>();
+            zeroize_oprf_client::<NistP384>();
+            zeroize_oprf_server::<NistP384>();
 
-        zeroize_oprf_client::<NistP521>();
-        zeroize_oprf_server::<NistP521>();
+            base_retrieval::<NistP521>();
+            base_inversion_unsalted::<NistP521>();
+            server_evaluate::<NistP521>();
+
+            zeroize_oprf_client::<NistP521>();
+            zeroize_oprf_server::<NistP521>();
+        }
 
         Ok(())
     }

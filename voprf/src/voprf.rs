@@ -834,10 +834,6 @@ mod tests {
 
     #[test]
     fn test_functionality() -> Result<()> {
-        use p256::NistP256;
-        use p384::NistP384;
-        use p521::NistP521;
-
         #[cfg(feature = "ristretto255")]
         {
             use crate::Ristretto255;
@@ -852,32 +848,39 @@ mod tests {
             zeroize_voprf_server::<Ristretto255>();
         }
 
-        verifiable_retrieval::<NistP256>();
-        verifiable_batch_retrieval::<NistP256>();
-        verifiable_bad_public_key::<NistP256>();
-        verifiable_batch_bad_public_key::<NistP256>();
-        verifiable_server_evaluate::<NistP256>();
+        #[cfg(feature = "elliptic-curve")]
+        {
+            use p256::NistP256;
+            use p384::NistP384;
+            use p521::NistP521;
 
-        zeroize_voprf_client::<NistP256>();
-        zeroize_voprf_server::<NistP256>();
+            verifiable_retrieval::<NistP256>();
+            verifiable_batch_retrieval::<NistP256>();
+            verifiable_bad_public_key::<NistP256>();
+            verifiable_batch_bad_public_key::<NistP256>();
+            verifiable_server_evaluate::<NistP256>();
 
-        verifiable_retrieval::<NistP384>();
-        verifiable_batch_retrieval::<NistP384>();
-        verifiable_bad_public_key::<NistP384>();
-        verifiable_batch_bad_public_key::<NistP384>();
-        verifiable_server_evaluate::<NistP384>();
+            zeroize_voprf_client::<NistP256>();
+            zeroize_voprf_server::<NistP256>();
 
-        zeroize_voprf_client::<NistP384>();
-        zeroize_voprf_server::<NistP384>();
+            verifiable_retrieval::<NistP384>();
+            verifiable_batch_retrieval::<NistP384>();
+            verifiable_bad_public_key::<NistP384>();
+            verifiable_batch_bad_public_key::<NistP384>();
+            verifiable_server_evaluate::<NistP384>();
 
-        verifiable_retrieval::<NistP521>();
-        verifiable_batch_retrieval::<NistP521>();
-        verifiable_bad_public_key::<NistP521>();
-        verifiable_batch_bad_public_key::<NistP521>();
-        verifiable_server_evaluate::<NistP521>();
+            zeroize_voprf_client::<NistP384>();
+            zeroize_voprf_server::<NistP384>();
 
-        zeroize_voprf_client::<NistP521>();
-        zeroize_voprf_server::<NistP521>();
+            verifiable_retrieval::<NistP521>();
+            verifiable_batch_retrieval::<NistP521>();
+            verifiable_bad_public_key::<NistP521>();
+            verifiable_batch_bad_public_key::<NistP521>();
+            verifiable_server_evaluate::<NistP521>();
+
+            zeroize_voprf_client::<NistP521>();
+            zeroize_voprf_server::<NistP521>();
+        }
 
         Ok(())
     }

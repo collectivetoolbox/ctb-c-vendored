@@ -10,6 +10,7 @@
 
 use digest::core_api::BlockSizeUser;
 use digest::{FixedOutput, HashMarker, OutputSizeUser};
+#[cfg(feature = "elliptic-curve")]
 use elliptic_curve::VoprfParameters;
 use generic_array::typenum::{IsLess, IsLessOrEqual, U256};
 
@@ -34,6 +35,7 @@ where
     type Hash: BlockSizeUser + Default + FixedOutput + HashMarker;
 }
 
+#[cfg(feature = "elliptic-curve")]
 impl<T: VoprfParameters> CipherSuite for T
 where
     T: Group,
