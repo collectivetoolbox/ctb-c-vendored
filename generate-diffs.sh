@@ -18,6 +18,7 @@ packages=(
   "undici"
   "v86"
   "seabios"
+  "voprf"
   "warcat"
   "wayland-scanner"
   "winit"
