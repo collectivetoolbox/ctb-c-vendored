@@ -61,7 +61,7 @@ tracing = "0.1.40"
 url = "2.5.2"
 uuid = { version = "1.10.0", features = ["v7"] }
 xxhash-rust = { version = "0.8.12", features = ["std", "xxh3"] }
-zstd = { version = "0.13.2", optional = true }
+zstd = { version = "0.14.3", optional = true }
 
 [dev-dependencies]
 anyhow = "1.0.86"

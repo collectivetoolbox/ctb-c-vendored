@@ -48,7 +48,6 @@ default = [
     "mmap",
     "stopwords",
     "lz4-compression",
-    "columnar-zstd-compression",
     "stemmer",
 ]
 failpoints = [
@@ -394,7 +393,7 @@ features = [
 ]
 
 [dependencies.zstd]
-version = "0.13"
+version = "0.14.3"
 optional = true
 default-features = false
 
