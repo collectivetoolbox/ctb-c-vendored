@@ -13,6 +13,7 @@ packages=(
   "softbuffer"
   "tantivy"
   "tiny-xlib"
+  "tinywasm"
   "turso_sdk_kit"
 #  "TypeScript" - see generate-typescript-diff.sh - separate file due to long time to generate
   "undici"
