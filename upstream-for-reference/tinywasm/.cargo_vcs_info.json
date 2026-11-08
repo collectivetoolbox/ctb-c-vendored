@@ -1,6 +1,0 @@
-{
-  "git": {
-    "sha1": "d2064b9b7a8b65bdd27d5f368f17f5f1258550a0"
-  },
-  "path_in_vcs": "crates/tinywasm"
-}
