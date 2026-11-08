@@ -1,6 +1,6 @@
 use crate::log;
 use crate::{Error, Result, Trap};
-use alloc::{format, vec, vec::Vec};
+use alloc::{vec, vec::Vec};
 use tinywasm_types::*;
 
 const MAX_TABLE_SIZE: u32 = 10_000_000;
@@ -12,50 +12,12 @@ const MAX_TABLE_SIZE: u32 = 10_000_000;
 pub(crate) struct TableInstance {
     pub(crate) elements: Vec<TableElement>,
     pub(crate) kind: TableType,
-    pub(crate) host_max_elements: Option<usize>,
     pub(crate) _owner: ModuleInstanceAddr, // index into store.module_instances
 }
 
 impl TableInstance {
-    #[allow(dead_code)]
     pub(crate) fn new(kind: TableType, owner: ModuleInstanceAddr) -> Self {
-        Self::new_with_host_max(kind, owner, None).expect("initial table elements exceed maximum")
-    }
-
-    pub(crate) fn new_with_host_max(
-        kind: TableType,
-        owner: ModuleInstanceAddr,
-        host_max_elements: Option<usize>,
-    ) -> Result<Self> {
-        let declared_max = kind.size_max.unwrap_or(MAX_TABLE_SIZE) as usize;
-        let effective_max = match host_max_elements {
-            Some(host_max) => core::cmp::min(declared_max, host_max),
-            None => declared_max,
-        };
-        if (kind.size_initial as usize) > effective_max {
-            return Err(Error::Other(format!(
-                "initial table element count {} exceeds maximum allowed elements {}",
-                kind.size_initial, effective_max
-            )));
-        }
-        Ok(Self {
-            elements: vec![TableElement::Uninitialized; kind.size_initial as usize],
-            kind,
-            host_max_elements,
-            _owner: owner,
-        })
-    }
-
-    pub(crate) fn max_elements(&self) -> usize {
-        let declared_max = self.kind.size_max.unwrap_or(MAX_TABLE_SIZE) as usize;
-        match self.host_max_elements {
-            Some(host_max) => core::cmp::min(declared_max, host_max),
-            None => declared_max,
-        }
-    }
-
-    pub(crate) fn set_host_max_elements(&mut self, host_max_elements: Option<usize>) {
-        self.host_max_elements = host_max_elements;
+        Self { elements: vec![TableElement::Uninitialized; kind.size_initial as usize], kind, _owner: owner }
     }
 
     #[inline(never)]
@@ -147,14 +109,8 @@ impl TableInstance {
             return Err(Error::Trap(crate::Trap::TableOutOfBounds { offset: 0, len: 1, max: self.elements.len() }));
         }
 
-        let Some(len) = self.elements.len().checked_add(n as usize) else {
-            return Err(Error::Trap(crate::Trap::TableOutOfBounds {
-                offset: usize::MAX,
-                len: 1,
-                max: self.elements.len(),
-            }));
-        };
-        let max = self.max_elements();
+        let len = n as usize + self.elements.len();
+        let max = self.kind.size_max.unwrap_or(MAX_TABLE_SIZE) as usize;
         if len > max {
             return Err(Error::Trap(crate::Trap::TableOutOfBounds { offset: len, len: 1, max: self.elements.len() }));
         }

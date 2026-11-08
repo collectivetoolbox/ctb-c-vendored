@@ -18,7 +18,6 @@ pub(crate) struct MemoryInstance {
     pub(crate) data: Vec<u8>,
     pub(crate) page_count: usize,
     pub(crate) host_max_pages: Option<usize>,
-    pub(crate) static_data_end: usize,
     pub(crate) _owner: ModuleInstanceAddr, // index into store.module_instances
 }
 
@@ -51,7 +50,6 @@ impl MemoryInstance {
             data: vec![0; PAGE_SIZE * kind.page_count_initial as usize],
             page_count: kind.page_count_initial as usize,
             host_max_pages,
-            static_data_end: 0,
             _owner: owner,
         })
     }

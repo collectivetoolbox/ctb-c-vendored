@@ -36,7 +36,6 @@ pub struct Store {
     pub(crate) fuel_remaining: Option<u64>,
     pub(crate) fuel_consumed: u64,
     pub(crate) max_memory_pages: Option<usize>,
-    pub(crate) max_table_elements: Option<usize>,
 }
 
 impl Debug for Store {
@@ -49,7 +48,6 @@ impl Debug for Store {
             .field("fuel_remaining", &self.fuel_remaining)
             .field("fuel_consumed", &self.fuel_consumed)
             .field("max_memory_pages", &self.max_memory_pages)
-            .field("max_table_elements", &self.max_table_elements)
             .finish()
     }
 }
@@ -85,7 +83,7 @@ impl Store {
         self.fuel_consumed = 0;
     }
 
-    /// Set the host-enforced maximum number of 64 KiB pages across linear memory instances (`None` for unlimited).
+    /// Set the host-enforced maximum number of 64 KiB pages per linear memory instance (`None` for unlimited).
     pub fn set_max_memory_pages(&mut self, max_pages: Option<usize>) {
         self.max_memory_pages = max_pages;
         for mem in &mut self.data.memories {
@@ -93,105 +91,9 @@ impl Store {
         }
     }
 
-    /// Get the host-enforced maximum number of 64 KiB pages across linear memory instances.
+    /// Get the host-enforced maximum number of 64 KiB pages per linear memory instance.
     pub fn max_memory_pages(&self) -> Option<usize> {
         self.max_memory_pages
-    }
-
-    /// Get the total number of 64 KiB pages currently allocated across all linear memory instances in this store.
-    pub fn total_memory_pages(&self) -> usize {
-        self.data.memories.iter().fold(0usize, |acc, m| acc.saturating_add(m.page_count))
-    }
-
-    /// Set the host-enforced maximum number of table elements across table instances (`None` for unlimited).
-    pub fn set_max_table_elements(&mut self, max_elements: Option<usize>) {
-        self.max_table_elements = max_elements;
-        for table in &mut self.data.tables {
-            table.set_host_max_elements(max_elements);
-        }
-    }
-
-    /// Get the host-enforced maximum number of table elements across table instances.
-    pub fn max_table_elements(&self) -> Option<usize> {
-        self.max_table_elements
-    }
-
-    /// Get the total number of elements currently allocated across all table instances in this store.
-    pub fn total_table_elements(&self) -> usize {
-        self.data.tables.iter().fold(0usize, |acc, t| acc.saturating_add(t.elements.len()))
-    }
-
-    /// Get the number of linear memory instances in this store.
-    pub fn memory_count(&self) -> usize {
-        self.data.memories.len()
-    }
-
-    /// Get the current page count of a store memory by store index.
-    pub fn memory_pages(&self, index: usize) -> Option<usize> {
-        self.data.memories.get(index).map(|m| m.page_count)
-    }
-
-    /// Get the effective maximum page count of a store memory by store index.
-    pub fn memory_max_pages(&self, index: usize) -> Option<usize> {
-        let mem = self.data.memories.get(index)?;
-        let other_pages = self.total_memory_pages().saturating_sub(mem.page_count);
-        let mem_max = mem.max_pages();
-        Some(match self.max_memory_pages {
-            Some(store_max) => core::cmp::min(mem_max, store_max.saturating_sub(other_pages)),
-            None => mem_max,
-        })
-    }
-
-    /// Grow a store memory by store index, enforcing both per-memory and store-wide page limits.
-    pub fn grow_memory_by_index(&mut self, index: usize, delta_pages: i32) -> Option<i32> {
-        if delta_pages < 0 {
-            return None;
-        }
-        let total_pages = self.total_memory_pages();
-        if let Some(max_total) = self.max_memory_pages {
-            if total_pages.checked_add(delta_pages as usize)? > max_total {
-                return None;
-            }
-        }
-        self.data.memories.get_mut(index)?.grow(delta_pages)
-    }
-
-    /// Get the number of table instances in this store.
-    pub fn table_count(&self) -> usize {
-        self.data.tables.len()
-    }
-
-    /// Get the current element count of a store table by store index.
-    pub fn table_size(&self, index: usize) -> Option<usize> {
-        self.data.tables.get(index).map(|t| t.elements.len())
-    }
-
-    /// Get the effective maximum element count of a store table by store index.
-    pub fn table_max_elements(&self, index: usize) -> Option<usize> {
-        let table = self.data.tables.get(index)?;
-        let other_elems = self.total_table_elements().saturating_sub(table.elements.len());
-        let table_max = table.max_elements();
-        Some(match self.max_table_elements {
-            Some(store_max) => core::cmp::min(table_max, store_max.saturating_sub(other_elems)),
-            None => table_max,
-        })
-    }
-
-    /// Grow a store table by store index with uninitialized elements, enforcing per-table and store-wide limits.
-    pub fn grow_table_by_index(&mut self, index: usize, delta_elements: i32) -> Option<i32> {
-        if delta_elements < 0 {
-            return None;
-        }
-        let total_elems = self.total_table_elements();
-        if let Some(max_total) = self.max_table_elements {
-            if total_elems.checked_add(delta_elements as usize)? > max_total {
-                return None;
-            }
-        }
-        let table = self.data.tables.get_mut(index)?;
-        let prev = table.size();
-        table.grow(delta_elements, TableElement::Uninitialized).ok()?;
-        Some(prev)
     }
 
     /// Get a module instance by the internal id
@@ -228,7 +130,6 @@ impl Default for Store {
             fuel_remaining: None,
             fuel_consumed: 0,
             max_memory_pages: None,
-            max_table_elements: None,
         }
     }
 }
@@ -378,10 +279,7 @@ impl Store {
         let table_count = self.data.tables.len();
         let mut table_addrs = Vec::with_capacity(table_count);
         for (i, table) in tables.into_iter().enumerate() {
-            let remaining_max = self.max_table_elements.map(|max| max.saturating_sub(self.total_table_elements()));
-            let mut inst = TableInstance::new_with_host_max(table, idx, remaining_max)?;
-            inst.set_host_max_elements(self.max_table_elements);
-            self.data.tables.push(inst);
+            self.data.tables.push(TableInstance::new(table, idx));
             table_addrs.push((i + table_count) as TableAddr);
         }
         Ok(table_addrs)
@@ -395,10 +293,9 @@ impl Store {
             if let MemoryArch::I64 = mem.arch {
                 return Err(Error::UnsupportedFeature("64-bit memories".to_string()));
             }
-            let remaining_max = self.max_memory_pages.map(|max| max.saturating_sub(self.total_memory_pages()));
-            let mut inst = MemoryInstance::new_with_host_max(mem, idx, remaining_max)?;
-            inst.set_host_max_pages(self.max_memory_pages);
-            self.data.memories.push(inst);
+            self.data
+                .memories
+                .push(MemoryInstance::new_with_host_max(mem, idx, self.max_memory_pages)?);
             mem_addrs.push((i + mem_count) as MemAddr);
         }
         Ok(mem_addrs)
@@ -530,13 +427,7 @@ impl Store {
                     };
 
                     match mem.store(offset as usize, data.data.len(), &data.data) {
-                        Ok(()) => {
-                            let end = (offset as usize).saturating_add(data.data.len());
-                            if end > mem.static_data_end {
-                                mem.static_data_end = end;
-                            }
-                            None
-                        }
+                        Ok(()) => None,
                         Err(Error::Trap(trap)) => return Ok((data_addrs.into_boxed_slice(), Some(trap))),
                         Err(e) => return Err(e),
                     }
@@ -558,10 +449,7 @@ impl Store {
     }
 
     pub(crate) fn add_table(&mut self, table: TableType, idx: ModuleInstanceAddr) -> Result<TableAddr> {
-        let remaining_max = self.max_table_elements.map(|max| max.saturating_sub(self.total_table_elements()));
-        let mut inst = TableInstance::new_with_host_max(table, idx, remaining_max)?;
-        inst.set_host_max_elements(self.max_table_elements);
-        self.data.tables.push(inst);
+        self.data.tables.push(TableInstance::new(table, idx));
         Ok(self.data.tables.len() as TableAddr - 1)
     }
 
@@ -569,10 +457,9 @@ impl Store {
         if let MemoryArch::I64 = mem.arch {
             return Err(Error::UnsupportedFeature("64-bit memories".to_string()));
         }
-        let remaining_max = self.max_memory_pages.map(|max| max.saturating_sub(self.total_memory_pages()));
-        let mut inst = MemoryInstance::new_with_host_max(mem, idx, remaining_max)?;
-        inst.set_host_max_pages(self.max_memory_pages);
-        self.data.memories.push(inst);
+        self.data
+            .memories
+            .push(MemoryInstance::new_with_host_max(mem, idx, self.max_memory_pages)?);
         Ok(self.data.memories.len() as MemAddr - 1)
     }
 
