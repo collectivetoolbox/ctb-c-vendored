@@ -220,6 +220,18 @@ impl ModuleInstance {
         Ok(MemoryRefMut(mem))
     }
 
+    /// Read an exported `i32` global by name, if present and of type `i32`.
+    pub fn exported_global_i32(&self, store: &Store, name: &str) -> Option<i32> {
+        let ExternVal::Global(addr) = self.export_addr(name)? else {
+            return None;
+        };
+        let global = store.data.globals.get(addr as usize)?;
+        if global.ty.ty != ValType::I32 {
+            return None;
+        }
+        Some(global.value.get().unwrap_32() as i32)
+    }
+
     /// Get the start function of the module
     ///
     /// Returns None if the module has no start function
@@ -261,6 +273,21 @@ impl ModuleInstance {
         };
 
         let _ = func.call(store, &[])?;
+        Ok(Some(()))
+    }
+
+    /// Invoke the WebAssembly `start` section function (`module.start_func`) if declared.
+    pub fn run_wasm_start_section(&self, store: &mut Store) -> Result<Option<()>> {
+        if self.0.store_id != store.id() {
+            return Err(Error::InvalidStore);
+        }
+        let Some(func_index) = self.0.func_start else {
+            return Ok(None);
+        };
+        let func_addr = self.resolve_func_addr(func_index);
+        let ty = store.get_func(func_addr).func.ty().clone();
+        let handle = FuncHandle { module_addr: self.id(), addr: func_addr, ty, name: None };
+        let _ = handle.call(store, &[])?;
         Ok(Some(()))
     }
 }

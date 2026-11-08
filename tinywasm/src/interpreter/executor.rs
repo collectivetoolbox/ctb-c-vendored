@@ -525,9 +525,24 @@ impl<'store, 'stack> Executor<'store, 'stack> {
         self.stack.values.push::<i32>(mem.page_count as i32);
     }
     fn exec_memory_grow(&mut self, addr: u32) {
+        let pages_delta = self.stack.values.pop::<i32>();
+        if pages_delta < 0 {
+            self.stack.values.push::<i32>(-1);
+            return;
+        }
+        let total_pages = self.store.total_memory_pages();
+        if let Some(max_total) = self.store.max_memory_pages {
+            let Some(new_total) = total_pages.checked_add(pages_delta as usize) else {
+                self.stack.values.push::<i32>(-1);
+                return;
+            };
+            if new_total > max_total {
+                self.stack.values.push::<i32>(-1);
+                return;
+            }
+        }
         let mem = self.store.get_mem_mut(self.module.resolve_mem_addr(addr));
         let prev_size = mem.page_count as i32;
-        let pages_delta = self.stack.values.pop::<i32>();
         self.stack.values.push::<i32>(match mem.grow(pages_delta) {
             Some(_) => prev_size,
             None => -1,
@@ -714,11 +729,25 @@ impl<'store, 'stack> Executor<'store, 'stack> {
         table.init(dst, &items[offset as usize..(offset + size) as usize])
     }
     fn exec_table_grow(&mut self, table_index: u32) -> Result<()> {
-        let table = self.store.get_table_mut(self.module.resolve_table_addr(table_index));
-        let sz = table.size();
-
         let n = self.stack.values.pop::<i32>();
         let val = self.stack.values.pop::<ValueRef>();
+        if n < 0 {
+            self.stack.values.push(-1_i32);
+            return Ok(());
+        }
+        let total_elems = self.store.total_table_elements();
+        if let Some(max_total) = self.store.max_table_elements {
+            let Some(new_total) = total_elems.checked_add(n as usize) else {
+                self.stack.values.push(-1_i32);
+                return Ok(());
+            };
+            if new_total > max_total {
+                self.stack.values.push(-1_i32);
+                return Ok(());
+            }
+        }
+        let table = self.store.get_table_mut(self.module.resolve_table_addr(table_index));
+        let sz = table.size();
 
         match table.grow(n, val.into()) {
             Ok(_) => self.stack.values.push(sz),

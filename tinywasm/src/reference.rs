@@ -50,6 +50,11 @@ impl MemoryRef<'_> {
     pub fn max_pages(&self) -> usize {
         self.0.max_pages()
     }
+
+    /// Get the end byte offset of all active static data segments initialized into this memory
+    pub fn static_data_end(&self) -> usize {
+        self.0.static_data_end
+    }
 }
 
 impl MemoryRefMut<'_> {
@@ -76,6 +81,11 @@ impl MemoryRefMut<'_> {
     /// Get the effective maximum size of the memory in pages
     pub fn max_pages(&self) -> usize {
         self.0.max_pages()
+    }
+
+    /// Get the end byte offset of all active static data segments initialized into this memory
+    pub fn static_data_end(&self) -> usize {
+        self.0.static_data_end
     }
 
     /// Set the host-configured maximum size of the memory in pages
