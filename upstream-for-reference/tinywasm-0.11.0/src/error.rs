@@ -1,0 +1,386 @@
+use alloc::boxed::Box;
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
+use core::fmt::{Debug, Display};
+use tinywasm_types::FuncType;
+use tinywasm_types::archive::TwasmError;
+
+use crate::{ExnRef, WasmValue};
+
+#[cfg(feature = "parser")]
+pub use tinywasm_parser::ParseError;
+
+/// Errors that can occur for `TinyWasm` operations
+#[non_exhaustive]
+pub enum Error {
+    /// A WebAssembly trap occurred
+    Trap(Trap),
+
+    /// An uncaught WebAssembly exception occurred.
+    Exception(ExnRef),
+
+    /// A linking error occurred
+    Linker(LinkingError),
+
+    /// A WebAssembly feature is not supported
+    UnsupportedFeature(&'static str),
+
+    /// An unknown error occurred
+    Other(String),
+
+    /// A host function returned an invalid value
+    InvalidHostFnReturn {
+        /// The expected type
+        expected: Box<FuncType>,
+        /// The actual value
+        actual: Vec<WasmValue>,
+    },
+
+    /// An invalid label type was encountered
+    InvalidLabelType,
+
+    #[cfg(feature = "std")]
+    /// An I/O error occurred
+    Io(crate::std::io::Error),
+
+    #[cfg(feature = "parser")]
+    /// A parsing error occurred
+    Parser(ParseError),
+
+    /// A serialization error occurred
+    Twasm(TwasmError),
+}
+
+impl PartialEq for Error {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Trap(a), Self::Trap(b)) => a == b,
+            (Self::Exception(a), Self::Exception(b)) => a == b,
+            (Self::Linker(a), Self::Linker(b)) => a == b,
+            (Self::UnsupportedFeature(a), Self::UnsupportedFeature(b)) => a == b,
+            (Self::Other(a), Self::Other(b)) => a == b,
+            #[cfg(feature = "std")]
+            (Self::Io(a), Self::Io(b)) => a.kind() == b.kind(),
+            #[cfg(feature = "parser")]
+            (Self::Parser(a), Self::Parser(b)) => a == b,
+            (Self::Twasm(a), Self::Twasm(b)) => a == b,
+            _ => false,
+        }
+    }
+}
+
+/// Errors that can occur when linking a WebAssembly module
+#[non_exhaustive]
+#[cfg_attr(feature = "debug", derive(Debug))]
+#[derive(PartialEq, Eq)]
+pub enum LinkingError {
+    /// An unknown import was encountered
+    UnknownImport {
+        /// The module name
+        module: String,
+        /// The import name
+        name: String,
+    },
+
+    /// A mismatched import type was encountered
+    IncompatibleImportType {
+        /// The module name
+        module: String,
+        /// The import name
+        name: String,
+    },
+}
+
+impl LinkingError {
+    pub(crate) fn incompatible_import_type(import: &tinywasm_types::Import) -> Self {
+        Self::IncompatibleImportType { module: import.module.to_string(), name: import.name.to_string() }
+    }
+
+    pub(crate) fn unknown_import(import: &tinywasm_types::Import) -> Self {
+        Self::UnknownImport { module: import.module.to_string(), name: import.name.to_string() }
+    }
+}
+
+impl Error {
+    pub(crate) fn other(message: impl Into<String>) -> Self {
+        Self::Other(message.into())
+    }
+}
+
+/// An execution or runtime trap.
+///
+/// This includes WebAssembly traps and TinyWasm runtime failures.
+///
+/// See <https://webassembly.github.io/spec/core/exec/runtime.html#syntax-trap>
+#[non_exhaustive]
+#[cfg_attr(feature = "debug", derive(Debug))]
+pub enum Trap {
+    /// An unreachable instruction was executed
+    Unreachable,
+
+    /// A host function returned an error
+    HostFunction(Box<dyn core::error::Error + Send + Sync>),
+
+    /// An out-of-bounds memory access occurred
+    MemoryOutOfBounds {
+        /// The offset of the access
+        offset: usize,
+        /// The size of the access
+        len: usize,
+        /// The current memory length in bytes.
+        max: usize,
+    },
+
+    /// An out-of-bounds table access occurred
+    TableOutOfBounds {
+        /// The offset of the access
+        offset: usize,
+        /// The size of the access
+        len: usize,
+        /// The current table length in elements.
+        max: usize,
+    },
+
+    /// An out-of-bounds GC array access occurred.
+    ArrayOutOfBounds,
+
+    /// A division by zero occurred
+    DivisionByZero,
+
+    /// Invalid Integer Conversion
+    InvalidConversionToInt,
+
+    /// A Store-owned handle or reference was used with a different Store.
+    InvalidStore,
+
+    /// A reference does not identify a live value of the expected kind.
+    InvalidReference,
+
+    /// Integer Overflow
+    IntegerOverflow,
+
+    /// Call stack overflow
+    CallStackOverflow,
+
+    /// Value stack overflow
+    ValueStackOverflow,
+
+    /// An allocation or requested resource size could not be satisfied.
+    OutOfMemory,
+
+    /// An undefined element was encountered
+    UndefinedElement {
+        /// The element index
+        index: usize,
+    },
+
+    /// An uninitialized element was encountered
+    UninitializedElement {
+        /// The element index
+        index: usize,
+    },
+
+    /// A null reference was used where a non-null reference was required.
+    NullReference,
+
+    /// A null struct reference was dereferenced.
+    NullStructReference,
+
+    /// A null array reference was dereferenced.
+    NullArrayReference,
+
+    /// A null function reference was called.
+    NullFunctionReference,
+
+    /// A null i31 reference was unwrapped.
+    NullI31Reference,
+
+    /// A reference cast failed.
+    CastFailure,
+
+    /// Indirect call type mismatch
+    IndirectCallTypeMismatch {
+        /// The expected type
+        expected: Box<FuncType>,
+        /// The actual type
+        actual: Box<FuncType>,
+    },
+
+    /// Catch-all for other messages
+    Other(&'static str),
+}
+
+impl Trap {
+    /// Get the message of the trap
+    pub fn message(&self) -> &'static str {
+        match self {
+            Self::Unreachable => "unreachable",
+            Self::MemoryOutOfBounds { .. } => "out of bounds memory access",
+            Self::TableOutOfBounds { .. } => "out of bounds table access",
+            Self::ArrayOutOfBounds => "out of bounds array access",
+            Self::DivisionByZero => "integer divide by zero",
+            Self::InvalidConversionToInt => "invalid conversion to integer",
+            Self::IntegerOverflow => "integer overflow",
+            Self::CallStackOverflow => "call stack exhausted",
+            Self::ValueStackOverflow => "value stack exhausted",
+            Self::OutOfMemory => "out of memory",
+            Self::UndefinedElement { .. } => "undefined element",
+            Self::UninitializedElement { .. } => "uninitialized element",
+            Self::NullReference => "null reference",
+            Self::NullStructReference => "null structure reference",
+            Self::NullArrayReference => "null array reference",
+            Self::NullFunctionReference => "null function reference",
+            Self::NullI31Reference => "null i31 reference",
+            Self::CastFailure => "cast failure",
+            Self::IndirectCallTypeMismatch { .. } => "indirect call type mismatch",
+            Self::HostFunction(_) => "host function trap",
+            Self::InvalidStore => "invalid store",
+            Self::InvalidReference => "invalid reference",
+            Self::Other(message) => message,
+        }
+    }
+}
+
+impl PartialEq for Trap {
+    fn eq(&self, other: &Self) -> bool {
+        self.message() == other.message()
+    }
+}
+
+impl LinkingError {
+    /// Get the message of the linking error
+    pub fn message(&self) -> &'static str {
+        match self {
+            Self::UnknownImport { .. } => "unknown import",
+            Self::IncompatibleImportType { .. } => "incompatible import type",
+        }
+    }
+}
+
+impl From<LinkingError> for Error {
+    #[cold]
+    fn from(value: LinkingError) -> Self {
+        Self::Linker(value)
+    }
+}
+
+impl From<TwasmError> for Error {
+    #[cold]
+    fn from(value: TwasmError) -> Self {
+        Self::Twasm(value)
+    }
+}
+
+impl From<Trap> for Error {
+    #[cold]
+    fn from(value: Trap) -> Self {
+        Self::Trap(value)
+    }
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            #[cfg(feature = "parser")]
+            Self::Parser(err) => write!(f, "error parsing module: {err:?}"),
+
+            #[cfg(feature = "std")]
+            Self::Io(err) => write!(f, "I/O error: {err}"),
+
+            Self::Twasm(err) => write!(f, "serialization error: {err}"),
+            Self::Trap(trap) => write!(f, "trap: {trap}"),
+            Self::Exception(_) => write!(f, "uncaught WebAssembly exception"),
+            Self::Linker(err) => write!(f, "linking error: {err}"),
+            Self::InvalidLabelType => write!(f, "invalid label type"),
+            Self::Other(message) => write!(f, "unknown error: {message}"),
+            Self::UnsupportedFeature(feature) => write!(f, "unsupported feature: {feature}"),
+            #[cfg(feature = "debug")]
+            Self::InvalidHostFnReturn { expected, actual } => {
+                write!(f, "invalid host function return: expected={expected:?}, actual={actual:?}")
+            }
+            #[cfg(not(feature = "debug"))]
+            Self::InvalidHostFnReturn { .. } => write!(f, "invalid host function return"),
+        }
+    }
+}
+
+impl Display for LinkingError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::UnknownImport { module, name } => write!(f, "unknown import: {module}.{name}"),
+            Self::IncompatibleImportType { module, name } => {
+                write!(f, "incompatible import type: {module}.{name}")
+            }
+        }
+    }
+}
+
+impl Display for Trap {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::Other(message) => write!(f, "{message}"),
+            Self::HostFunction(message) => write!(f, "host function trap: {message}"),
+            Self::Unreachable => write!(f, "unreachable"),
+            Self::MemoryOutOfBounds { offset, len, max } => {
+                write!(f, "out of bounds memory access: offset={offset}, len={len}, max={max}")
+            }
+            Self::TableOutOfBounds { offset, len, max } => {
+                write!(f, "out of bounds table access: offset={offset}, len={len}, max={max}")
+            }
+            Self::ArrayOutOfBounds => write!(f, "out of bounds array access"),
+            Self::DivisionByZero => write!(f, "integer divide by zero"),
+            Self::InvalidConversionToInt => write!(f, "invalid conversion to integer"),
+            Self::IntegerOverflow => write!(f, "integer overflow"),
+            Self::CallStackOverflow => write!(f, "call stack exhausted"),
+            Self::ValueStackOverflow => write!(f, "value stack exhausted"),
+            Self::OutOfMemory => write!(f, "out of memory"),
+            Self::UndefinedElement { index } => write!(f, "undefined element: index={index}"),
+            Self::UninitializedElement { index } => {
+                write!(f, "uninitialized element: index={index}")
+            }
+            Self::NullReference => write!(f, "null reference"),
+            Self::NullStructReference => write!(f, "null structure reference"),
+            Self::NullArrayReference => write!(f, "null array reference"),
+            Self::NullFunctionReference => write!(f, "null function reference"),
+            Self::NullI31Reference => write!(f, "null i31 reference"),
+            Self::CastFailure => write!(f, "cast failure"),
+            Self::InvalidStore => write!(f, "invalid store"),
+            Self::InvalidReference => write!(f, "invalid reference"),
+            #[cfg(feature = "debug")]
+            Self::IndirectCallTypeMismatch { expected, actual } => {
+                write!(f, "indirect call type mismatch: expected={expected:?}, actual={actual:?}")
+            }
+            #[cfg(not(feature = "debug"))]
+            Self::IndirectCallTypeMismatch { .. } => write!(f, "indirect call type mismatch"),
+        }
+    }
+}
+
+impl Debug for Error {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{}", self)
+    }
+}
+
+impl core::error::Error for Error {}
+
+#[cfg(feature = "std")]
+impl From<Error> for crate::std::io::Error {
+    fn from(value: Error) -> Self {
+        match value {
+            Error::Io(err) => err,
+            other => Self::other(other.to_string()),
+        }
+    }
+}
+
+#[cfg(feature = "parser")]
+impl From<tinywasm_parser::ParseError> for Error {
+    #[cold]
+    fn from(value: tinywasm_parser::ParseError) -> Self {
+        Self::Parser(value)
+    }
+}
+
+/// A wrapper around [`core::result::Result`] for tinywasm operations
+pub type Result<T, E = Error> = crate::std::result::Result<T, E>;

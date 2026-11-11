@@ -1,0 +1,154 @@
+use tinywasm_types::ModuleInstanceId;
+
+use crate::{Error, FromWasmValues, FuncRef, Function, FunctionTyped, IntoWasmValues, Result, WasmValue};
+
+/// The context of a host-function call
+#[cfg_attr(feature = "debug", derive(core::fmt::Debug))]
+pub struct FuncContext<'a> {
+    pub(crate) store: &'a mut crate::Store,
+    pub(crate) module_id: ModuleInstanceId,
+}
+
+impl FuncContext<'_> {
+    /// Get the store.
+    pub fn store(&self) -> &crate::Store {
+        self.store
+    }
+
+    /// Get mutable access to the store.
+    pub fn store_mut(&mut self) -> &mut crate::Store {
+        self.store
+    }
+
+    /// Get the module instance.
+    pub fn module(&self) -> &crate::ModuleInstance {
+        self.store.get_module_instance(self.module_id).expect("invalid module instance id in host function context")
+    }
+
+    /// Get a memory export.
+    pub fn memory(&self, name: &str) -> Result<crate::Memory> {
+        self.module().memory(name)
+    }
+
+    /// Get any exported extern value by name.
+    pub fn extern_item(&self, name: &str) -> Result<crate::ExternItem> {
+        self.module().extern_item(name)
+    }
+
+    /// Get a table export.
+    pub fn table(&self, name: &str) -> Result<crate::Table> {
+        self.module().table(name)
+    }
+
+    /// Get the value of a global export.
+    pub fn global_get(&mut self, name: &str) -> Result<WasmValue> {
+        self.module().clone().global_get(self.store, name)
+    }
+
+    /// Get a global export.
+    pub fn global(&self, name: &str) -> Result<crate::Global> {
+        self.module().global(name)
+    }
+
+    /// Set the value of a mutable global export.
+    pub fn global_set(&mut self, name: &str, value: WasmValue) -> Result<()> {
+        self.module().clone().global_set(self.store, name, value)
+    }
+
+    /// Charge additional fuel from the currently running resumable invocation.
+    ///
+    /// This is a no-op when the current invocation is not using fuel-based
+    /// resumption.
+    pub fn charge_fuel(&mut self, fuel: u32) {
+        self.store.execution_fuel = self.store.execution_fuel.saturating_sub(fuel);
+    }
+
+    /// Get remaining fuel for the current invocation.
+    ///
+    /// Returns `0` when fuel-based resumption is not active.
+    pub fn remaining_fuel(&self) -> u32 {
+        self.store.execution_fuel
+    }
+
+    /// Call a function from within the current host-function invocation.
+    ///
+    /// This is the safe way for host functions to perform blocking reentrant
+    /// calls into Wasm. Unlike [`Function::call`], it preserves the active
+    /// invocation's stacks and resumes the host caller after the nested call
+    /// completes.
+    ///
+    /// Nested calls are currently blocking only. If the surrounding invocation
+    /// is resumed with fuel or a time budget, this method does not suspend and
+    /// later continue the host function in the middle of the nested call.
+    pub fn call_untyped(&mut self, func: &Function, args: &[WasmValue], results: &mut [WasmValue]) -> Result<()> {
+        if !self.store.execution_active {
+            return Err(Error::other("FuncContext::call requires an active host-function invocation"));
+        }
+
+        let type_addr = func.validate_call(self.store, args, results.len())?;
+
+        let call_stack_base = self.store.call_stack.len();
+        let value_stack_base = self.store.value_stack.base();
+        self.with_reentrant_call(|store| {
+            func.call_untyped(store, type_addr, args, results, call_stack_base, value_stack_base)
+        })
+    }
+
+    /// Calls a Store-aware function reference in the current module context.
+    pub fn call_ref(&mut self, func: FuncRef, args: &[WasmValue], results: &mut [WasmValue]) -> Result<()> {
+        let addr = func.addr(self.store.id()).ok_or(crate::Trap::InvalidStore)?;
+        if !self.store.state.funcs.contains(addr) {
+            return Err(crate::Trap::InvalidReference.into());
+        }
+        let function = Function { item: crate::StoreItem::new(self.store.id(), addr), module_id: self.module_id };
+        self.call_untyped(&function, args, results)
+    }
+
+    /// Call a typed function from within the current host-function invocation.
+    ///
+    /// See [`Self::call_untyped`] for reentrancy and resumable-execution
+    /// limitations.
+    pub fn call<P, R>(&mut self, func: &FunctionTyped<P, R>, params: P) -> Result<R>
+    where
+        P: IntoWasmValues,
+        R: FromWasmValues,
+    {
+        if !self.store.execution_active {
+            return Err(Error::other("FuncContext::call requires an active host-function invocation"));
+        }
+        func.func.item.validate_store(self.store)?;
+        let call_stack_base = self.store.call_stack.len();
+        let value_stack_base = self.store.value_stack.base();
+        self.with_reentrant_call(|store| {
+            func.func.call_typed(store, params.into_wasm_values(), call_stack_base, value_stack_base)
+        })
+    }
+
+    fn with_reentrant_call<R>(&mut self, call: impl FnOnce(&mut crate::Store) -> Result<R>) -> Result<R> {
+        // Each nested executor keeps its current frame on the native stack,
+        // outside CallStack, even when the Wasm function has no params or locals.
+        let config = self.store.engine.config().call_stack;
+        let limit = if config.dynamic { config.max_size } else { config.initial_size };
+        if self.store.reentrant_call_depth >= limit {
+            return Err(crate::Trap::CallStackOverflow.into());
+        }
+        self.store.reentrant_call_depth += 1;
+        let result = call(self.store);
+        self.store.reentrant_call_depth -= 1;
+        result
+    }
+}
+
+impl core::ops::Deref for FuncContext<'_> {
+    type Target = crate::Store;
+
+    fn deref(&self) -> &Self::Target {
+        self.store
+    }
+}
+
+impl core::ops::DerefMut for FuncContext<'_> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.store
+    }
+}
