@@ -12,6 +12,7 @@ packages=(
   "smithay-clipboard"
   "softbuffer"
   "tantivy"
+  "tinywasm"
   "tiny-xlib"
   "turso_sdk_kit"
 #  "TypeScript" - see generate-typescript-diff.sh - separate file due to long time to generate
