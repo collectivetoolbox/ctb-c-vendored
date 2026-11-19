@@ -1,7 +1,7 @@
 //! WARC headers
 use std::io::Write;
 
-use chrono::Utc;
+use jiff::Timestamp;
 
 use crate::{
     error::{ParseError, ProtocolError, ProtocolErrorKind},
@@ -43,7 +43,7 @@ impl WarcHeader {
         let mut header = WarcHeader::empty();
         header.version = "WARC/1.1".to_string();
         let uuid = uuid::Uuid::now_v7();
-        let date_now = Utc::now();
+        let date_now = Timestamp::now();
 
         header
             .fields
@@ -53,7 +53,7 @@ impl WarcHeader {
             .insert("WARC-Type".to_string(), warc_type.into());
         header
             .fields
-            .insert("WARC-Date".to_string(), date_now.to_rfc3339());
+            .insert("WARC-Date".to_string(), date_now.to_string());
         header.set_content_length(content_length);
 
         header

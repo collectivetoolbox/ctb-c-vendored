@@ -1,6 +1,6 @@
 use std::{collections::HashMap, net::IpAddr, str::FromStr};
 
-use chrono::{DateTime, FixedOffset};
+use jiff::Timestamp;
 use url::Url;
 
 use crate::error::ParseError;
@@ -16,7 +16,7 @@ pub trait FieldsExt {
 
     /// Parse a ISO8601 field.
     fn get_date<N: AsRef<str>>(&self, name: N)
-        -> Option<Result<DateTime<FixedOffset>, ParseError>>;
+        -> Option<Result<Timestamp, ParseError>>;
 
     /// Returns whether the value is delimitated by `<` and `>`.
     fn is_formatted_bad_spec_url<N: AsRef<str>>(&self, name: N) -> bool;
@@ -80,9 +80,9 @@ impl FieldsExt for WarcFields {
     fn get_date<N: AsRef<str>>(
         &self,
         name: N,
-    ) -> Option<Result<DateTime<FixedOffset>, ParseError>> {
+    ) -> Option<Result<Timestamp, ParseError>> {
         self.get(name.as_ref())
-            .map(|value| DateTime::parse_from_rfc3339(value).map_err(|error| error.into()))
+            .map(|value| value.parse::<Timestamp>().map_err(|error| error.into()))
     }
 
     fn is_formatted_bad_spec_url<N: AsRef<str>>(&self, name: N) -> bool {

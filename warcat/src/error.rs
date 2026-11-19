@@ -224,8 +224,8 @@ impl From<Utf8Error> for ParseError {
     }
 }
 
-impl From<chrono::ParseError> for ParseError {
-    fn from(value: chrono::ParseError) -> Self {
+impl From<jiff::Error> for ParseError {
+    fn from(value: jiff::Error) -> Self {
         ParseError::new(ParseErrorKind::Syntax).with_source(value)
     }
 }
