@@ -28,6 +28,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::net::{IpAddr, SocketAddr, TcpStream};
+#[cfg(unix)]
 use std::os::unix::net::UnixStream;
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -50,6 +51,7 @@ pub trait Streamable: Send + Sync + Read + Write {}
 
 impl Streamable for File {}
 impl Streamable for TcpStream {}
+#[cfg(unix)]
 impl Streamable for UnixStream {}
 
 pub struct Stream {
@@ -1308,6 +1310,7 @@ fn open_tcp<'a>(host: SocketAddr) -> Result<Display, Error> {
     ))
 }
 
+#[cfg(unix)]
 fn open_unix<'a>(path: String) -> Result<Display, Error> {
     let unix_stream = UnixStream::connect(path).map_err(|_| Error::Stream)?;
 
@@ -1321,6 +1324,11 @@ fn open_unix<'a>(path: String) -> Result<Display, Error> {
         )),
         Arc::new(Mutex::new(unix_stream)),
     ))
+}
+
+#[cfg(not(unix))]
+fn open_unix<'a>(_path: String) -> Result<Display, Error> {
+    Err(Error::Stream)
 }
 
 /// Open a connection to the x11 server that controls a display.
