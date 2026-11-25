@@ -345,6 +345,7 @@ impl<EguiApp: App, InitSurface: FnMut(Context) -> EguiApp> ApplicationHandler<Us
             },
             Self::WindowInitialized(state) => match state.create_surface() {
                 Ok(ss) => {
+                    ss.request_redraw();
                     *self = Self::Running(ss);
                 }
                 Err(e) => {
@@ -509,6 +510,7 @@ impl<EguiApp: App, EguiAppFactory: FnMut(Context) -> EguiApp>
                 // Make the window visible after the adapter is ready.
                 let visible = self.config.viewport_builder.visible.unwrap_or(true);
                 self.window.set_visible(visible);
+                self.window.request_redraw();
 
                 self.accesskit_initialized = true;
             }
